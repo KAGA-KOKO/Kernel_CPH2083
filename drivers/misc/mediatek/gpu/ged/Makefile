@@ -14,7 +14,7 @@
 GED_TOP = $(srctree)/drivers/misc/mediatek/gpu/ged
 MTK_TOP = $(srctree)/drivers/misc/mediatek/
 
-VER:=eng
+VER:=user
 
 #ccflags-y += -DGED_KPI_DEBUG
 ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6759" "mt6799" "mt6763" "mt6739" "mt6758" "mt6775" "mt6771" "mt6765" "mt6761" "mt3967" "mt6779"))
@@ -58,14 +58,9 @@ ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6765"))
 endif
 
 
-ifneq ($(strip $(TARGET_BUILD_VARIANT)),)
-ifneq ($(strip $(TARGET_BUILD_VARIANT)),eng)
-VER:=user
 ifeq ($(CONFIG_EXTREME_LOW_RAM), y)
 ccflags-y += -DGED_LOG_SIZE_LIMITED
 ccflags-y += -DGED_BUFFER_LOG_DISABLE
-endif
-endif
 endif
 
 ccflags-y += -DMET_USER_EVENT_SUPPORT
