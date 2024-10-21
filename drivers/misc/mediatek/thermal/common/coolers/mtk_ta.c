@@ -316,7 +316,7 @@ static void ta_nl_send_to_user(int pid, int seq, struct tad_nl_msg_t *reply_msg)
 
 	ret = netlink_unicast(daemo_nl_sk, skb, pid, MSG_DONTWAIT);
 	if (ret < 0)
-		pr_notice("[ta_nl_send_to_user] send failed %d\n", ret);
+		pr_debug("[ta_nl_send_to_user] send failed %d\n", ret);
 
 
 	tsta_dprintk("[ta_nl_send_to_user] netlink_unicast- ret=%d\n", ret);
