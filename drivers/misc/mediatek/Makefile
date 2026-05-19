@@ -163,6 +163,7 @@ obj-$(CONFIG_MTK_WATCHPOINT) += watchpoint/
 
 obj-$(CONFIG_TRUSTKERNEL_TEE_SUPPORT) += tkcore/
 obj-$(CONFIG_MTK_PERF_TRACKER) += perf/
+obj-$(CONFIG_MTK_FPSGO) += fpsgo_cus/
 
 #io boost
 obj-y += io_boost/
