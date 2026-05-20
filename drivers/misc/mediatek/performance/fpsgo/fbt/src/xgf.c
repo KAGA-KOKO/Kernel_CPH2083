@@ -48,12 +48,28 @@ struct render_dep render_deps[MAX_RENDER_DEPS];
 static DEFINE_SPINLOCK(render_spinlock);
 
 int (*xgf_est_slptime_fp)(
-	struct xgf_proc *proc,
-	unsigned long long *slptime,
-	struct xgf_tick *ref,
-	struct xgf_tick *now,
-	pid_t r_pid);
+        struct xgf_proc *proc,
+        unsigned long long *slptime,
+        struct xgf_tick *ref,
+        struct xgf_tick *now,
+        pid_t r_pid);
 EXPORT_SYMBOL(xgf_est_slptime_fp);
+
+int xgf_est_slptime(struct xgf_proc *proc,
+                    unsigned long long *slptime,
+                    struct xgf_tick *ref,
+                    struct xgf_tick *now,
+                    pid_t r_pid)
+{
+    if (xgf_est_slptime_fp)
+        return xgf_est_slptime_fp(proc, slptime, ref, now, r_pid);
+
+    if (slptime)
+        *slptime = 0;
+
+    return 0;
+}
+EXPORT_SYMBOL(xgf_est_slptime);
 
 static inline void xgf_lock(const char *tag)
 {

@@ -55,7 +55,7 @@
 
 #include "xgf.h"
 
-#line __LINE__ "vendor/mediatek/kernel_modules/fpsgo_cus/4.9/src/fpsgo_main.c"
+#line __LINE__ "drivers/misc/mediatek/fpsgo_cus/src/fpsgo_main.c"
 
 static void __exit fpsgo_exit(void) {}
 
