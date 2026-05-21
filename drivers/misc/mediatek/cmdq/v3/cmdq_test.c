@@ -2377,6 +2377,9 @@ static void testcase_profile_marker(void)
 #include "cmdq_sec.h"
 #include "cmdq_sec_iwc_common.h"
 #include "cmdqsectl_api.h"
+s32 cmdq_sec_submit_to_secure_world_async_unlocked(u32 iwcCommand,
+	struct cmdqRecStruct *handle, s32 thread,
+	CmdqSecFillIwcCB iwcFillCB, void *data);
 #endif
 
 void testcase_secure_basic(void)

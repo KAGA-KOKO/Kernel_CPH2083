@@ -104,9 +104,6 @@ int32_t cmdq_sec_destroy_shared_memory(
  */
 typedef int32_t(*CmdqSecFillIwcCB) (int32_t, void *, int32_t, void *, void *);
 
-int32_t cmdq_sec_submit_to_secure_world_async_unlocked(uint32_t iwcCommand,
-	struct cmdqRecStruct *pTask, int32_t thread, void *data,
-	bool throwAEE);
 
 /*
  * Entry secure world to handle secure path jobs

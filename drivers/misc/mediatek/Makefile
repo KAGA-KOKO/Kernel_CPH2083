@@ -116,6 +116,7 @@ obj-$(CONFIG_MTK_MLOG) += mlog/
 obj-$(CONFIG_MTK_CACHE_CONTROL) += cache-auditor/
 obj-y += cameraisp/
 obj-$(CONFIG_MTK_CMDQ) += cmdq/
+obj-$(CONFIG_MTK_CMDQ) += mdp/
 obj-$(CONFIG_MTK_CMDQ_TAB) += cmdq/
 obj-$(CONFIG_MTK_CQDMA) += cqdma/
 obj-$(CONFIG_MTK_LCM) += lcm/

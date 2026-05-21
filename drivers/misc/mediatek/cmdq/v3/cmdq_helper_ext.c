@@ -12,7 +12,6 @@
  */
 
 #include <linux/kernel.h>
-#include <linux/memblock.h>
 #include <linux/memory.h>
 #include <linux/workqueue.h>
 #include <linux/dma-mapping.h>
@@ -93,141 +92,6 @@ static bool cmdq_delay_thd_inited;
 #endif
 
 /* CMDQ core feature functions */
-
-static bool cmdq_core_check_gpr_valid(const u32 gpr, const bool val)
-{
-	if (val)
-		switch (gpr) {
-		case CMDQ_DATA_REG_JPEG:
-		case CMDQ_DATA_REG_PQ_COLOR:
-		case CMDQ_DATA_REG_2D_SHARPNESS_0:
-		case CMDQ_DATA_REG_2D_SHARPNESS_1:
-		case CMDQ_DATA_REG_DEBUG:
-			return true;
-		default:
-			return false;
-		}
-	else
-		switch (gpr >> 16) {
-		case CMDQ_DATA_REG_JPEG_DST:
-		case CMDQ_DATA_REG_PQ_COLOR_DST:
-		case CMDQ_DATA_REG_2D_SHARPNESS_0:
-		case CMDQ_DATA_REG_2D_SHARPNESS_0_DST:
-		case CMDQ_DATA_REG_2D_SHARPNESS_1_DST:
-		case CMDQ_DATA_REG_DEBUG_DST:
-			return true;
-		default:
-			return false;
-		}
-	return false;
-}
-
-static bool cmdq_core_check_dma_addr_valid(const unsigned long pa)
-{
-	struct WriteAddrStruct *waddr = NULL;
-	unsigned long flags = 0L;
-	phys_addr_t start = memblock_start_of_DRAM();
-	bool ret = false;
-
-	spin_lock_irqsave(&cmdq_write_addr_lock, flags);
-	list_for_each_entry(waddr, &cmdq_ctx.writeAddrList, list_node)
-		if (pa < start || pa - (unsigned long)waddr->pa <
-			waddr->count << 2) {
-			ret = true;
-			break;
-		}
-	spin_unlock_irqrestore(&cmdq_write_addr_lock, flags);
-	return ret;
-}
-
-static bool cmdq_core_check_instr_valid(const u64 instr)
-{
-	u32 op = instr >> 56, option = (instr >> 53) & 0x7;
-	u32 argA = (instr >> 32) & 0x1FFFFF, argB = instr & 0xFFFFFFFF;
-#ifdef CMDQ_MDP_ENABLE_SPR
-	u32 sOP = argA >> 16, argA_i = argA & 0xFFFF;
-	u32 argB_i = argB >> 16, argC_i = argB & 0xFFFF;
-#endif
-
-	switch (op) {
-	case CMDQ_CODE_WRITE:
-		if (!option)
-			return true;
-		if (option == 0x4 && cmdq_core_check_gpr_valid(argA, false))
-			return true;
-	case CMDQ_CODE_READ:
-		if (option == 0x2 && cmdq_core_check_gpr_valid(argB, true))
-			return true;
-		if (option == 0x6 && cmdq_core_check_gpr_valid(argA, false) &&
-			cmdq_core_check_gpr_valid(argB, true))
-			return true;
-		break;
-	case CMDQ_CODE_MOVE:
-		if (!option && !argA)
-			return true;
-		if (option == 0x4 && cmdq_core_check_gpr_valid(argA, false) &&
-			cmdq_core_check_dma_addr_valid(argB))
-			return true;
-		break;
-	case CMDQ_CODE_JUMP:
-		if (!argA && argB == 0x8)
-			return true;
-		break;
-#ifdef CMDQ_MDP_ENABLE_SPR
-	case CMDQ_CODE_READ_S:
-		if (option == 0x4 && argA_i == 1 && !argC_i)
-			return true;
-		break;
-	case CMDQ_CODE_WRITE_S:
-	case CMDQ_CODE_WRITE_S_W_MASK:
-		if (!option)
-			return true;
-		if (option == 0x2 && (!argB_i || argB_i == 1) && !argC_i)
-			return true;
-		break;
-	case CMDQ_CODE_LOGIC:
-		if (option == 0x4 && !sOP && !argA_i && !argB_i)
-			return true;
-		break;
-#else
-	case CMDQ_CODE_READ_S:
-	case CMDQ_CODE_WRITE_S:
-	case CMDQ_CODE_WRITE_S_W_MASK:
-	case CMDQ_CODE_LOGIC:
-		break;
-#endif
-	case CMDQ_CODE_JUMP_C_ABSOLUTE:
-	case CMDQ_CODE_JUMP_C_RELATIVE:
-		break;
-	default:
-		return true;
-	}
-	CMDQ_ERR("instr:%#llx\n", instr);
-	return false;
-}
-
-bool cmdq_core_check_pkt_valid(struct cmdq_pkt *pkt)
-{
-	struct cmdq_pkt_buffer *buf = NULL;
-	s32 size = CMDQ_CMD_BUFFER_SIZE;
-	u64 *va;
-	bool ret = true;
-
-	list_for_each_entry(buf, &pkt->buf, list_entry) {
-		if (list_is_last(&buf->list_entry, &pkt->buf))
-			size -= pkt->avail_buf_size;
-
-		for (va = (u64 *)buf->va_base; ret &&
-			(va + 1) < (u64 *)(buf->va_base + size); va++)
-			ret &= cmdq_core_check_instr_valid(*va);
-
-		if (ret && (*va >> 56) != CMDQ_CODE_JUMP)
-			ret &= cmdq_core_check_instr_valid(*va);
-		if (!ret)
-			break;
-	}
-	return ret;
-}
 
 static void cmdq_core_config_prefetch_gsize(void)
 {
@@ -1327,7 +1191,7 @@ struct cmdqSecSharedMemoryStruct *cmdq_core_get_secure_shared_memory(void)
 }
 
 static void cmdq_core_dump_thread(const struct cmdqRecStruct *handle,
-	s32 thread, bool dump_irq, const char *tag, bool *run)
+	s32 thread, bool dump_irq, const char *tag)
 {
 	u32 value[15] = { 0 };
 
@@ -1386,11 +1250,6 @@ static void cmdq_core_dump_thread(const struct cmdqRecStruct *handle,
 	/* if pc match end and irq flag on, dump irq status */
 	if (dump_irq && value[0] == value[1] && value[2] == 1)
 		mt_irq_dump_status(cmdq_dev_get_irq_id());
-
-	/* enable:1 status:1 pc and end and pc in first inst => running */
-	if (run && value[8] && value[6] == 1 && value[0] && value[1] &&
-		!(value[0] & 0xFFF))
-		*run = true;
 }
 
 void cmdq_core_dump_trigger_loop_thread(const char *tag)
@@ -1407,8 +1266,8 @@ void cmdq_core_dump_trigger_loop_thread(const char *tag)
 			CMDQ_SCENARIO_TRIGGER_LOOP &&
 			i != static_id)
 			continue;
-		cmdq_core_dump_thread(NULL, i, false, tag, NULL);
-		cmdq_core_dump_pc(NULL, i, tag, NULL);
+		cmdq_core_dump_thread(NULL, i, false, tag);
+		cmdq_core_dump_pc(NULL, i, tag);
 		val = cmdqCoreGetEvent(evt_rdma);
 		CMDQ_LOG("[%s]CMDQ_EVENT_DISP_RDMA0_EOF is %d\n", tag, val);
 		break;
@@ -2016,7 +1875,7 @@ static void cmdq_delay_thread_deinit(void)
 
 void cmdq_delay_dump_thread(bool dump_sram)
 {
-	cmdq_core_dump_thread(NULL, CMDQ_DELAY_THREAD_ID, false, "INFO", NULL);
+	cmdq_core_dump_thread(NULL, CMDQ_DELAY_THREAD_ID, false, "INFO");
 	CMDQ_LOG(
 		"==Delay Thread Task, size:%u started:%d pa:%pa va:0x%p sram:%u\n",
 		cmdq_delay_thd_cmd.buffer_size, cmdq_delay_thd_started,
@@ -2563,7 +2422,7 @@ const char *cmdq_core_parse_subsys_from_reg_addr(u32 reg_addr)
 s32 cmdq_core_subsys_from_phys_addr(u32 physAddr)
 {
 	s32 msb;
-	s32 subsysID = -1;
+	s32 subsysID = CMDQ_SPECIAL_SUBSYS_ADDR;
 	u32 i;
 
 	for (i = 0; i < CMDQ_SUBSYS_MAX_COUNT; i++) {
@@ -2577,23 +2436,6 @@ s32 cmdq_core_subsys_from_phys_addr(u32 physAddr)
 		}
 	}
 
-	if (subsysID == -1 && cmdq_adds_subsys.subsysID > 0) {
-		msb = physAddr & cmdq_adds_subsys.mask;
-		if (msb == cmdq_adds_subsys.msb)
-			subsysID = cmdq_adds_subsys.subsysID;
-	}
-
-	if (subsysID == -1) {
-		/* if not supported physAddr is GCE base address,
-		 * then tread as special address
-		 */
-		msb = physAddr & GCE_BASE_PA;
-		if (msb == GCE_BASE_PA)
-			subsysID = CMDQ_SPECIAL_SUBSYS_ADDR;
-		else
-			CMDQ_ERR("unrecognized subsys, physAddr:0x%08x\n",
-				physAddr);
-	}
 	return subsysID;
 }
 
@@ -3229,66 +3071,31 @@ static void cmdq_core_dump_handle_with_engine_flag(
 #endif
 }
 
-#ifdef CMDQ_SECURE_PATH_SUPPORT
-#include "cmdq_sec.h"
-#include "cmdqsectl_api.h"
-static atomic_t cmdq_sec_dbg_ctrl = ATOMIC_INIT(0);
-#endif
-
-static void cmdq_core_dump_dbg(void)
-{
-#ifdef CMDQ_SECURE_PATH_SUPPORT
-	u32 dbg0[3], dbg2[6], i;
-
-	if (atomic_cmpxchg(&cmdq_sec_dbg_ctrl, 0, 1) == 0) {
-		s32 status;
-
-		status = cmdq_sec_submit_to_secure_world_async_unlocked(
-			CMD_CMDQ_TL_DBG, NULL, CMDQ_INVALID_THREAD, NULL, NULL);
-		if (status < 0) {
-			/* entry cmdqSecTL failed */
-			CMDQ_ERR("CMD_CMDQ_TL_DBG failed status:%d\n",
-				status);
-		}
-	}
-
-	/* debug select */
-	for (i = 0; i < 6; i++) {
-		if (i < 3) {
-			CMDQ_REG_SET32(GCE_DBG_CTL, (i << 8) | i);
-			dbg0[i] = CMDQ_REG_GET32(GCE_DBG0);
-		} else {
-			/* only other part */
-			CMDQ_REG_SET32(GCE_DBG_CTL, i << 8);
-		}
-		dbg2[i] = CMDQ_REG_GET32(GCE_DBG2);
-	}
-
-	CMDQ_LOG("[INFO]dbg0:%#x %#x %#x dbg2:%#x %#x %#x %#x %#x %#x\n",
-		dbg0[0], dbg0[1], dbg0[2],
-		dbg2[0], dbg2[1], dbg2[2], dbg2[3], dbg2[4], dbg2[5]);
-#endif
-}
-
 static void cmdq_core_dump_status(const char *tag)
 {
 	s32 coreExecThread = CMDQ_INVALID_THREAD;
-	u32 value[4] = { 0 };
+	u32 value[6] = { 0 };
 
 	value[0] = CMDQ_REG_GET32(CMDQ_CURR_LOADED_THR);
 	value[1] = CMDQ_REG_GET32(CMDQ_THR_EXEC_CYCLES);
 	value[2] = CMDQ_REG_GET32(CMDQ_THR_TIMEOUT_TIMER);
-	value[3] = CMDQ_REG_GET32(CMDQ_CURR_IRQ_STATUS);
+	value[3] = CMDQ_REG_GET32(CMDQ_BUS_CONTROL_TYPE);
+	value[4] = CMDQ_REG_GET32(CMDQ_CURR_IRQ_STATUS);
 
 	/* this returns (1 + index of least bit set) or 0 if input is 0. */
 	coreExecThread = __builtin_ffs(value[0]) - 1;
 
 	CMDQ_LOG(
 		"[%s]IRQ:0x%08x Execing:%d Thread:%d CURR_LOADED_THR:0x%08x THR_EXEC_CYCLES:0x%08x\n",
-		tag, value[3], (0x80000000 & value[0]) ? 1 : 0,
+		tag, value[4], (0x80000000 & value[0]) ? 1 : 0,
 		 coreExecThread, value[0], value[1]);
-
-	cmdq_core_dump_dbg();
+	CMDQ_LOG(
+		"[%s]THR_TIMER:0x%x BUS_CTRL:0x%x DEBUG:0x%x 0x%x 0x%x 0x%x\n",
+		tag, value[2], value[3],
+		CMDQ_REG_GET32((GCE_BASE_VA + 0xF0)),
+		CMDQ_REG_GET32((GCE_BASE_VA + 0xF4)),
+		CMDQ_REG_GET32((GCE_BASE_VA + 0xF8)),
+		CMDQ_REG_GET32((GCE_BASE_VA + 0xFC)));
 }
 
 void cmdq_core_dump_handle_buffer(const struct cmdq_pkt *pkt,
@@ -3340,7 +3147,7 @@ static void cmdq_core_dump_handle(const struct cmdqRecStruct *handle,
 }
 
 u32 *cmdq_core_dump_pc(const struct cmdqRecStruct *handle,
-	int thread, const char *tag, bool *reset)
+	int thread, const char *tag)
 {
 	u32 *pcVA = NULL;
 	u32 insts[2] = { 0 };
@@ -3383,21 +3190,11 @@ u32 *cmdq_core_dump_pc(const struct cmdqRecStruct *handle,
 				tag, thread, pcVA, &curr_pc,
 				insts[0], insts[1],
 				parsedInstruction, regValue);
-			if (reset && regValue == 1)
-				*reset = true;
 		} else {
 			CMDQ_LOG(
 				"[%s]Thread %d PC:0x%p(%pa), 0x%08x:0x%08x => %s",
 				tag, thread, pcVA, &curr_pc,
 				insts[0], insts[1], parsedInstruction);
-			if (reset) {
-				struct cmdq_pkt_buffer *buf;
-
-				buf = list_first_entry(&handle->pkt->buf,
-					typeof(*buf), list_entry);
-				if (curr_pc == buf->pa_base)
-					*reset = true;
-			}
 		}
 	} else {
 		CMDQ_LOG("[%s]Thread %d PC:%s\n", tag, thread,
@@ -3415,11 +3212,11 @@ static void cmdq_core_dump_error_handle(const struct cmdqRecStruct *handle,
 	u32 *hwPC = NULL;
 	u64 printEngineFlag = 0;
 
-	cmdq_core_dump_thread(handle, thread, true, "ERR", NULL);
+	cmdq_core_dump_thread(handle, thread, true, "ERR");
 
 	if (handle) {
 		CMDQ_ERR("============ [CMDQ] Error Thread PC ============\n");
-		hwPC = cmdq_core_dump_pc(handle, thread, "ERR", NULL);
+		hwPC = cmdq_core_dump_pc(handle, thread, "ERR");
 
 		CMDQ_ERR("========= [CMDQ] Error Task Status =========\n");
 		cmdq_core_dump_handle(handle, "ERR");
@@ -4353,10 +4150,6 @@ s32 cmdq_core_suspend(void)
 		kill_task = true;
 	}
 
-#ifdef CMDQ_SECURE_PATH_SUPPORT
-	atomic_set(&cmdq_sec_dbg_ctrl, 0);
-#endif
-
 	/* TODO:
 	 * We need to ensure the system is ready to suspend,
 	 * so kill all running CMDQ tasks
@@ -5091,7 +4884,6 @@ s32 cmdq_pkt_wait_flush_ex_result(struct cmdqRecStruct *handle)
 	s32 status = 0;
 	u32 count = 0;
 	const struct cmdq_controller *ctrl = handle->ctrl;
-	bool reset, run;
 
 	CMDQ_PROF_MMP(cmdq_mmp_get_event()->wait_task,
 		MMPROFILE_FLAG_PULSE, ((unsigned long)handle), handle->thread);
@@ -5123,33 +4915,24 @@ s32 cmdq_pkt_wait_flush_ex_result(struct cmdqRecStruct *handle)
 		if (waitq)
 			break;
 
-		/* clear reset flag */
-		reset = false;
-		run = false;
-
 		/* pre-dump */
 		CMDQ_LOG(
 			"===== SW timeout Pre-dump %d handle:0x%p pkt:0x%p thread:%d state:%d =====\n",
 			count, handle, handle->pkt, handle->thread,
 			handle->state);
 		cmdq_core_dump_status("INFO");
-		cmdq_core_dump_pc(handle, handle->thread, "INFO", &reset);
-		cmdq_core_dump_thread(handle, handle->thread, true, "INFO",
-			&run);
+		cmdq_core_dump_pc(handle, handle->thread, "INFO");
+		cmdq_core_dump_thread(handle, handle->thread, true, "INFO");
 
 		if (handle->secData.is_secure)
 			cmdq_core_dump_thread(NULL, CMDQ_SEC_IRQ_THREAD, false,
-				"INFO", NULL);
+				"INFO");
 
 		if (count == 0) {
 			cmdq_core_dump_trigger_loop_thread("INFO");
 			/* first time we dump full handle detail */
 			cmdq_core_dump_handle(handle, "INFO");
 		}
-
-		if (reset && run)
-			cmdq_mbox_thread_err_reset(
-				cmdq_clients[handle->thread]->chan);
 
 		count++;
 	} while (1);

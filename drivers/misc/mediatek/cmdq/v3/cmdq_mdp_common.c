@@ -37,6 +37,7 @@
 #endif
 
 #include "cmdq_helper_ext.h"
+#include "mdp_def_ex.h"
 
 #include <linux/kernel.h>
 #include <linux/uaccess.h>
@@ -94,20 +95,11 @@ uint32_t translatePort(uint32_t engineId)
 	case CMDQ_ENG_MDP_WROT1:
 		return SMI_PORT_MDP_WROT1_R;
 	}
-
-	if (engineId != CMDQ_ENG_MDP_CAMIN
-#ifdef SUPPORT_MDP_CAMIN2
-		&& engineId != CMDQ_ENG_MDP_CAMIN2
-#endif
-		)
-		CMDQ_ERR("pmqos invalid engineId %d\n", engineId);
+	CMDQ_ERR("pmqos invalid engineId %d\n", engineId);
 	return 0;
 }
 struct mm_qos_request *getRequest(uint32_t thread_id, uint32_t port)
 {
-	if (port == 0)
-		return NULL;
-
 	switch (port) {
 	case SMI_PORT_MDP_RDMA0:
 		return &mdp_rdma0_request[thread_id];
@@ -951,7 +943,6 @@ static s32 cmdq_mdp_consume_handle(void)
 	u32 index;
 	bool acquired = false;
 	struct CmdqCBkStruct *callback = cmdq_core_get_group_cb();
-	bool force_inorder = false;
 
 	/* operation for tasks_wait list need task mutex */
 	mutex_lock(&mdp_task_mutex);
@@ -965,23 +956,9 @@ static s32 cmdq_mdp_consume_handle(void)
 		/* operations for thread list need thread lock */
 		mutex_lock(&mdp_thread_mutex);
 
-		if (force_inorder && handle->force_inorder) {
-			mutex_unlock(&mdp_thread_mutex);
-			CMDQ_LOG(
-				"skip force inorder handle:0x%p engine:0x%llx\n",
-				handle, handle->engineFlag);
-			continue;
-		}
-
 		handle->thread = cmdq_mdp_find_free_thread(handle);
 		if (handle->thread == CMDQ_INVALID_THREAD) {
 			/* no available thread, keep wait */
-			if (handle->force_inorder) {
-				CMDQ_LOG(
-					"begin force inorder handle:0x%p engine:0x%llx\n",
-					handle, handle->engineFlag);
-				force_inorder = true;
-			}
 			mutex_unlock(&mdp_thread_mutex);
 			CMDQ_MSG(
 				"fail to get thread handle:0x%p engine:0x%llx\n",
@@ -1146,6 +1123,163 @@ static s32 cmdq_mdp_setup_sec(struct cmdqCommandStruct *desc,
 	return 0;
 }
 
+s32 cmdq_mdp_handle_create(struct cmdqRecStruct **handle_out)
+{
+	struct cmdqRecStruct *handle = NULL;
+	s32 status;
+
+	status = cmdq_task_create(CMDQ_SCENARIO_USER_MDP, &handle);
+	if (status < 0) {
+		CMDQ_ERR("%s task create fail: %d\n", __func__, status);
+		return status;
+	}
+
+	/* assign handle for mdp */
+	*handle_out = handle;
+
+	return 0;
+}
+
+s32 cmdq_mdp_handle_sec_setup(struct cmdqSecDataStruct *secData,
+			struct cmdqRecStruct *handle)
+{
+#ifdef CMDQ_SECURE_PATH_SUPPORT
+	u32 i;
+	u32 metadata_length;
+	void *p_metadatas;
+
+	if (!secData || !secData->is_secure)
+		return 0;
+
+	cmdq_task_set_secure(handle, secData->is_secure);
+	handle->secData.enginesNeedDAPC = secData->enginesNeedDAPC;
+	handle->secData.enginesNeedPortSecurity =
+		secData->enginesNeedPortSecurity;
+	handle->secData.addrMetadataCount = secData->addrMetadataCount;
+
+	/* copy isp meta */
+	handle->secData.ispMeta = secData->ispMeta;
+
+	/* clear isp buf since free in task destroy */
+	for (i = 0; i < ARRAY_SIZE(secData->ispMeta.ispBufs); i++)
+		secData->ispMeta.ispBufs[i].va = 0;
+
+	if (!handle->secData.addrMetadataCount)
+		return 0;
+
+	metadata_length = (handle->secData.addrMetadataCount) *
+		sizeof(struct cmdqSecAddrMetadataStruct);
+	/* create sec data task buffer for working */
+	p_metadatas = kzalloc(metadata_length, GFP_KERNEL);
+	if (!p_metadatas) {
+		CMDQ_AEE("CMDQ",
+			"Can't alloc secData buffer count:%d alloacted_size:%d\n",
+			 handle->secData.addrMetadataCount,
+			 metadata_length);
+		return -ENOMEM;
+	}
+	copy_from_user(p_metadatas, CMDQ_U32_PTR(secData->addrMetadatas),
+		metadata_length);
+	handle->secData.addrMetadatas =
+		(cmdqU32Ptr_t)(unsigned long)p_metadatas;
+	return 0;
+#else
+	return 0;
+#endif
+}
+
+s32 cmdq_mdp_update_sec_addr_index(struct cmdqRecStruct *handle,
+	u32 sec_handle, u32 index, u32 instr_index)
+{
+#ifdef CMDQ_SECURE_PATH_SUPPORT
+	struct cmdqSecAddrMetadataStruct *addr;
+
+	if (!handle->secData.is_secure) {
+		CMDQ_ERR("%s invalid index %d, handle no sec\n",
+			__func__, index);
+		return -EINVAL;
+	}
+	if (index >= handle->secData.addrMetadataCount) {
+		CMDQ_ERR("%s invalid index %d >= %d\n", __func__,
+			index, handle->secData.addrMetadataCount);
+		return -EINVAL;
+	}
+	addr = (struct cmdqSecAddrMetadataStruct *)
+		(unsigned long)handle->secData.addrMetadatas;
+	addr[index].instrIndex = instr_index;
+	CMDQ_MSG("%s update %x[%d] to:%d\n", __func__,
+		sec_handle, index, instr_index);
+#endif
+	return 0;
+}
+
+u32 cmdq_mdp_handle_get_instr_count(struct cmdqRecStruct *handle)
+{
+	return handle->pkt->cmd_buf_size / CMDQ_INST_SIZE;
+}
+
+void cmdq_mdp_meta_replace_sec_addr(struct op_meta *metas,
+			struct mdp_submit *user_job,
+			struct cmdqRecStruct *handle)
+{
+#if 0
+	struct iwcCmdqAddrMetadata_t *addr;
+	int i;
+
+	CMDQ_LOG("%s start:%d, %d\n", __func__,
+		user_job->secData.is_secure,
+		user_job->secData.addrMetadataCount);
+
+	if (!user_job->secData.is_secure)
+		return;
+
+	addr = (struct iwcCmdqAddrMetadata_t *)
+		(unsigned long)handle->secData.addrMetadatas;
+	for (i = 0; i < handle->secData.addrMetadataCount; i++) {
+		u32 idx = addr[i].instrIndex;
+
+		CMDQ_LOG("sec[%u](i:%u,t:%u,h:%#llx,b:%#x,o:%#x,s:%d,p:%d)\n",
+			i, addr[i].instrIndex, addr[i].type,
+			addr[i].baseHandle, addr[i].blockOffset,
+			addr[i].offset, addr[i].size, addr[i].port);
+
+		CMDQ_LOG("[M] change meta[%u] (%u, %u, %#x, %#x, %#x)\n", idx,
+			metas[idx].op, metas[idx].engine, metas[idx].offset,
+			metas[idx].value, metas[idx].mask);
+	}
+#endif
+}
+
+s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
+{
+	s32 status;
+
+	CMDQ_TRACE_FORCE_BEGIN("%s %llx\n", __func__, handle->engineFlag);
+	CMDQ_LOG("%s %llx\n", __func__, handle->engineFlag);
+
+#ifdef CMDQ_SECURE_PATH_SUPPORT
+	if (handle->secData.is_secure) {
+		/* insert backup cookie cmd */
+		cmdq_sec_insert_backup_cookie_instr(handle, handle->thread);
+	}
+#endif
+
+	/* finalize it */
+	CMDQ_LOG("%s finalize\n", __func__);
+	handle->finalized = true;
+	handle->pkt->priority = handle->priority;
+	cmdq_pkt_finalize(handle->pkt);
+
+	/* Dispatch handle to get correct thread or wait in list.
+	 * Task may flush directly if no engine conflict and no waiting task
+	 * holds same engines.
+	 */
+	CMDQ_LOG("%s flush impl\n", __func__);
+	status = cmdq_mdp_flush_async_impl(handle);
+	CMDQ_TRACE_FORCE_END();
+	return status;
+}
+
 s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	struct cmdqRecStruct **handle_out)
 {
@@ -1153,7 +1287,6 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	struct task_private *private;
 	s32 err;
 	u32 copy_size;
-	const u64 inorder_mask = 1ll << CMDQ_ENG_INORDER;
 
 	CMDQ_TRACE_FORCE_BEGIN("%s\n", __func__);
 
@@ -1163,12 +1296,9 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	handle->secStatus = NULL;
 	cmdq_mdp_setup_sec(desc, handle);
 
-	handle->engineFlag = desc->engineFlag & ~inorder_mask;
+	handle->engineFlag = desc->engineFlag;
 	handle->pkt->priority = desc->priority;
 	cmdq_mdp_store_debug(desc, handle);
-
-	if (desc->engineFlag & inorder_mask)
-		handle->force_inorder = true;
 
 	private = (struct task_private *)CMDQ_U32_PTR(desc->privateData);
 	if (private)
@@ -1196,9 +1326,6 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 			return err;
 		}
 	}
-
-	if (!cmdq_core_check_pkt_valid(handle->pkt))
-		return -EFAULT;
 
 	if (desc->regRequest.count &&
 			desc->regRequest.count <= CMDQ_MAX_DUMP_REG_COUNT &&
@@ -2254,7 +2381,7 @@ static void cmdq_mdp_begin_task_virtual(struct cmdqRecStruct *handle,
 				getRequest(thread_id,
 				target_pmqos->qos2_isp_port[i]);
 			DP_BANDWIDTH(target_pmqos->qos2_isp_bandwidth[i],
-				total_pixel,
+				target_pmqos->mdp_total_pixel,
 				act_throughput,
 				isp_curr_bandwidth);
 			mm_qos_set_request(request, isp_curr_bandwidth,
@@ -2552,7 +2679,7 @@ static void cmdq_mdp_end_task_virtual(struct cmdqRecStruct *handle,
 				target_pmqos->qos2_isp_port[i]);
 
 			DP_BANDWIDTH(target_pmqos->qos2_isp_bandwidth[i],
-				curr_pixel_size,
+				target_pmqos->mdp_total_pixel,
 				act_throughput,
 				isp_curr_bandwidth);
 			mm_qos_set_request(
@@ -3401,6 +3528,37 @@ const char *cmdq_mdp_parse_handle_error_module_by_hwflag(
 	const struct cmdqRecStruct *handle)
 {
 	return cmdq_mdp_get_func()->parseHandleErrModByEngFlag(handle);
+}
+
+#include "mdp_base.h"
+u32 cmdq_mdp_get_hw_reg(enum MDP_ENG_BASE base, u16 offset)
+{
+	if (offset > 0x1000) {
+		CMDQ_ERR("%s: invalid offset:%#x\n", __func__, offset);
+		return 0;
+	}
+	offset &= ~0x3;
+	if (base >= ENGBASE_COUNT) {
+		CMDQ_ERR("%s: invalid engine:%u, offset:%#x\n",
+			__func__, base, offset);
+		return 0;
+	}
+	if (mdp_base[base] == cmdq_dev_get_module_base_PA_GCE() &&
+		offset != 0x90) {
+		CMDQ_ERR("%s: invalid engine:%u, offset:%#x\n",
+			__func__, base, offset);
+		return 0;
+	}
+	return mdp_base[base] + offset;
+}
+
+u32 cmdq_mdp_get_hw_port(enum MDP_ENG_BASE base)
+{
+	if (base >= ENGBASE_COUNT) {
+		CMDQ_ERR("%s: invalid engine:%u\n", __func__, base);
+		return 0;
+	}
+	return mdp_engine_port[base];
 }
 
 #ifdef CMDQ_COMMON_ENG_SUPPORT

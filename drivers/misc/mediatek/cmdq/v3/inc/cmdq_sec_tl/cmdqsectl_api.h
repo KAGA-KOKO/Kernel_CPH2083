@@ -23,7 +23,6 @@
 #define CMD_CMDQ_TL_PATH_RES_ALLOCATE 4
 /* destroy globacl resource for secure path */
 #define CMD_CMDQ_TL_PATH_RES_RELEASE  5
-#define CMD_CMDQ_TL_DBG 6
 
 /* entry cmdqSecTl, and do nothing */
 #define CMD_CMDQ_TL_TEST_HELLO_TL	(4000)

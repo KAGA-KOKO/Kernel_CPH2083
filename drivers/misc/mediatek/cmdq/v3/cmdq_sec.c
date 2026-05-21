@@ -1068,8 +1068,7 @@ int32_t cmdq_sec_submit_to_secure_world_async_unlocked(uint32_t iwcCommand,
 		}
 
 		/* always check and lunch irq notify loop thread */
-		if (pTask)
-			cmdq_sec_irq_notify_start();
+		cmdq_sec_irq_notify_start();
 
 		if (cmdq_sec_setup_context_session(handle) < 0) {
 			status = -(CMDQ_ERR_SEC_CTX_SETUP);
@@ -2004,17 +2003,6 @@ static void cmdq_sec_thread_irq_handle_by_cookie(
 	}
 
 	if (cmdq_sec_task_list_empty(thread)) {
-		u32 *va = cmdq_core_get_context()->hSecSharedMem->pVABase +
-			CMDQ_SEC_SHARED_THR_CNT_OFFSET +
-			thread->idx * sizeof(s32);
-
-		/* clear task count, wait cookie and current cookie
-		 * to avoid process again
-		 */
-		thread->wait_cookie = 0;
-		thread->task_cnt = 0;
-		CMDQ_REG_SET32(va, 0);
-
 		spin_unlock_irqrestore(&cmdq_sec_task_list_lock, flags);
 		return;
 	}
