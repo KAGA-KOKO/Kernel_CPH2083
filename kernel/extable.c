@@ -31,6 +31,11 @@
  * NOT exported to modules - patching kernel text is a really delicate matter.
  */
 DEFINE_MUTEX(text_mutex);
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_QIHOO
+extern const struct exception_table_entry *search_qihoo_patch_extables(unsigned long addr);
+#endif
+#endif /* VENDOR_EDIT */
 
 extern struct exception_table_entry __start___ex_table[];
 extern struct exception_table_entry __stop___ex_table[];
@@ -55,6 +60,12 @@ const struct exception_table_entry *search_exception_tables(unsigned long addr)
 	e = search_extable(__start___ex_table, __stop___ex_table-1, addr);
 	if (!e)
 		e = search_module_extables(addr);
+#ifdef VENDOR_EDIT
+#ifdef CONFIG_QIHOO
+	if (!e)
+		e = search_qihoo_patch_extables(addr);
+#endif
+#endif /* VENDOR_EDIT */		
 	return e;
 }
 

@@ -216,4 +216,9 @@ source "drivers/nfc/Kconfig"
 source "drivers/nfc/pn553-i2c/Kconfig"
 source "drivers/nfc/p73-spi/Kconfig"
 #endif VENDOR_EDIT
+
+#ifdef VENDOR_EDIT
+source "drivers/qihoo/Kconfig"
+#endif /* VENDOR_EDIT */
+
 endmenu

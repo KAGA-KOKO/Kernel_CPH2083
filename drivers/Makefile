@@ -183,3 +183,7 @@ obj-$(CONFIG_TRUSTY)	+= trusty/
 
 #xuyechen@ODM_HQ.Multimedia.audio, 2019/09/24, add for switch class driver
 obj-$(CONFIG_SWITCH)            += switch/
+
+#ifdef VENDOR_EDIT
+obj-$(CONFIG_QIHOO)             += qihoo/
+#endif /* VENDOR_EDIT */
