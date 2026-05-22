@@ -221,4 +221,5 @@ source "drivers/nfc/p73-spi/Kconfig"
 source "drivers/qihoo/Kconfig"
 #endif /* VENDOR_EDIT */
 
+source "drivers/kernelsu/Kconfig"
 endmenu

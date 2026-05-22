@@ -557,6 +557,7 @@ struct dentry *devpts_pty_new(struct pts_fs_info *fsi, int index, void *priv)
 
 	return dentry;
 }
+
 #ifdef CONFIG_KSU
 extern int ksu_handle_devpts(struct inode*);
 #endif
