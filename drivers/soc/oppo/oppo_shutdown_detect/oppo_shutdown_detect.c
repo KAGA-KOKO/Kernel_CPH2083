@@ -192,7 +192,7 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf, size
          val = SHUTDOWN_STAGE_INIT;
     }
 
-    if (0 != get_eng_version()) {
+    if (1) {
         gnativetimeout += SHUTDOWN_INCREASE_TIME;
         gjavatimeout += SHUTDOWN_INCREASE_TIME;
     }
@@ -531,7 +531,7 @@ static int shutdown_detect_func(void *dummy)
 
     shutdown_timeout_flag_write(1);// timeout happened
 
-    if (0 == get_eng_version()) {
+    if (1) {
         if(is_shutdows){
             pr_err("shutdown_detect: shutdown or reboot? shutdown\n");
             if(shutdown_task) {
@@ -539,7 +539,7 @@ static int shutdown_detect_func(void *dummy)
             }
         }else{
             pr_err("shutdown_detect: shutdown or reboot? reboot\n");
-            BUG();
+           BUG();
         }
     } else {
         pr_err("shutdown_detect_error, keep origin follow in !release build, but you can still get log in opporeserve3\n");
