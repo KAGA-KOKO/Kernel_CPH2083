@@ -35,3 +35,8 @@ source "drivers/soc/oppo/oppo_als_cali_value/Kconfig"
 #* wen.luo@PSW.BSP.kernel, 2019/6/25, Add for parsar powoff/powon */
 source "drivers/soc/oppo/oppo_lastpmic/Kconfig"
 #endif /* VENDOR_EDIT */
+
+#ifdef VENDOR_EDIT
+#wen.luo@PSW.Kernel.MM, 2018/05/23, Add for Healthinfo monitor
+source "drivers/soc/oppo/oppo_shutdown_detect/Kconfig"
+#endif /* VENDOR_EDIT */

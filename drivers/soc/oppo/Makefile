@@ -23,3 +23,8 @@ endif
 #* wen.luo@PSW.BSP.kernel, 2019/6/25, Add for parsar powoff/powon */
 obj-y     +=  oppo_lastpmic/
 #endif /* VENDOR_EDIT */
+
+#ifdef VENDOR_EDIT
+#wen.luo@PSW.Kernel.MM, 2018/05/23, Add for Healthinfo monitor
+obj-$(CONFIG_OPPO_SHUTDOWN_DETECT)	+=  oppo_shutdown_detect/
+#endif /* VENDOR_EDIT */
