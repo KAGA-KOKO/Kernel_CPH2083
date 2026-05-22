@@ -145,6 +145,15 @@ static int one_thousand = 1000;
 /*Huacai.Zhou@PSW.BSP.Kernel.Performance, 2018-04-28, add foreground task io opt*/
 unsigned int sysctl_fg_io_opt = 1;
 #endif /*VENDOR_EDIT*/
+#ifdef VENDOR_EDIT
+/*jason.tang@TECH.BSP.Kernel.Storage, 2019-05-20, add control ext4 fsync*/
+#ifdef CONFIG_EXT4_FSYNC
+unsigned int sysctl_ext4_fsync_enable = 1;
+#else
+unsigned int sysctl_ext4_fsync_enable = 0;
+#endif
+unsigned int ext4_fsync_enable_status = 0;
+#endif /*VENDOR_EDIT*/
 
 #ifdef CONFIG_PRINTK
 static int ten_thousand = 10000;
@@ -323,6 +332,16 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
+#ifdef VENDOR_EDIT
+/*jason.tang@TECH.BSP.Kernel.Storage, 2019-05-20, add control ext4 fsync*/
+{
+		.procname	= "ext4_fsync_enable",
+		.data		= &sysctl_ext4_fsync_enable,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0666,
+		.proc_handler	= proc_dointvec,
+},
+#endif
 #ifdef CONFIG_SCHED_DEBUG
 	{
 		.procname	= "sched_min_granularity_ns",
