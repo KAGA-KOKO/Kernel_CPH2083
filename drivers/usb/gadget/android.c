@@ -21,6 +21,7 @@
 #include <linux/fs.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
+#include <linux/ratelimit.h>
 #include <linux/utsname.h>
 #include <linux/platform_device.h>
 
@@ -2232,6 +2233,7 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 	struct usb_composite_dev *cdev = dev->cdev;
 	char *state = "DISCONNECTED";
 	unsigned long flags;
+	static DEFINE_RATELIMIT_STATE(_rs, 10 * HZ, 1);
 
 	if (!cdev)
 		goto out;
@@ -2241,8 +2243,9 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 		state = "CONFIGURED";
 	else if (dev->connected)
 		state = "CONNECTED";
-	pr_warn("[USB]%s, state:%s\n", __func__, state);
 	spin_unlock_irqrestore(&cdev->lock, flags);
+	if (__ratelimit(&_rs))
+		pr_info("[USB]%s, state:%s\n", __func__, state);
 out:
 	return sprintf(buf, "%s\n", state);
 }
