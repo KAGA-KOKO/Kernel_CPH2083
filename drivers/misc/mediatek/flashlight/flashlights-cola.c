@@ -290,6 +290,23 @@ static int cola_read_reg(struct i2c_client *client, u8 reg)
 	return val;
 }
 
+/* i2c write with retry for transient ACK errors */
+static int cola_write_reg_retry(struct i2c_client *client, u8 reg, u8 val)
+{
+	int ret, retries = 3;
+
+	do {
+		ret = cola_write_reg(client, reg, val);
+		if (ret >= 0)
+			return ret;
+		pr_err("write 0x%02x to reg 0x%02x failed (%d), retry %d/3\n",
+		       val, reg, ret, 4 - retries);
+		usleep_range(3000, 5000);
+	} while (--retries);
+
+	return ret;
+}
+
 /* flashlight enable function */
 static int cola_enable_ch1(void)
 {
@@ -305,7 +322,7 @@ static int cola_enable_ch1(void)
 	}
 	val = cola_reg_enable;
 
-	return cola_write_reg(cola_i2c_client, reg, val);
+	return cola_write_reg_retry(cola_i2c_client, reg, val);
 }
 
 static int cola_enable_ch2(void)
@@ -322,7 +339,7 @@ static int cola_enable_ch2(void)
 	}
 	val = cola_reg_enable;
 
-	return cola_write_reg(cola_i2c_client, reg, val);
+	return cola_write_reg_retry(cola_i2c_client, reg, val);
 }
 
 static int cola_enable(int channel)
@@ -346,15 +363,15 @@ static int cola_disable_ch1(void)
 
 	reg = COLA_REG_ENABLE;
 	if (cola_reg_enable & COLA_MASK_ENABLE_LED2) {
-		/* if LED 2 is enable, disable LED 1 */
+		/* if LED 2 is enabled, disable LED 1 only */
 		cola_reg_enable &= (~COLA_ENABLE_LED1);
 	} else {
-		/* if LED 2 is enable, disable LED 1 and clear mode */
+		/* if LED 2 is not enabled, disable LED 1 and clear mode */
 		cola_reg_enable &= (~COLA_ENABLE_LED1_FLASH);
 	}
 	val = cola_reg_enable;
 
-	return cola_write_reg(cola_i2c_client, reg, val);
+	return cola_write_reg_retry(cola_i2c_client, reg, val);
 }
 
 static int cola_disable_ch2(void)
@@ -363,15 +380,15 @@ static int cola_disable_ch2(void)
 
 	reg = COLA_REG_ENABLE;
 	if (cola_reg_enable & COLA_MASK_ENABLE_LED1) {
-		/* if LED 1 is enable, disable LED 2 */
+		/* if LED 1 is enabled, disable LED 2 only */
 		cola_reg_enable &= (~COLA_ENABLE_LED2);
 	} else {
-		/* if LED 1 is enable, disable LED 2 and clear mode */
+		/* if LED 1 is not enabled, disable LED 2 and clear mode */
 		cola_reg_enable &= (~COLA_ENABLE_LED2_FLASH);
 	}
 	val = cola_reg_enable;
 
-	return cola_write_reg(cola_i2c_client, reg, val);
+	return cola_write_reg_retry(cola_i2c_client, reg, val);
 }
 
 static int cola_disable(int channel)
@@ -403,14 +420,16 @@ static int cola_set_level_ch1(int level)
 	/* set torch brightness level */
 	reg = COLA_REG_TORCH_LEVEL_LED1;
 	val = cola_torch_level[level];
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
+	if (ret < 0)
+		return ret;
 
 	cola_level_ch1 = level;
 
 	/* set flash brightness level */
 	reg = COLA_REG_FLASH_LEVEL_LED1;
 	val = cola_flash_level[level];
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
 
 	return ret;
 }
@@ -425,14 +444,16 @@ int cola_set_level_ch2(int level)
 	/* set torch brightness level */
 	reg = COLA_REG_TORCH_LEVEL_LED2;
 	val = cola_torch_level[level];
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
+	if (ret < 0)
+		return ret;
 
 	cola_level_ch2 = level;
 
 	/* set flash brightness level */
 	reg = COLA_REG_FLASH_LEVEL_LED2;
 	val = cola_flash_level[level];
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
 
 	return ret;
 }
@@ -458,27 +479,53 @@ int cola_init(void)
 	int ret;
 	unsigned char reg, val;
 
+	if (!cola_i2c_client) {
+		pr_err("i2c client not ready\n");
+		return -ENODEV;
+	}
+
 	cola_pinctrl_set(COLA_PINCTRL_PIN_HWEN, COLA_PINCTRL_PINSTATE_HIGH);
-    msleep(2);
+	/* Wait for IC power-up after HWEN asserted.
+	 * AW3643/SY7806 need ~2ms but allow margin for i2c bus readiness.
+	 */
+	msleep(5);
 
 	/* clear enable register */
 	reg = COLA_REG_ENABLE;
 	val = COLA_DISABLE;
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
+	if (ret < 0) {
+		pr_err("cola_init: failed to clear enable register, aborting\n");
+		goto err_hw;
+	}
 
 	cola_reg_enable = val;
 
 	/* set torch current ramp time and flash timeout */
 	reg = COLA_REG_TIMING_CONF;
 	val = COLA_TORCH_RAMP_TIME | COLA_FLASH_TIMEOUT;
-	ret = cola_write_reg(cola_i2c_client, reg, val);
+	ret = cola_write_reg_retry(cola_i2c_client, reg, val);
+	if (ret < 0) {
+		pr_err("cola_init: failed to set timing config\n");
+		goto err_hw;
+	}
 
+	return 0;
+
+err_hw:
+	cola_reg_enable = COLA_DISABLE;
+	cola_pinctrl_set(COLA_PINCTRL_PIN_HWEN, COLA_PINCTRL_PINSTATE_LOW);
 	return ret;
 }
 
 /* flashlight uninit */
 int cola_uninit(void)
 {
+	if (!cola_i2c_client) {
+		pr_err("i2c client not ready\n");
+		return -ENODEV;
+	}
+
 	cola_disable(COLA_CHANNEL_CH1);
 	cola_disable(COLA_CHANNEL_CH2);
 	cola_pinctrl_set(COLA_PINCTRL_PIN_HWEN, COLA_PINCTRL_PINSTATE_LOW);
