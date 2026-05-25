@@ -55,7 +55,7 @@ void register_vibrator_notify(void (*notify)(int))
 }
 
 static void notify_vibr_to_sensor(int enable) {
-	printk("vibrator enable/disable %d\n", enable);
+	pr_debug("vibrator enable/disable %d\n", enable);
 	if (vibrator_notify) {
 		vibrator_notify(enable);
 	}
@@ -116,7 +116,7 @@ static void vibrator_enable(unsigned int dur, unsigned int activate)
 	struct vibrator_hw *hw = mt_get_cust_vibrator_hw();
 #ifdef VENDOR_EDIT
 /* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
-	pr_info("vibrator_enable: vibrator first in value = %d\n", dur);
+	pr_debug("vibrator_enable: vibrator first in value = %d\n", dur);
 #endif /* VENDOR_EDIT */
 
 	spin_lock_irqsave(&g_mt_vib->vibr_lock, flags);
@@ -155,7 +155,7 @@ static void vibrator_enable(unsigned int dur, unsigned int activate)
 #else /*VENDOR_EDIT*/
 	update_vibrator(&g_mt_vib->vibr_work);
 	spin_unlock_irqrestore(&g_mt_vib->vibr_lock, flags);
-	pr_info("vibrator_enable: end\n");
+	pr_debug("vibrator_enable: end\n");
 #endif /*VENDOR_EDIT*/
 }
 

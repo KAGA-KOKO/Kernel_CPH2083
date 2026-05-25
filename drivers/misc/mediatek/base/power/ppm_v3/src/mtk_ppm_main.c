@@ -592,7 +592,7 @@ static void ppm_main_log_print(unsigned int policy_mask,
 		filter_log = false;
 		log_cnt = 1;
 		if (filter_cnt) {
-			ppm_info("Shrink %d PPM logs from last %lld ms!\n",
+			ppm_debug("Shrink %d PPM logs from last %lld ms!\n",
 				filter_cnt, delta1);
 			filter_cnt = 0;
 		}
