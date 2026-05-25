@@ -3717,6 +3717,48 @@ static void vbus_check_work(struct work_struct *work)
 }
 #endif /*ODM_HQ_EDIT*/
 
+static int mtk_charger_pm_notifier(struct notifier_block *nb,
+		unsigned long event, void *data)
+{
+	struct charger_manager *info =
+		container_of(nb, struct charger_manager, pm_nb);
+
+	switch (event) {
+	case PM_SUSPEND_PREPARE:
+		chr_debug("PM_SUSPEND_PREPARE: stop charger timer\n");
+		/* Stop the charger kthread timer to prevent wakeups during suspend */
+		if (IS_ENABLED(USE_FG_TIMER))
+			gtimer_stop(&info->charger_kthread_fgtimer);
+		else
+			hrtimer_cancel(&info->charger_kthread_timer);
+		/* Release wake lock if held */
+		spin_lock_irq(&info->slock);
+		if (info->charger_wakelock.active)
+			__pm_relax(&info->charger_wakelock);
+		spin_unlock_irq(&info->slock);
+		break;
+	case PM_POST_SUSPEND:
+		chr_debug("PM_POST_SUSPEND: restart charger timer\n");
+		/* Restart the charger kthread timer after resume */
+		if (info->charger_thread_polling) {
+			if (IS_ENABLED(USE_FG_TIMER))
+				gtimer_start(&info->charger_kthread_fgtimer,
+					info->polling_interval);
+			else {
+				ktime_t ktime = ktime_set(info->polling_interval, 0);
+				hrtimer_start(&info->charger_kthread_timer,
+					ktime, HRTIMER_MODE_REL);
+			}
+		}
+		/* Re-trigger charger thread to update status */
+		_wake_up_charger(info);
+		break;
+	default:
+		break;
+	}
+	return NOTIFY_OK;
+}
+
 static int mtk_charger_probe(struct platform_device *pdev)
 {
 	struct charger_manager *info = NULL;
@@ -3835,11 +3877,22 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	info->init_done = true;
 	_wake_up_charger(info);
 
+	/* Register PM notifier to stop charger timer during suspend */
+	info->pm_nb.notifier_call = mtk_charger_pm_notifier;
+	info->pm_nb.priority = 0;
+	ret = register_pm_notifier(&info->pm_nb);
+	if (ret)
+		chr_err("failed to register PM notifier: %d\n", ret);
+
 	return 0;
 }
 
 static int mtk_charger_remove(struct platform_device *dev)
 {
+	struct charger_manager *info = platform_get_drvdata(dev);
+
+	if (info)
+		unregister_pm_notifier(&info->pm_nb);
 	return 0;
 }
 

@@ -113,6 +113,7 @@ static VOID consys_set_dl_rom_patch_flag(INT32 flag);
 static INT32 consys_dedicated_log_path_init(struct platform_device *pdev);
 static VOID consys_dedicated_log_path_deinit(VOID);
 static INT32 consys_check_reg_readable(VOID);
+static INT32 consys_check_reg_readable_resume(VOID);
 static INT32 consys_emi_coredump_remapping(UINT8 __iomem **addr, UINT32 enable);
 static INT32 consys_reset_emi_coredump(UINT8 __iomem *addr);
 static INT32 consys_is_connsys_reg(UINT32 addr);
@@ -1162,6 +1163,29 @@ static INT32 consys_check_reg_readable(VOID)
 	return flag;
 }
 
+/* Version with clock stabilization delay for resume path only */
+static INT32 consys_check_reg_readable_resume(VOID)
+{
+	INT32 flag = 0;
+	UINT32 value = 0;
+
+	/* Wait for CONSYS clock to stabilize after resume before register access */
+	mdelay(10);
+
+	/*check connsys clock and sleep status*/
+	CONSYS_REG_WRITE(conn_reg.mcu_conn_hif_on_base, CONSYS_CLOCK_CHECK_VALUE);
+	udelay(1000);
+	value = CONSYS_REG_READ(conn_reg.mcu_conn_hif_on_base);
+	if ((value & CONSYS_HCLK_CHECK_BIT) &&
+	    (value & CONSYS_OSCCLK_CHECK_BIT) &&
+	    ((value & CONSYS_SLEEP_CHECK_BIT) == 0))
+		flag = 1;
+	if (!flag)
+		WMT_PLAT_PR_ERR("connsys clock check fail 0x18007000(0x%x)\n", value);
+
+	return flag;
+}
+
 static INT32 consys_emi_coredump_remapping(UINT8 __iomem **addr, UINT32 enable)
 {
 	if (enable) {
@@ -1213,7 +1237,7 @@ static VOID consys_resume_dump_info(VOID)
 {
 	if (conn_reg.mcu_cfg_on_base != 0 &&
 	    conn_reg.mcu_top_misc_on_base != 0 &&
-	    mtk_consys_check_reg_readable()) {
+	    consys_check_reg_readable_resume()) {
 		stp_dbg_poll_cpupcr(5, 0, 1);
 		CONSYS_REG_WRITE(conn_reg.mcu_cfg_on_base + 0x104, 0x1);
 		CONSYS_REG_WRITE(conn_reg.mcu_top_misc_on_base + 0x320, 0x80000001);

@@ -38,7 +38,7 @@ struct charger_manager;
 #include "mtk_pe40_intf.h"
 #include "mtk_pdc_intf.h"
 
-#define CHARGING_INTERVAL 10
+#define CHARGING_INTERVAL 20
 #define CHARGING_FULL_INTERVAL 20
 
 #define CHRLOG_ERROR_LEVEL   1
@@ -355,6 +355,9 @@ struct charger_manager {
 
 	/* ATM */
 	bool atm_enabled;
+
+	/* PM notifier for suspend/resume */
+	struct notifier_block pm_nb;
 };
 
 /* charger related module interface */

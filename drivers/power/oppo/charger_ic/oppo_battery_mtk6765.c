@@ -3058,6 +3058,32 @@ static ssize_t store_StartCharging_Test(struct device *dev,struct device_attribu
 static DEVICE_ATTR(StartCharging_Test, 0664, show_StartCharging_Test, store_StartCharging_Test);
 #endif /*ODM_WT_EDIT*/
 
+#ifdef VENDOR_EDIT
+/* PM notifier to stop OPPO charger update_work during suspend */
+static int oppo_chg_pm_notifier(struct notifier_block *nb,
+		unsigned long event, void *data)
+{
+	struct oppo_chg_chip *chip = g_oppo_chip;
+
+	if (!chip)
+		return NOTIFY_OK;
+
+	switch (event) {
+	case PM_SUSPEND_PREPARE:
+		chg_err("PM_SUSPEND_PREPARE: cancel oppo_chg update_work\n");
+		cancel_delayed_work_sync(&chip->update_work);
+		break;
+	case PM_POST_SUSPEND:
+		chg_err("PM_POST_SUSPEND: reschedule oppo_chg update_work\n");
+		schedule_delayed_work(&chip->update_work, OPPO_CHG_UPDATE_INTERVAL);
+		break;
+	default:
+		break;
+	}
+	return NOTIFY_OK;
+}
+#endif /* VENDOR_EDIT */
+
 static int mtk_charger_probe(struct platform_device *pdev)
 {
 #ifdef VENDOR_EDIT
