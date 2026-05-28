@@ -1255,7 +1255,14 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 	s32 status;
 
 	CMDQ_TRACE_FORCE_BEGIN("%s %llx\n", __func__, handle->engineFlag);
-	CMDQ_LOG("%s %llx\n", __func__, handle->engineFlag);
+
+	/* Rate-limit log: only log every Nth call to avoid dmesg flood */
+	{
+		static atomic_t flush_log_cnt = ATOMIC_INIT(0);
+		int cnt = atomic_inc_return(&flush_log_cnt);
+		if (cnt <= 3 || (cnt % 500) == 0)
+			CMDQ_LOG("%s %llx count=%d\n", __func__, handle->engineFlag, cnt);
+	}
 
 #ifdef CMDQ_SECURE_PATH_SUPPORT
 	if (handle->secData.is_secure) {
@@ -1265,7 +1272,6 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 #endif
 
 	/* finalize it */
-	CMDQ_LOG("%s finalize\n", __func__);
 	handle->finalized = true;
 	handle->pkt->priority = handle->priority;
 	cmdq_pkt_finalize(handle->pkt);
@@ -1274,7 +1280,6 @@ s32 cmdq_mdp_handle_flush(struct cmdqRecStruct *handle)
 	 * Task may flush directly if no engine conflict and no waiting task
 	 * holds same engines.
 	 */
-	CMDQ_LOG("%s flush impl\n", __func__);
 	status = cmdq_mdp_flush_async_impl(handle);
 	CMDQ_TRACE_FORCE_END();
 	return status;

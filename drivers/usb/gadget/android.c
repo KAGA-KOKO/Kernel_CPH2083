@@ -2241,7 +2241,7 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 		state = "CONFIGURED";
 	else if (dev->connected)
 		state = "CONNECTED";
-	pr_warn("[USB]%s, state:%s\n", __func__, state);
+	pr_debug("[USB]%s, state:%s\n", __func__, state);
 	spin_unlock_irqrestore(&cdev->lock, flags);
 out:
 	return sprintf(buf, "%s\n", state);
@@ -2280,7 +2280,7 @@ log_store(struct device *pdev, struct device_attribute *attr,
 	memcpy(log_buf + log_buf_idx, buf, n);
 	log_buf_idx += n;
 	log_buf[log_buf_idx++] = ' ';
-	pr_warn("[USB]%s, <%s>, n:%d, log_buf_idx:%d\n", __func__, buf, n, log_buf_idx);
+	pr_debug("[USB]%s, <%s>, n:%d, log_buf_idx:%d\n", __func__, buf, n, log_buf_idx);
 
 	mutex_unlock(&dev->mutex);
 	return size;
@@ -2610,7 +2610,7 @@ static void do_android_usb_state_monitor_work(struct work_struct *work)
 	if (dev && dev->cdev && dev->cdev->config)
 		usb_state = "CONFIGURED";
 
-	pr_warn("usb_state<%s>\n", usb_state);
+	pr_debug("usb_state<%s>\n", usb_state);
 	schedule_delayed_work(&android_usb_state_monitor_work, msecs_to_jiffies(USB_STATE_MONITOR_DELAY));
 }
 void trigger_android_usb_state_monitor_work(void)
