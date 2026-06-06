@@ -21,7 +21,6 @@
 #include <linux/uaccess.h>
 #include <linux/workqueue.h>
 #include <linux/ratelimit.h>
-#include <linux/jiffies.h>
 #include "connsys_debug_utility.h"
 #include "ring_emi.h"
 #include "ring.h"
@@ -57,16 +56,11 @@ struct connlog_alarm {
 	unsigned long flags;
 };
 
-#define CONNLOG_IRQ_THROTTLE_DEFAULT_LIMIT	50	/* max irqs per window */
-#define CONNLOG_IRQ_THROTTLE_DEFAULT_WINDOW	(1 * HZ)	/* 1 second */
-#define CONNLOG_IRQ_THROTTLE_RECOVER_MS		200	/* ms before re-enable irq */
-
 struct connlog_dev {
 	phys_addr_t phyAddrEmiBase;
 	void __iomem *virAddrEmiLogBase;
 	int conn2ApIrqId;
 	bool eirqOn;
-	bool irq_throttled;
 	spinlock_t irq_lock;
 	unsigned long flags;
 	unsigned int irq_counter;
@@ -75,11 +69,6 @@ struct connlog_dev {
 	/* alarm timer for suspend */
 	struct connlog_alarm log_alarm;
 	void *log_data;
-	/* irq throttling */
-	unsigned int irq_throttle_count;
-	unsigned long irq_throttle_window_start;
-	unsigned int irq_throttle_limit;
-	struct timer_list irq_recover_timer;
 };
 static struct connlog_dev gDev = { 0 };
 
@@ -152,11 +141,6 @@ static void connlog_event_set(int conn_type);
 static void connlog_log_data_handler(struct work_struct *work);
 static void work_timer_handler(unsigned long data);
 static void connlog_do_schedule_work(bool count);
-
-/* irq throttling */
-static void connlog_irq_throttle_check(void);
-static void connlog_irq_recover_timer(unsigned long data);
-static bool connlog_irq_should_throttle(void);
 
 /* connlog when suspend */
 static int connlog_alarm_init(void);
@@ -750,19 +734,6 @@ static void connlog_log_data_handler(struct work_struct *work)
 static irqreturn_t connlog_eirq_isr(int irq, void *arg)
 {
 	connlog_do_schedule_work(true);
-
-	/* Check for IRQ storm — throttle if too many irqs per window */
-	if (connlog_irq_should_throttle()) {
-		disable_irq_nosync(gDev.conn2ApIrqId);
-		gDev.irq_throttled = true;
-		mod_timer(&gDev.irq_recover_timer,
-			  jiffies + msecs_to_jiffies(CONNLOG_IRQ_THROTTLE_RECOVER_MS));
-		pr_warn_ratelimited("[connlog] IRQ throttled: counter=%u, limit=%u/%ds. Recover in %dms\n",
-				    gDev.irq_counter, gDev.irq_throttle_limit,
-				    CONNLOG_IRQ_THROTTLE_DEFAULT_WINDOW / HZ,
-				    CONNLOG_IRQ_THROTTLE_RECOVER_MS);
-	}
-
 	return IRQ_HANDLED;
 }
 
@@ -808,58 +779,6 @@ static int connlog_eirq_init(unsigned int irq_id, unsigned int irq_flag)
 static void connlog_eirq_deinit(void)
 {
 	free_irq(gDev.conn2ApIrqId, NULL);
-}
-
-/*****************************************************************************
-* FUNCTION
-*  connlog_irq_should_throttle
-* DESCRIPTION
-*  Check if IRQ rate exceeds the throttle limit within the current window.
-*  Resets the counter when the window expires.
-* PARAMETERS
-*  void
-* RETURNS
-*  bool — true if throttle should be activated (but not yet active)
-*****************************************************************************/
-static bool connlog_irq_should_throttle(void)
-{
-	unsigned long now = jiffies;
-
-	if (gDev.irq_throttled)
-		return false;	/* already throttled, recover timer handles it */
-
-	if (time_after(now, gDev.irq_throttle_window_start +
-		       CONNLOG_IRQ_THROTTLE_DEFAULT_WINDOW)) {
-		/* Window expired — reset counter */
-		gDev.irq_throttle_window_start = now;
-		gDev.irq_throttle_count = 0;
-	}
-
-	gDev.irq_throttle_count++;
-
-	return gDev.irq_throttle_count > gDev.irq_throttle_limit;
-}
-
-/*****************************************************************************
-* FUNCTION
-*  connlog_irq_recover_timer
-* DESCRIPTION
-*  Timer callback to re-enable IRQ after throttle cooldown.
-*  Switches back to interrupt mode.
-* PARAMETERS
-*  data      [IN]        unsigned long (unused)
-* RETURNS
-*  void
-*****************************************************************************/
-static void connlog_irq_recover_timer(unsigned long data)
-{
-	if (gDev.irq_throttled) {
-		enable_irq(gDev.conn2ApIrqId);
-		gDev.irq_throttled = false;
-		gDev.irq_throttle_count = 0;
-		gDev.irq_throttle_window_start = jiffies;
-		pr_info("[connlog] IRQ throttle recovered, irq=%d\n", gDev.conn2ApIrqId);
-	}
 }
 
 /*****************************************************************************
@@ -1011,15 +930,6 @@ int connsys_dedicated_log_path_apsoc_init(phys_addr_t emiaddr, unsigned int irq_
 	gDev.eirqOn = false;
 	gDev.irq_counter = 0;
 
-	/* irq throttle init */
-	gDev.irq_throttled = false;
-	gDev.irq_throttle_count = 0;
-	gDev.irq_throttle_window_start = jiffies;
-	gDev.irq_throttle_limit = CONNLOG_IRQ_THROTTLE_DEFAULT_LIMIT;
-	init_timer(&gDev.irq_recover_timer);
-	gDev.irq_recover_timer.function = connlog_irq_recover_timer;
-	gDev.irq_recover_timer.data = 0;
-
 	if (connlog_emi_init(emiaddr)) {
 		pr_err("EMI init failed\n");
 		return -1;
@@ -1058,7 +968,6 @@ EXPORT_SYMBOL(connsys_dedicated_log_path_apsoc_init);
 *****************************************************************************/
 void connsys_dedicated_log_path_apsoc_deinit(void)
 {
-	del_timer_sync(&gDev.irq_recover_timer);
 	connlog_emi_deinit();
 	connlog_eirq_deinit();
 	connlog_ring_buffer_deinit();
