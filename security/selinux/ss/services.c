@@ -746,8 +746,15 @@ out:
 	kfree(o);
 	kfree(n);
 	kfree(t);
-
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+	if (!is_selinux_enforcing())
+#else
 	if (!selinux_enforcing)
+#endif /* VENDOR_EDIT */
 		return 0;
 	return -EPERM;
 }
@@ -1530,7 +1537,15 @@ out:
 	kfree(s);
 	kfree(t);
 	kfree(n);
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+	if (!is_selinux_enforcing())
+#else
 	if (!selinux_enforcing)
+#endif /* VENDOR_EDIT */
 		return 0;
 	return -EACCES;
 }
@@ -1821,7 +1836,15 @@ static inline int convert_context_handle_invalid_context(struct context *context
 	char *s;
 	u32 len;
 
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+	if (is_selinux_enforcing())
+#else
 	if (selinux_enforcing)
+#endif /* VENDOR_EDIT */
 		return -EINVAL;
 
 	if (!context_struct_to_string(context, &s, &len)) {

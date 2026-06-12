@@ -24,8 +24,6 @@
 #include <linux/blk_types.h>
 #include <linux/preempt.h>
 #include <linux/fs.h>
-#include <linux/magic.h>
-#include "ext4.h"
 
 #ifdef CONFIG_MTK_PLATFORM
 #include <mt-plat/aee.h>
@@ -396,119 +394,6 @@ int hie_req_end_size(struct request *req, unsigned long bytes)
 #else
 	return 0;
 #endif
-}
-
-static struct inode *hie_dio_get_inode(const struct bio *bio)
-{
-	struct inode *inode = NULL;
-
-	if (bio == NULL)
-		return NULL;
-
-	inode = bio->bi_dio_inode;
-
-	return inode;
-}
-
-static struct inode *hie_bio_get_inode(const struct bio *bio)
-{
-	if (!bio)
-		return NULL;
-	if (!bio_has_data((struct bio *)bio))
-		return NULL;
-	if (!bio->bi_io_vec)
-		return NULL;
-	if (!bio->bi_io_vec->bv_page)
-		return NULL;
-
-	if (PageAnon(bio->bi_io_vec->bv_page)) {
-		struct inode *inode;
-
-		/* Using direct-io (O_DIRECT) without page cache */
-		inode = hie_dio_get_inode(bio);
-
-		return inode;
-	}
-
-	if (!bio->bi_io_vec->bv_page->mapping)
-		return NULL;
-
-	if (!bio->bi_io_vec->bv_page->mapping->host)
-		return NULL;
-
-	return bio->bi_io_vec->bv_page->mapping->host;
-}
-
-static void hie_inode_get_fname(struct inode *inode)
-{
-	struct dentry *d;
-	char path[256];
-	char *p;
-
-	if (!inode)
-		return;
-
-	d = d_find_alias(inode);
-	if (d) {
-		p = dentry_path_raw(d, path, 255);
-		pr_info("hie: dev: %s, fn: %s\n",
-			inode->i_sb->s_id,
-			p);
-	}
-}
-
-int hie_req_check_integrity(struct request *req)
-{
-	struct bio *bio;
-	struct inode *inode;
-	bool req_inline_crypt = hie_request_crypted(req);
-	bool ino_inline_crypt;
-	bool fs_crypt;
-
-	bio = req->bio;
-	if (!bio)
-		return 0;
-
-	__rq_for_each_bio(bio, req) {
-		inode = hie_bio_get_inode(bio);
-		if (!inode)
-			continue;
-
-		/* regular file shall not be sw-encrypted */
-		if (fscrypt_is_sw_encrypt(inode))
-			BUG_ON(1);
-
-		/* regular file shall be inline-encrypted */
-		ino_inline_crypt = fscrypt_is_hw_encrypt(inode);
-		if (ino_inline_crypt != req_inline_crypt) {
-			pr_info("hie: inconsistent crypt, ino_inline_crypt: %d, req_inline_crypt: %d\n",
-				ino_inline_crypt, req_inline_crypt);
-			BUG_ON(1);
-		}
-
-		/*
-		 * sw-based-crypto flag shall be consistent with
-		 * inline-crypto flag
-		 */
-		if (inode->i_sb && inode->i_sb->s_magic == EXT4_SUPER_MAGIC) {
-			fs_crypt = ext4_encrypted_inode(inode);
-
-			if (S_ISREG(inode->i_mode) &&
-			    (fs_crypt != ino_inline_crypt)) {
-				pr_info("hie: inconsistent crypt: fs_crypt: %d, ino_inline_crypt: %d, i_no: %lu, flags: 0x%x\n",
-					fs_crypt, ino_inline_crypt,
-					inode->i_ino, inode->i_flags);
-				hie_inode_get_fname(inode);
-				if (ino_inline_crypt) {
-					pr_info("hie: ino-in-bio: %lu\n",
-						bio->bi_crypt_ctx.bc_ino);
-				}
-				BUG_ON(1);
-			}
-		}
-	}
-
-	return 0;
 }
 
 /**
