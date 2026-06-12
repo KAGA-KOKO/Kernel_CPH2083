@@ -31,7 +31,6 @@
 #include <net/dst.h>
 #include <linux/file.h>
 #include <net/tcp_states.h>
-#include <linux/workqueue.h>
 #include <linux/netlink.h>
 #include <net/sch_generic.h>
 #include <net/pkt_sched.h>
@@ -42,7 +41,6 @@
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_core.h>
 #include <net/netfilter/ipv4/nf_conntrack_ipv4.h>
-#include <linux/netfilter_ipv4/ipt_REJECT.h>
 
 
 #define MARK_MASK    0x0fff
@@ -84,10 +82,6 @@
 #define WHITE_APP_BASE    100
 #define WHITE_APP_NUM     64
 #define MAX_GAME_RTT      300
-#define MAX_DETECT_PKTS  100
-#define UDP_RX_WIN_SIZE   20
-#define TCP_RX_WIN_SIZE   5
-#define TCP_DOWNLOAD_THRESHOLD  100*1024    //100KB/s
 #define SLA_TIMER_EXPIRES HZ
 #define MINUTE_LITTE_RATE  60     //60Kbit/s
 #define INIT_APP_TYPE      0
@@ -96,12 +90,8 @@
 #define GAME_SKB_TIME_OUT  120  //120s
 #define WLAN_SCORE_GOOD    75
 #define WLAN_SCORE_BAD     55
-#define MIN_GAME_RTT       10 //ms
+#define MIN_GAME_RTT       20 //ms
 #define ENABLE_TO_USER_TIMEOUT 25 //second
-
-#define MAX_FIXED_VALUE_LEN 20
-
-#define ENABLE_SLA_BY_WLAN_ASSI_SCORE 55
 
 
 
@@ -131,8 +121,8 @@ struct oppo_dev_info{
 	u32 sla_rtt_num;     //ms
 	u32 sla_sum_rtt;     //ms
 	u32 sla_avg_rtt;     //ms
-	u64 total_bytes;
-	u64 minute_rx_bytes;
+	u64	total_bytes;
+	u64	minute_rx_bytes;
 	char dev_name[IFACE_LEN];
 };
 
@@ -171,37 +161,11 @@ struct oppo_white_app_info{
 struct oppo_game_online{
 	bool game_online;
 	struct timeval last_game_skb_tv;
-	u32 udp_rx_pkt_count;   //count of all received game udp packets
-	u64 tcp_rx_byte_count;  //count of all received game tcp bytes
-};
-
-struct game_traffic_info{
-	bool game_in_front;
-	u32 udp_rx_packet[UDP_RX_WIN_SIZE]; //udp packets received per second
-	u64 tcp_rx_byte[TCP_RX_WIN_SIZE];   //tcp bytes received per second
-	u32 window_index;
-	u32 udp_rx_min; //min rx udp packets as valid game udp rx data
-	u32 udp_rx_low_thr; //udp rx packet count low threshold
-	u32 in_game_true_thr;  //greater than this -> inGame==true
-	u32 in_game_false_thr;  //less than this -> inGame==false
-	u32 rx_bad_thr; //greater than this -> game_rx_bad==true
 };
 
 struct oppo_syn_retran_statistic{
 	u32 syn_retran_num;
 	u32 syn_total_num;
-};
-
-struct oppo_rate_limit_info{
-	int front_uid;
-	int rate_limit_enable; //oppo_rate_limit enable or not
-	int disable_rtt_num;
-	int disable_rtt_sum;
-	int disable_rtt;  //oppo_rate_limit disable front avg rtt
-	int enable_rtt_num;
-	int enable_rtt_sum;
-	int enable_rtt;  //oppo_rate_limit enable front avg rtt
-	struct timeval last_tv;
 };
 
 struct oppo_sla_rom_update_info{
@@ -214,16 +178,6 @@ struct oppo_sla_rom_update_info{
 	u32 cjzc_rtt;         //cjzc rtt  threshold
 	u32 wlan_bad_score;   //wifi bad score threshold
 	u32 wlan_good_score;  //wifi good socre threshold
-};
-
-struct oppo_sla_game_rtt_params {
-        int game_index;
-        int tx_offset;
-        int tx_len;
-        u8  tx_fixed_value[MAX_FIXED_VALUE_LEN];
-        int rx_offset;
-        int rx_len;
-        u8  rx_fixed_value[MAX_FIXED_VALUE_LEN];
 };
 
 enum{
@@ -312,19 +266,12 @@ enum{
 	SLA_NOTIFY_DEFAULT_NETWORK = 0x2D,
 	SLA_NOTIFY_PARAMS = 0x2E,
 	SLA_NOTIFY_GAME_STATE = 0x2F,
-	SLA_NOTIFY_GAME_PARAMS = 0x30,
-	SLA_NOTIFY_GAME_RX_PKT = 0x31,
-	SLA_NOTIFY_GAME_IN_FRONT = 0x32,
-	SLA_ENABLE_BY_WLAN_ASSIST = 0x33,
-	SLA_WEIGHT_BY_WLAN_ASSIST = 0x34,
 };
 
 
 enum{
-	GAME_SKB_DETECTING = 0,
 	GAME_SKB_COUNT_ENOUGH = 1,
-	GAME_RTT_STREAM = 2,
-	GAME_VOICE_STREAM = 4,
+	GAME_RTT_DECECTED_STREAM,
 };
 
 enum{
@@ -340,17 +287,11 @@ enum{
 static int enable_to_user;
 static int oppo_sla_rtt_detect = 1;
 static int game_mark = 0;
-static bool inGame = false;
-static bool game_cell_to_wifi = false;
-static bool game_rx_bad = false;
-static int udp_rx_show_toast = 0;
-static int game_rtt_show_toast = 0;
 static int oppo_sla_enable;
 static int oppo_sla_debug = 0;
 static int oppo_sla_calc_speed;
 static int oppo_sla_def_net = 0;    //WLAN->0	CELL->1
 static int send_pop_win_msg_num = 0;
-static int init_weight_delay_count = 0;
 static int game_start_state[GAME_NUM];
 
 static bool sla_switch_enable = false;
@@ -372,16 +313,13 @@ static struct timeval last_enable_to_user_tv;
 static struct timeval last_send_pop_window_msg_tv;
 static struct timeval last_calc_small_speed_tv;
 
-static struct oppo_rate_limit_info rate_limit_info;
+
 static struct oppo_game_online game_online_info;
 static struct oppo_white_app_info white_app_list;
 static struct oppo_sla_game_info game_uid[GAME_NUM];
 static struct oppo_dev_info oppo_sla_info[IFACE_NUM];
 static struct oppo_speed_calc oppo_speed_info[IFACE_NUM];
 static struct oppo_syn_retran_statistic syn_retran_statistic;
-
-static struct work_struct oppo_sla_work;
-static struct workqueue_struct *workqueue_sla;
 
 static DEFINE_MUTEX(sla_netlink_mutex);
 static struct ctl_table_header *oppo_sla_table_hrd;
@@ -390,12 +328,6 @@ static struct ctl_table_header *oppo_sla_table_hrd;
   * the three handshark (syn-synack) rtt is  good but the network is worse.
 */
 extern void (*statistic_dev_rtt)(struct sock *sk,long rtt);
-
-/*sometimes when skb reject by iptables,
-*it will retran syn which may make the rtt much big
-*so just mark the stream(ct) with mark RTT_MARK when this happens
-*/
-extern void (*mark_streams_for_iptables_reject)(struct sk_buff *skb,enum ipt_reject_with reject_type);
 
 static rwlock_t sla_lock;
 static rwlock_t sla_rtt_lock;
@@ -424,44 +356,6 @@ static struct oppo_sla_rom_update_info rom_update_info ={
 	.cjzc_rtt = 250,
 	.wlan_bad_score = WLAN_SCORE_BAD,
 	.wlan_good_score = WLAN_SCORE_GOOD,
-};
-
-static struct oppo_sla_game_rtt_params game_params[GAME_NUM];
-
-static struct game_traffic_info default_traffic_info = {
-	.game_in_front = 0,
-	//.udp_rx_packet[UDP_RX_WIN_SIZE];
-	//.tcp_rx_byte[TCP_RX_WIN_SIZE];
-	.window_index = 0,
-	.udp_rx_min = 3,
-	.udp_rx_low_thr = 12,
-	.in_game_true_thr = 15,
-	.in_game_false_thr = 10,
-	.rx_bad_thr = 4,
-};
-
-static struct game_traffic_info wzry_traffic_info = {
-	.game_in_front = 0,
-	//.udp_rx_packet[UDP_RX_WIN_SIZE];
-	//.tcp_rx_byte[TCP_RX_WIN_SIZE];
-	.window_index = 0,
-	.udp_rx_min = 3,
-	.udp_rx_low_thr = 12,
-	.in_game_true_thr = 15,
-	.in_game_false_thr = 10,
-	.rx_bad_thr = 3,
-};
-
-static struct game_traffic_info cjzc_traffic_info = {
-	.game_in_front = 0,
-	//.udp_rx_packet[UDP_RX_WIN_SIZE];
-	//.tcp_rx_byte[TCP_RX_WIN_SIZE];
-	.window_index = 0,
-	.udp_rx_min = 3,
-	.udp_rx_low_thr = 14,
-	.in_game_true_thr = 15,
-	.in_game_false_thr = 10,
-	.rx_bad_thr = 4,
 };
 
 
@@ -595,19 +489,6 @@ static void reset_wlan_info(void)
 
 }
 
-static void init_oppo_sla_weight(struct timeval tv)
-{
-	last_weight_tv = tv;
-	if (oppo_sla_info[WLAN_INDEX].sla_avg_rtt >= BACK_OFF_RTT_2){
-		oppo_sla_info[WLAN_INDEX].weight = 0;
-		oppo_sla_info[CELLULAR_INDEX].weight = 100;
-	} else {
-		oppo_sla_info[WLAN_INDEX].weight = 30;
-		oppo_sla_info[CELLULAR_INDEX].weight = 100;
-	}
-	reset_wlan_info();
-}
-
 static int enable_oppo_sla_module(void)
 {
 	struct timeval tv;
@@ -617,12 +498,13 @@ static int enable_oppo_sla_module(void)
 	if(oppo_sla_info[WLAN_INDEX].if_up &&
 		oppo_sla_info[CELLULAR_INDEX].if_up){
 
-		do_gettimeofday(&tv);
-		last_enable_cellular_tv = tv;
-
-		init_oppo_sla_weight(tv);
-
+		//oppo_sla_debug = 1;
 		oppo_sla_enable = 1;
+		do_gettimeofday(&tv);
+		last_weight_tv = tv;
+		last_enable_cellular_tv = tv;
+		oppo_sla_info[WLAN_INDEX].weight = 30;
+		oppo_sla_info[CELLULAR_INDEX].weight = 100;
 		printk("oppo_sla_netlink: enable\n");
 		oppo_sla_send_to_user(SLA_ENABLED, NULL, 0);
 	}
@@ -631,40 +513,7 @@ static int enable_oppo_sla_module(void)
 	return 0;
 }
 
-//add for rate limit function to statistics front uid rtt
-static void statistics_front_uid_rtt(int rtt,struct sock *sk)
-{
-	kuid_t uid;
-	const struct file *filp = NULL;
-	if(sk && sk_fullsock(sk)){
-
-		if(NULL == sk->sk_socket){
-			return;
-		}
-
-		filp = sk->sk_socket->file;
-		if(NULL == filp){
-			return;
-		}
-
-		if(rate_limit_info.front_uid){
-			uid = make_kuid(&init_user_ns,rate_limit_info.front_uid);
-			if(uid_eq(filp->f_cred->fsuid, uid)){
-				if(rate_limit_info.rate_limit_enable){
-					rate_limit_info.enable_rtt_num++;
-					rate_limit_info.enable_rtt_sum += rtt;
-				}
-				else{
-					rate_limit_info.disable_rtt_num++;
-					rate_limit_info.disable_rtt_sum += rtt;
-				}
-			}
-		}
-	}
-	return;
-}
-
-static void calc_rtt_by_dev_index(int index,int tmp_rtt,struct sock *sk)
+static void calc_rtt_by_dev_index(int index,int tmp_rtt)
 {
 
 	/*do not calc rtt when the screen
@@ -679,18 +528,14 @@ static void calc_rtt_by_dev_index(int index,int tmp_rtt,struct sock *sk)
 		return;
 	}
 
+	sla_rtt_write_lock();
+
+	oppo_sla_info[index].rtt_index++;
 	if(tmp_rtt > MAX_RTT){
 		tmp_rtt = MAX_RTT;
 	}
 
-	sla_rtt_write_lock();
-
-	statistics_front_uid_rtt(tmp_rtt,sk);
-
-	if(!rate_limit_info.rate_limit_enable){
-		oppo_sla_info[index].rtt_index++;
-		oppo_sla_info[index].sum_rtt += tmp_rtt;
-	}
+	oppo_sla_info[index].sum_rtt += tmp_rtt;
 
 	sla_rtt_write_unlock();
 	return;
@@ -728,7 +573,7 @@ static int calc_retran_syn_rtt(struct sk_buff *skb,struct nf_conn *ct)
 
 	if(-1 != index){
 
-		calc_rtt_by_dev_index(index,SYN_RETRAN_RTT,NULL);
+		calc_rtt_by_dev_index(index,SYN_RETRAN_RTT);
 
 		oppo_sla_info[index].syn_retran++;
 		syn_retran_statistic.syn_retran_num++;
@@ -1032,12 +877,35 @@ static int get_wlan_syn_retran(struct sk_buff *skb)
 			}
 
 			syn_retran_statistic.syn_retran_num++;
-			calc_rtt_by_dev_index(WLAN_INDEX,SYN_RETRAN_RTT,sk);
+			calc_rtt_by_dev_index(WLAN_INDEX,SYN_RETRAN_RTT);
 
 			ct->mark |= RTT_MARK;
 		}
 	}
 	return NF_ACCEPT;
+}
+
+
+static void game_hyxd_skb_stream(struct nf_conn *ct,struct sk_buff *skb,s64 now,u32 game_type)
+{
+	s64 time_interval;
+
+	if(53 == skb->len){
+		ct->oppo_game_timestamp = now;
+		ct->oppo_game_skb_len = 49;
+	}
+
+	if(49 == skb->len){
+		time_interval = now - ct->oppo_game_timestamp;
+		if(time_interval > 7000 && time_interval < 9000){
+			game_uid[game_type].rtt = 0;
+			ct->oppo_game_timestamp = now;
+			ct->oppo_game_last_timestamp = now;
+			ct->oppo_game_detect_status = GAME_RTT_DECECTED_STREAM;
+		}
+	}
+
+	return;
 }
 
 static void game_rtt_estimator(int game_type, u32 rtt)
@@ -1110,7 +978,7 @@ static void game_app_switch_network(u32 game_type)
 	index = game_type;
 	uid = game_uid[game_type].uid;
 
-	if(!game_start_state[index] && !inGame){
+	if(!game_start_state[index]){
 		return;
 	}
 
@@ -1126,8 +994,7 @@ static void game_app_switch_network(u32 game_type)
 	game_rtt = game_uid[game_type].rtt >> shift;
 
 	if(cell_quality_good &&
-		!game_cell_to_wifi &&
-	   (wlan_bad || game_rx_bad || game_rtt >= max_rtt) &&
+	   (wlan_bad || game_rtt >= max_rtt) &&
 	   game_uid[index].mark == WLAN_MARK){
 	   if(!game_uid[index].switch_time ||
 	   	 (time_now - game_uid[index].switch_time) > 60000){
@@ -1149,7 +1016,7 @@ static void game_app_switch_network(u32 game_type)
 
 	if(!wlan_bad &&
 	   game_uid[index].mark == CELLULAR_MARK &&
-	   (!cell_quality_good || game_rx_bad || game_rtt >= max_rtt)){
+	   (!cell_quality_good || game_rtt >= max_rtt)){
 
 		if(!game_uid[index].switch_time ||
 	   	 (time_now - game_uid[index].switch_time) > 60000){
@@ -1157,7 +1024,6 @@ static void game_app_switch_network(u32 game_type)
 		    game_uid[game_type].rtt = 0;
 			game_uid[index].switch_time = time_now;
 			game_uid[index].mark = WLAN_MARK;
-			game_cell_to_wifi = true;
 
 			memset(game_bp_info,0x0,sizeof(game_bp_info));
 			game_bp_info[0] = game_type;
@@ -1172,56 +1038,167 @@ static void game_app_switch_network(u32 game_type)
 	return;
 }
 
-static bool is_game_rtt_skb(struct nf_conn *ct, struct sk_buff *skb, bool isTx) {
-        struct iphdr *iph = NULL;
-        struct udphdr *udph = NULL;
-        u32 header_len;
-        u8 *payload = NULL;
-        u32 gameType = ct->oppo_app_type;
 
-        if (gameType <= 0 || gameType >= GAME_NUM || game_params[gameType].game_index == 0 ||
-                skb->len > 150 || (iph = ip_hdr(skb)) == NULL || iph->protocol != IPPROTO_UDP) {
-                //printk("oppo_sla_game_rtt_detect: not game skb.");
-                return false;
-        }
+static void set_game_rtt_stream_up_info(struct nf_conn *ct,s64 now,u32 game_type)
+{
+	s64 time_interval;
+	int game_rtt;
+	int shift = 3;
+	//bool wlan_bad = false;
 
-        if ((isTx && ct->oppo_game_up_count >= MAX_DETECT_PKTS) ||
-                (!isTx && ct->oppo_game_down_count >= MAX_DETECT_PKTS)) {
-                ct->oppo_game_detect_status = GAME_SKB_COUNT_ENOUGH;
-                return false;
-        }
+	if(!ct->oppo_game_timestamp){
+		ct->oppo_game_timestamp = now;
+		ct->oppo_game_time_interval = now - ct->oppo_game_last_timestamp;
+		ct->oppo_game_last_timestamp = now;
+		if(ct->oppo_game_time_interval >= 10000){
+			ct->oppo_game_timestamp = 0;
+			/*when the game(like wzry) in background,the app may stop to send dectec skb,so when
+			*app send skb again,the oppo_game_time_interval will biger then 1000.
+			*so do not reset the oppo_game_detect_status.
+			*/
+			//ct->oppo_game_detect_status =	GAME_SKB_COUNT_ENOUGH;
+		}
+	}
+	else{
+		time_interval = now - ct->oppo_game_last_timestamp;
+		if(abs(time_interval - ct->oppo_game_time_interval) < 50){
+			ct->oppo_game_timestamp = now;
+			ct->oppo_game_last_timestamp = now;
+			ct->oppo_game_lost_count++;
 
-        udph = udp_hdr(skb);
-        header_len = iph->ihl * 4 + sizeof(struct udphdr);
-        payload =(u8 *)(skb->data + header_len);
-        if (isTx) {
-                int tx_offset = game_params[gameType].tx_offset;
-                int tx_len = game_params[gameType].tx_len;
-                u8  tx_fixed_value[MAX_FIXED_VALUE_LEN];
-                memcpy(tx_fixed_value, game_params[gameType].tx_fixed_value, MAX_FIXED_VALUE_LEN);
-                if (udph->len >= (tx_offset + tx_len) && memcmp(payload + tx_offset, tx_fixed_value, tx_len) == 0) {
-                        if (oppo_sla_debug) {
-                                printk("oppo_sla_game_rtt_detect: this is game RTT Tx skb.\n");
-                        }
-                        ct->oppo_game_detect_status |= GAME_RTT_STREAM;
-                        return true;
-                }
-        } else {
-                int rx_offset = game_params[gameType].rx_offset;
-                int rx_len = game_params[gameType].rx_len;
-                u8  rx_fixed_value[MAX_FIXED_VALUE_LEN];
-                memcpy(rx_fixed_value, game_params[gameType].rx_fixed_value, MAX_FIXED_VALUE_LEN);
-                if (udph->len >= (rx_offset + rx_len) && memcmp(payload + rx_offset, rx_fixed_value, rx_len) == 0) {
-                        if (oppo_sla_debug) {
-                                printk("oppo_sla_game_rtt_detect: this is game RTT Rx skb.\n");
-                        }
-                        ct->oppo_game_detect_status |= GAME_RTT_STREAM;
-                        return true;
-                }
-        }
-        //printk("oppo_sla_game_rtt_detect: this is NOT game RTT skb.");
-        return false;
+			if(oppo_sla_enable &&
+			   2 == ct->oppo_game_lost_count &&
+			   ct->oppo_game_time_interval > 300) {
+
+				if(GAME_WZRY == game_type) {
+					shift = 2;
+				}
+
+				if((game_uid[game_type].rtt >> shift) > 0){
+					game_rtt = MAX_GAME_RTT;
+				}
+				else{
+					game_rtt = 100;
+				}
+				ct->oppo_game_lost_count = 0;
+
+				sla_game_write_lock();
+				game_rtt_estimator(game_type,game_rtt);
+				sla_game_write_unlock();
+
+				printk("oppo_sla_game_rtt: game_type:%d,rtt = %u,lost game detect skb\n",game_type,game_uid[game_type].rtt >> shift);
+			}
+		}
+	}
+
+	return;
 }
+
+static void detect_game_rtt_stream(struct nf_conn *ct,struct sk_buff *skb,
+				enum ip_conntrack_info ctinfo)
+{
+	int same_count_max = 10;
+	int up_max_count = 50;
+	s64 time_now;
+	s64 time_interval;
+	int game_type = ct->oppo_app_type;
+
+	time_now = ktime_get_ns() / 1000000;
+
+	if(oppo_sla_debug){
+		printk("oppo_sla_game_debug_up:game type = %d,timestamp = %llu,time_inter = %u,"
+               "src port = %d,ct state = %d,up count = %d,game_status = %d,skb len = %d\n",
+               game_type,ct->oppo_game_timestamp,ct->oppo_game_time_interval,ntohs(udp_hdr(skb)->source),
+               XT_STATE_BIT(ctinfo),ct->oppo_game_up_count,ct->oppo_game_detect_status,skb->len);
+	}
+
+	if(ct->oppo_game_up_count == 0){
+		ct->oppo_game_up_count = 1;
+		ct->oppo_game_same_count = 0;
+		ct->oppo_game_lost_count = 0;
+		ct->oppo_game_detect_status = 0;
+		ct->oppo_game_skb_len = skb->len;
+		ct->oppo_game_timestamp = time_now;
+	}
+	else if(!ct->oppo_game_detect_status){
+
+		if(GAME_HYXD ==	game_type ||
+			GAME_HYXD_NM ==	game_type ||
+			GAME_HYXD_ALI == game_type){
+			game_hyxd_skb_stream(ct,skb,time_now,game_type);
+		}
+		else{
+			if(GAME_CJZC ==	game_type){
+				same_count_max = 6;
+			}
+			time_interval = time_now - ct->oppo_game_timestamp;
+			ct->oppo_game_timestamp = time_now;
+
+			if(ct->oppo_game_skb_len == skb->len){
+
+			    if (time_interval < 300) return;
+
+				ct->oppo_game_same_count++;
+
+				if(oppo_sla_debug){
+				    printk("oppo_sla_game_rtt:src_port = %d,interval_time = %llu,up_count = %d,down count = %d,same count = %d\n",
+						    ntohs(udp_hdr(skb)->source),time_interval,ct->oppo_game_up_count,ct->oppo_game_down_count,ct->oppo_game_same_count);
+				}
+
+				if(GAME_WZRY == game_type &&
+					abs(time_interval - 5000) < 50){
+					same_count_max = 5;
+				}
+
+				if(ct->oppo_game_down_count >= same_count_max &&
+				   ct->oppo_game_same_count >= same_count_max){
+					printk("oppo_sla_game_rtt: found RTT detect strem,src_port = %d,same count = %d,up count = %u,down count = %u,skb->len = %d\n",
+							ntohs(udp_hdr(skb)->source),ct->oppo_game_same_count,ct->oppo_game_up_count,ct->oppo_game_down_count,skb->len);
+
+					if(time_interval < 300 || time_interval > 10000){
+						ct->oppo_game_detect_status = GAME_SKB_COUNT_ENOUGH;
+						return;
+					}
+
+					game_uid[game_type].rtt = 0;
+					ct->oppo_game_last_timestamp = time_now;
+					ct->oppo_game_time_interval = time_interval;
+					ct->oppo_game_detect_status = GAME_RTT_DECECTED_STREAM;
+
+				}
+			}
+			else{
+				ct->oppo_game_skb_len = skb->len;
+				ct->oppo_game_same_count = 1;
+			}
+		}
+		if(ct->oppo_game_up_count >= up_max_count){
+			ct->oppo_game_detect_status = GAME_SKB_COUNT_ENOUGH;
+			if(oppo_sla_debug){
+			    printk("oppo_sla_game_rtt:src_port = %d, same count = %d, GAME_SKB_COUNT_ENOUGH!!\n",
+					    ntohs(udp_hdr(skb)->source),ct->oppo_game_same_count);
+			}
+		}
+
+		ct->oppo_game_up_count++;
+
+	}
+	else if(GAME_RTT_DECECTED_STREAM == ct->oppo_game_detect_status){
+		if (skb->len > 150) {
+		    return;
+		}
+
+		if((GAME_HYXD == game_type ||
+			GAME_HYXD_NM  == game_type ||
+			GAME_HYXD_ALI == game_type) &&
+			(49 != skb->len)){
+			return;
+		}
+
+		set_game_rtt_stream_up_info(ct,time_now,game_type);
+	}
+}
+
 
 static int mark_game_app_skb(struct nf_conn *ct,struct sk_buff *skb,enum ip_conntrack_info ctinfo)
 {
@@ -1240,7 +1217,7 @@ static int mark_game_app_skb(struct nf_conn *ct,struct sk_buff *skb,enum ip_conn
 		}
 
 		ct_mark = GAME_UNSPEC_MASK & ct->mark;
-		if(!game_start_state[game_index] && !inGame &&
+		if(!game_start_state[game_index] &&
 		   (GAME_UNSPEC_MARK & ct_mark)){
 
 			return SLA_SKB_ACCEPT;
@@ -1250,11 +1227,7 @@ static int mark_game_app_skb(struct nf_conn *ct,struct sk_buff *skb,enum ip_conn
 		if(iph &&
 		   (IPPROTO_UDP == iph->protocol ||
 		    IPPROTO_TCP == iph->protocol)){
-			//WZRY can not switch tcp packets
-			if(GAME_WZRY == game_index &&
-			   IPPROTO_TCP == iph->protocol) {
-				return SLA_SKB_ACCEPT;
-			}
+
 			ct_mark	= ct->mark & MARK_MASK;
 
             if(GAME_CJZC == game_index &&
@@ -1335,7 +1308,7 @@ static bool is_game_app_skb(struct nf_conn *ct,struct sk_buff *skb,enum ip_connt
 						game_uid[i].cell_bytes += skb->len;
 					}
 					//ct->mark = (ct->mark & RTT_MASK) | game_uid[i].mark;
-					if(!game_start_state[i] && !inGame &&
+					if(!game_start_state[i] &&
 						iph && IPPROTO_TCP == iph->protocol){
 						ct->mark = (ct->mark & RTT_MASK) | WLAN_MARK;
 						ct->mark |= GAME_UNSPEC_MARK;
@@ -1396,95 +1369,16 @@ static int detect_game_up_skb(struct sk_buff *skb)
 	ret = SLA_SKB_CONTINUE;
 	iph = ip_hdr(skb);
 	if(iph && IPPROTO_UDP == iph->protocol){
-		if (ct->oppo_game_up_count < MAX_DETECT_PKTS &&
-		        ct->oppo_game_detect_status == GAME_SKB_DETECTING) {
-		        ct->oppo_game_up_count++;
-		}
-		//only udp packet can trigger switching network to avoid updating game with cell.
+		//only udp packet can active switch network to void updating game with cell.
 		sla_game_write_lock();
 		game_app_switch_network(ct->oppo_app_type);
 		sla_game_write_unlock();
 
-		if (is_game_rtt_skb(ct, skb, true)) {
-		        s64 time_now = ktime_get_ns() / 1000000;
-		        if (ct->oppo_game_timestamp && time_now - ct->oppo_game_timestamp > 200) {
-        		        //Tx done and no Rx, we've lost a response pkt
-        		        ct->oppo_game_lost_count++;
-        		        sla_game_write_lock();
-        		        game_rtt_estimator(ct->oppo_app_type, MAX_GAME_RTT);
-        		        sla_game_write_unlock();
-
-            			if(game_rtt_show_toast) {
-            			        u32 game_rtt = MAX_GAME_RTT;
-            			        oppo_sla_send_to_user(SLA_NOTIFY_GAME_RTT,(char *)&game_rtt,sizeof(game_rtt));
-            			}
-    			        if(oppo_sla_debug) {
-    			                u32 shift = 3;
-    			                if(GAME_WZRY == ct->oppo_app_type) {
-    			                        shift = 2;
-    			                }
-    			                printk("oppo_sla_game_rtt: lost packet!! game_rtt=%u, srtt=%u\n",
-    			                        MAX_GAME_RTT, game_uid[ct->oppo_app_type].rtt >> shift);
-    			        }
-		        }
-		        ct->oppo_game_timestamp = time_now;
-		}
+		detect_game_rtt_stream(ct,skb,ctinfo);
 	}
 
 	return ret;
-}
 
-static bool is_game_voice_packet(struct nf_conn *ct, struct sk_buff *skb) {
-	struct iphdr *iph = NULL;
-	struct udphdr *udph = NULL;
-	u32 header_len;
-	u8 *payload = NULL;
-	u8 wzry_fixed_value[2] = {0x55, 0xf4};
-	u32 wzry_offset = 9;
-	u32 wzry_len = 2;
-	u8 cjzc_fixed_value[3] = {0x10, 0x01, 0x01};
-	u32 cjzc_offset = 4;
-	u32 cjzc_len = 3;
-	int game_type = ct->oppo_app_type;
-	//u16 tot_len;
-
-	if (ct->oppo_game_down_count >= MAX_DETECT_PKTS) {
-	        ct->oppo_game_detect_status = GAME_SKB_COUNT_ENOUGH;
-	        return false;
-	}
-
-	if ((iph = ip_hdr(skb)) != NULL && iph->protocol == IPPROTO_UDP) {
-	        //tot_len = ntohs(iph->tot_len);
-	        udph = udp_hdr(skb);
-	        header_len = iph->ihl * 4 + sizeof(struct udphdr);
-	        payload =(u8 *)(skb->data + header_len);
-	        if (game_type == GAME_WZRY) {
-        	        if (udph->len >= (wzry_offset + wzry_len) &&
-            	                memcmp(payload + wzry_offset, wzry_fixed_value, wzry_len) == 0) {	//for cjzc voice pkt
-                    	        //printk("oppo_sla_game_rx_voice:this is voice skb!\n");
-                    	        ct->oppo_game_detect_status |= GAME_VOICE_STREAM;
-                    	        return true;
-        	        } else {
-                    	        //memcpy(fixed_value, payload + 4, 3);
-                    	        //printk("oppo_sla_game_rx_voice:this is NOT voice skb, value=%02x%02x%02x\n",
-                    	        //        fixed_value[0], fixed_value[1], fixed_value[2]);
-                    	        return false;
-        	        }
-	        } else if (game_type == GAME_CJZC) {
-        	        if (udph->len >= (cjzc_offset + cjzc_len) &&
-            	                memcmp(payload + cjzc_offset, cjzc_fixed_value, cjzc_len) == 0) {	//for cjzc voice pkt
-                    	        //printk("oppo_sla_game_rx_voice:this is voice skb!\n");
-                    	        ct->oppo_game_detect_status |= GAME_VOICE_STREAM;
-                    	        return true;
-        	        } else {
-                    	        //memcpy(fixed_value, payload + 4, 3);
-                    	        //printk("oppo_sla_game_rx_voice:this is NOT voice skb, value=%02x%02x%02x\n",
-                    	        //        fixed_value[0], fixed_value[1], fixed_value[2]);
-                    	        return false;
-        	        }
-	        }
-	}
-	return false;
 }
 
 static void record_sla_app_cell_bytes(struct nf_conn *ct, struct sk_buff *skb)
@@ -1565,75 +1459,85 @@ static unsigned int oppo_sla_game_rtt_calc(void *priv,
 	//calc game or white list app cell bytes
 	record_sla_app_cell_bytes(ct,skb);
 
-	//calc game app udp packet count(except for voice packets) and tcp bytes
-	if (ct->oppo_app_type > 0 && ct->oppo_app_type < GAME_NUM) {
-	        if (iph && IPPROTO_UDP == iph->protocol) {
-         	        if (ct->oppo_game_down_count < MAX_DETECT_PKTS &&
-         	                ct->oppo_game_detect_status == GAME_SKB_DETECTING) {
-         	                ct->oppo_game_down_count++;
-        	        }
-        	        if (!is_game_voice_packet(ct, skb)) {
-         	                game_online_info.udp_rx_pkt_count++;
-        	        }
-	        } else if (iph && IPPROTO_TCP == iph->protocol) {
-	                game_online_info.tcp_rx_byte_count += skb->len;
-	        }
-	}
+	if(GAME_RTT_DECECTED_STREAM == ct->oppo_game_detect_status){
+		if(iph &&
+		   IPPROTO_UDP == iph->protocol){
 
-	if (is_game_rtt_skb(ct, skb, false)) {
-		time_now = ktime_get_ns() / 1000000;
-		if(ct->oppo_game_timestamp && time_now > ct->oppo_game_timestamp){
+			time_now = ktime_get_ns() / 1000000;
+			if(ct->oppo_game_timestamp){
 
-			game_rtt = (u32)(time_now - ct->oppo_game_timestamp);
-			if (game_rtt < MIN_GAME_RTT) {
-				if(oppo_sla_debug){
-					printk("oppo_sla_game_rtt:invalid RTT %dms\n", game_rtt);
+				if(time_now > ct->oppo_game_timestamp){
+				    if (skb->len > 150) {
+						return NF_ACCEPT;
+					}
+
+					if(GAME_HYXD == ct->oppo_app_type ||
+						GAME_HYXD_NM == ct->oppo_app_type ||
+						GAME_HYXD_ALI == ct->oppo_app_type){
+						if(skb->len != 53){
+							return NF_ACCEPT;
+						}
+					}
+
+					game_rtt = (u32)(time_now - ct->oppo_game_timestamp);
+					if (game_rtt < MIN_GAME_RTT) {
+						if(oppo_sla_debug){
+							printk("oppo_sla_game_rtt:invalid RTT %dms\n", game_rtt);
+						}
+						ct->oppo_game_timestamp = 0;
+					    return NF_ACCEPT;
+					}
 				}
+
 				ct->oppo_game_timestamp = 0;
-			    return NF_ACCEPT;
-			}
-
-			ct->oppo_game_timestamp = 0;
-
-			if(game_rtt > MAX_GAME_RTT){
-				game_rtt = MAX_GAME_RTT;
-			}
-
-			if(!enable_to_user &&
-			   !oppo_sla_enable &&
-			   sla_switch_enable &&
-			   cell_quality_good){
-
-				enable_to_user = 1;
-
-				if(oppo_sla_info[WLAN_INDEX].need_up){
-					oppo_sla_info[WLAN_INDEX].if_up = 1;
+				if (ct->oppo_game_time_interval < 200) {
+				    return NF_ACCEPT;
 				}
 
-				do_gettimeofday(&last_enable_to_user_tv);
-				if(oppo_sla_info[CELLULAR_INDEX].need_up){
-					oppo_sla_info[CELLULAR_INDEX].if_up = 1;
-					oppo_sla_info[CELLULAR_INDEX].need_up = false;
+				if(game_rtt > MAX_GAME_RTT){
+					game_rtt = MAX_GAME_RTT;
 				}
-				printk("oppo_sla_netlink: game app send enable sla to user\n");
-				oppo_sla_send_to_user(SLA_ENABLE,NULL,0);
-			}
-			if(game_rtt_show_toast) {
-			        oppo_sla_send_to_user(SLA_NOTIFY_GAME_RTT,(char *)&game_rtt,sizeof(game_rtt));
-			}
-			ct->oppo_game_lost_count = 0;
 
-			sla_game_write_lock();
-			game_rtt_estimator(ct->oppo_app_type,game_rtt);
-			sla_game_write_unlock();
+				if(!enable_to_user &&
+				   !oppo_sla_enable &&
+				   sla_switch_enable &&
+				   cell_quality_good){
 
-			if(oppo_sla_debug){
-				if(GAME_WZRY == ct->oppo_app_type) {
-					shift = 2;
+					enable_to_user = 1;
+
+					if(oppo_sla_info[WLAN_INDEX].need_up){
+						oppo_sla_info[WLAN_INDEX].if_up = 1;
+					}
+
+					do_gettimeofday(&last_enable_to_user_tv);
+					if(oppo_sla_info[CELLULAR_INDEX].need_up){
+						oppo_sla_info[CELLULAR_INDEX].if_up = 1;
+						oppo_sla_info[CELLULAR_INDEX].need_up = false;
+					}
+					printk("oppo_sla_netlink: game app send enable sla to user\n");
+					oppo_sla_send_to_user(SLA_ENABLE,NULL,0);
+
 				}
-				printk("oppo_sla_game_rtt: game_rtt=%u, srtt=%u\n", game_rtt, game_uid[ct->oppo_app_type].rtt >> shift);
+				if(oppo_sla_debug){
+					if(GAME_WZRY == ct->oppo_app_type) {
+						shift = 2;
+					}
+					printk("oppo_sla_game_rtt: game_rtt = %u\n",game_uid[ct->oppo_app_type].rtt	>> shift);
+				}
+				//oppo_sla_send_to_user(SLA_NOTIFY_GAME_RTT,(char *)&game_rtt,sizeof(game_rtt));
+				ct->oppo_game_lost_count = 0;
+
+				sla_game_write_lock();
+				game_rtt_estimator(ct->oppo_app_type,game_rtt);
+				sla_game_write_unlock();
+
 			}
+
 		}
+	}
+	else if(!ct->oppo_game_detect_status && ct->oppo_app_type > 0
+	        && ct->oppo_app_type < GAME_NUM){
+		ct->oppo_game_down_count++;
 	}
 
 	return NF_ACCEPT;
@@ -2055,7 +1959,6 @@ static unsigned int oppo_sla_speed_calc(void *priv,
 							do_gettimeofday(&last_calc_small_speed_tv);
 
 							if(cell_quality_good &&
-								!rate_limit_info.rate_limit_enable &&
 								tmp_speed > CALC_WEIGHT_MIN_SPEED_1 &&
 								tmp_speed < CALC_WEIGHT_MIN_SPEED_3 &&
 								oppo_sla_info[index].max_speed < 100){
@@ -2109,45 +2012,9 @@ static void oppo_statistic_dev_rtt(struct sock *sk,long rtt)
 
 		//sk->oppo_sla_mark |= RTT_MARK;
 
-		calc_rtt_by_dev_index(index,tmp_rtt,sk);
+		calc_rtt_by_dev_index(index,tmp_rtt);
 
 	}
-}
-
-/*sometimes when skb reject by iptables,
-*it will retran syn which may make the rtt much big
-*so just mark the stream(ct) with mark RTT_MARK when this happens
-*/
-static void sla_mark_streams_for_iptables_reject(struct sk_buff *skb,enum ipt_reject_with reject_type)
-{
-	struct nf_conn *ct = NULL;
-	enum ip_conntrack_info ctinfo;
-
-	ct = nf_ct_get(skb, &ctinfo);
-	if(NULL == ct){
-		return;
-	}
-	ct->mark |= RTT_MARK;
-
-	if (oppo_sla_debug) {
-		if(ctinfo == IP_CT_NEW){
-			struct sock *sk = skb_to_full_sk(skb);
-			const struct file *filp = NULL;
-			if(sk && sk_fullsock(sk)){
-				if(NULL == sk->sk_socket){
-					return;
-				}
-
-				filp = sk->sk_socket->file;
-				if(NULL == filp){
-					return;
-				}
-				printk("oppo_sla_iptables:uid = %u,reject type = %u\n",filp->f_cred->fsuid.val,reject_type);
-			}
-		}
-	}
-
-	return;
 }
 
 static void is_need_calc_wlan_small_speed(int speed)
@@ -2155,8 +2022,7 @@ static void is_need_calc_wlan_small_speed(int speed)
 	if(sla_screen_on &&
 		!enable_to_user &&
 		!oppo_sla_enable &&
-		!oppo_sla_calc_speed &&
-		!rate_limit_info.rate_limit_enable){
+		!oppo_sla_calc_speed){
 
 		if(speed <= 100 &&
 			speed > CALC_WEIGHT_MIN_SPEED_1 &&
@@ -2719,12 +2585,11 @@ static void calc_network_congestion(struct timeval tv)
 
 			if(oppo_sla_debug){
 				printk("oppo_sla_rtt: index = %d,wlan_rtt = %d,"
-					   "wlan score bad = %u,cell_good = %d,need_pop_window = %d,"
-					   "sceen_on = %d,enable_to_user = %d,sla_switch_enable = %d,"
-					   "oppo_sla_enable= %d,oppo_sla_def_net = %d,sla_avg_rtt = %d,game_cell_to_wifi = %d\n",
+					   "wlan score bad = %u,cell_good = %d,need_pop_window = %d,sceen_on = %d,"
+					   "enable_to_user = %d,sla_switch_enable = %d,oppo_sla_enable= %d,oppo_sla_def_net = %d,sla_avg_rtt = %d\n",
 					   index,oppo_sla_info[index].avg_rtt,
-					   oppo_sla_info[index].wlan_score_bad_count,cell_quality_good,need_pop_window,
-					   sla_screen_on,enable_to_user,sla_switch_enable,oppo_sla_enable,oppo_sla_def_net,avg_rtt,game_cell_to_wifi);
+					   oppo_sla_info[index].wlan_score_bad_count,cell_quality_good,
+					   need_pop_window,sla_screen_on,enable_to_user,sla_switch_enable,oppo_sla_enable,oppo_sla_def_net,avg_rtt);
 			}
 
 			if(sla_screen_on &&
@@ -2733,10 +2598,9 @@ static void calc_network_congestion(struct timeval tv)
 				cell_quality_good &&
 				!send_pop_win_msg_num &&
 				(WLAN_INDEX == index) &&
-				!rate_limit_info.rate_limit_enable &&
 				oppo_sla_info[WLAN_INDEX].if_up &&
 				(oppo_sla_info[index].max_speed <= rom_update_info.sla_speed) &&
-				(oppo_sla_info[index].download_flag < DOWN_LOAD_FLAG) &&
+				(oppo_sla_info[index].download_flag <  DOWN_LOAD_FLAG) &&
 				(avg_rtt >= rom_update_info.sla_rtt)){
 
 				send_pop_win_msg_num = 1;
@@ -2753,10 +2617,9 @@ static void calc_network_congestion(struct timeval tv)
 				sla_switch_enable &&
 				cell_quality_good &&
 				(WLAN_INDEX == index)&&
-				!rate_limit_info.rate_limit_enable &&
-				((oppo_sla_info[index].wlan_score && oppo_sla_info[index].wlan_score <= ENABLE_SLA_BY_WLAN_ASSI_SCORE) ||
+				((oppo_sla_info[index].wlan_score && oppo_sla_info[index].wlan_score <= (rom_update_info.wlan_bad_score - 10)) ||
 				((oppo_sla_info[index].max_speed <= rom_update_info.sla_speed) &&
-				(oppo_sla_info[index].download_flag < DOWN_LOAD_FLAG) &&
+				(oppo_sla_info[index].download_flag <  DOWN_LOAD_FLAG) &&
 				(avg_rtt >= rom_update_info.sla_rtt|| oppo_sla_info[index].wlan_score_bad_count >= WLAN_SCORE_BAD_NUM)))){
 
 				enable_to_user = 1;
@@ -2770,7 +2633,7 @@ static void calc_network_congestion(struct timeval tv)
 					oppo_sla_info[CELLULAR_INDEX].need_up = false;
 				}
 				oppo_sla_send_to_user(SLA_ENABLE,NULL,0);
-				//reset_wlan_info();
+				reset_wlan_info();
 				printk("oppo_sla_netlink:rtt send SLA_ENABLE to user,cellular need up = %d\n",oppo_sla_info[CELLULAR_INDEX].need_up);
 			}
 		}
@@ -2785,8 +2648,6 @@ static void init_game_online_info(void)
 {
 	int i = 0;
 	u32 time_now = 0;
-
-	game_cell_to_wifi = false;
 
 	time_now = ktime_get_ns() / 1000000;
 	sla_game_write_lock();
@@ -2811,103 +2672,6 @@ static void init_game_start_state(void)
     }
 }
 
-static void game_rx_update(void)
-{
-        if (game_online_info.game_online) {
-                struct game_traffic_info* cur_info;
-                int i;
-                u32 game_index = 0;
-                u32 tcp_rx_large_count = 0;
-                u32 delta_udp_pkts = game_online_info.udp_rx_pkt_count;
-                u64 delta_tcp_bytes = game_online_info.tcp_rx_byte_count;
-                game_online_info.udp_rx_pkt_count = 0;
-                game_online_info.tcp_rx_byte_count = 0;
-
-                if (wzry_traffic_info.game_in_front) {
-                        cur_info = &wzry_traffic_info;
-                        game_index = 1;
-                } else if (cjzc_traffic_info.game_in_front) {
-                        cur_info = &cjzc_traffic_info;
-                        game_index = 2;
-                } else {
-                        //for debug only...
-                        cur_info = &default_traffic_info;
-                        cur_info->game_in_front = 0;
-                }
-                //fill in the latest delta udp rx packets and tcp rx bytes
-                cur_info->udp_rx_packet[cur_info->window_index % UDP_RX_WIN_SIZE] = delta_udp_pkts;
-                cur_info->tcp_rx_byte[cur_info->window_index % TCP_RX_WIN_SIZE] = delta_tcp_bytes;
-                cur_info->window_index++;
-                //deal with the control logic
-                if (udp_rx_show_toast) {
-                        oppo_sla_send_to_user(SLA_NOTIFY_GAME_RX_PKT, (char *)&delta_udp_pkts, sizeof(delta_udp_pkts));
-                }
-
-                for (i = 0; i < TCP_RX_WIN_SIZE; i++) {
-                        if (cur_info->tcp_rx_byte[i] > TCP_DOWNLOAD_THRESHOLD) {
-                                tcp_rx_large_count++;
-                        }
-                }
-                if (tcp_rx_large_count == TCP_RX_WIN_SIZE) {
-                        if (oppo_sla_debug) {
-                                //tcp downloading.. this should not be in a game.
-                                if (oppo_sla_debug) {
-                                        printk("oppo_sla_game_rx_update:TCP downloading...should not be in a game.\n");
-                                }
-                        }
-                        if (inGame) {
-                                inGame = false;
-                                game_cell_to_wifi = false;
-                                memset(cur_info->udp_rx_packet, 0x0, sizeof(u32)*UDP_RX_WIN_SIZE);
-                                cur_info->window_index = 0;
-                        }
-                } else {
-                        int trafficCount = 0;
-                        int lowTrafficCount = 0;
-                        for (i = 0; i < UDP_RX_WIN_SIZE; i++) {
-                                if (cur_info->udp_rx_packet[i] >= cur_info->udp_rx_min) {
-                                        trafficCount++;
-                                        if (cur_info->udp_rx_packet[i] <= cur_info->udp_rx_low_thr) {
-                                                lowTrafficCount++;
-                                        }
-                                }
-                        }
-                        if (trafficCount >= cur_info->in_game_true_thr) {
-                                if (!inGame) {
-                                        int index;
-                                        inGame = true;
-                                        game_cell_to_wifi = false;
-                                        for (index = 0; index < UDP_RX_WIN_SIZE; index++) {
-                                                cur_info->udp_rx_packet[index] = 20;
-                                        }
-                                        lowTrafficCount = 0;
-                                }
-                        } else if (trafficCount <= cur_info->in_game_false_thr) {
-                                if (inGame) {
-                                        inGame = false;
-                                        game_cell_to_wifi = false;
-                                        memset(cur_info->udp_rx_packet, 0x0, sizeof(u32)*UDP_RX_WIN_SIZE);
-                                        cur_info->window_index = 0;
-                                }
-                        }
-                        if (inGame && cur_info->game_in_front) {
-                                if (lowTrafficCount >= cur_info->rx_bad_thr &&
-                                        game_index > 0 && game_start_state[game_index]) {   //wzry has low traffic when game ends
-                                        game_rx_bad = true;
-                                } else {
-                                        game_rx_bad = false;
-                                }
-                        }
-                        if (oppo_sla_debug) {
-                                printk("oppo_sla_game_rx_update:delta_udp_pkts=%d, lowTrafficCount=%d, inGame=%d, "
-                                        "game_rx_bad=%d, delta_tcp_bytes=%llu, tcp_rx_large_count=%d, trafficCount=%d\n",
-                                        delta_udp_pkts, lowTrafficCount, inGame,
-                                        game_rx_bad, delta_tcp_bytes, tcp_rx_large_count, trafficCount);
-                        }
-                }
-        }
-}
-
 static void game_online_time_out(struct timeval tv)
 {
 	if(game_online_info.game_online &&
@@ -2928,40 +2692,7 @@ static void pop_window_msg_time_out(struct timeval tv)
 	}
 }
 
-//add for rate limit function to statistics front uid rtt
-static void oppo_rate_limit_rtt_calc(struct timeval tv)
-{
-	int num = 0;
-	int sum = 0;
-	int time_interval = 0;
-
-	time_interval = tv.tv_sec - rate_limit_info.last_tv.tv_sec;
-	if(time_interval >= 10){
-		sla_rtt_write_lock();
-
-		if(rate_limit_info.disable_rtt_num >= 10){
-			num = rate_limit_info.disable_rtt_num;
-		    sum = rate_limit_info.disable_rtt_sum;
-			rate_limit_info.disable_rtt = sum / num;
-		}
-
-		if(rate_limit_info.enable_rtt_num >= 10){
-			num = rate_limit_info.enable_rtt_num;
-		    sum = rate_limit_info.enable_rtt_sum;
-			rate_limit_info.enable_rtt = sum / num;
-		}
-
-		rate_limit_info.disable_rtt_num = 0;
-	    rate_limit_info.disable_rtt_sum = 0;
-		rate_limit_info.enable_rtt_num = 0;
-		rate_limit_info.enable_rtt_sum = 0;
-		rate_limit_info.last_tv = tv;
-
-		sla_rtt_write_unlock();
-	}
-}
-
-static void oppo_sla_work_queue_func(struct work_struct *work)
+static void oppo_sla_timer_function(void)
 {
 	int time_interval;
 	int ret;
@@ -2980,18 +2711,12 @@ static void oppo_sla_work_queue_func(struct work_struct *work)
 		change_weight_state_for_small_minute_speed();
 	}
 
-	if(oppo_sla_enable &&
-		SLA_WEIGHT_RECOVERY != (ret = need_to_recovery_weight())){
+	if(SLA_WEIGHT_RECOVERY != (ret = need_to_recovery_weight())){
 		time_interval = tv.tv_sec - last_weight_tv.tv_sec;
 		if(time_interval >= RECALC_WEIGHT_TIME){
 			last_weight_tv = tv;
 			detect_network_is_available();
-
-			if (!init_weight_delay_count) {
-				recalc_dev_weight();
-			} else {
-				init_weight_delay_count--;
-			}
+			recalc_dev_weight();
 		}
 	}
 
@@ -2999,18 +2724,10 @@ static void oppo_sla_work_queue_func(struct work_struct *work)
 	up_wlan_iface_by_timer(tv);
 	disable_cellular_by_timer(tv);
 	game_online_time_out(tv);
-	game_rx_update();
 	pop_window_msg_time_out(tv);
 	reset_oppo_sla_calc_speed(tv);
-	oppo_rate_limit_rtt_calc(tv);
-	send_speed_and_rtt_to_user();
-}
 
-static void oppo_sla_timer_function(void)
-{
-	if (workqueue_sla){
-		queue_work(workqueue_sla, &oppo_sla_work);
-	}
+	send_speed_and_rtt_to_user();
 	mod_timer(&sla_timer, jiffies + SLA_TIMER_EXPIRES);
 
 }
@@ -3029,7 +2746,6 @@ static void oppo_sla_timer_init(void)
 	do_gettimeofday(&last_speed_tv);
 	do_gettimeofday(&last_weight_tv);
 	do_gettimeofday(&last_minute_speed_tv);
-	do_gettimeofday(&rate_limit_info.last_tv);
 }
 
 
@@ -3099,48 +2815,6 @@ static struct ctl_table oppo_sla_sysctl_table[] = {
 	{
 		.procname	= "game_mark",
 		.data		= &game_mark,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "front_uid",
-		.data		= &rate_limit_info.front_uid,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "rate_limit_enable",
-		.data		= &rate_limit_info.rate_limit_enable,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "disable_rtt",
-		.data		= &rate_limit_info.disable_rtt,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "enable_rtt",
-		.data		= &rate_limit_info.enable_rtt,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "udp_rx_show_toast",
-		.data		= &udp_rx_show_toast,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec,
-	},
-	{
-		.procname	= "game_rtt_show_toast",
-		.data		= &game_rtt_show_toast,
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
@@ -3318,18 +2992,18 @@ static int oppo_sla_get_wlan_score(struct nlmsghdr *nlh)
 	int *score = (int *)NLMSG_DATA(nlh);
 
 	if(NULL != score){
-		if(*score <= ENABLE_SLA_BY_WLAN_ASSI_SCORE){
+		//when wlan+ not be enabled
+		if(*score <= (rom_update_info.wlan_bad_score - 10)){
 		   if(sla_screen_on &&
 		  	  !enable_to_user &&
 		  	  !oppo_sla_enable &&
 		  	  cell_quality_good &&
 		  	  sla_switch_enable &&
-		  	  !rate_limit_info.rate_limit_enable &&
 		  	  !oppo_sla_info[CELLULAR_INDEX].need_up &&
 		  	  !oppo_sla_info[CELLULAR_INDEX].if_up){
 				printk("oppo_sla_netlink:send enable sla to user by wifi score\n");
 		   		enable_to_user = 1;
-				//reset_wlan_info();
+				reset_wlan_info();
 
 				if(oppo_sla_info[WLAN_INDEX].need_up){
 					oppo_sla_info[WLAN_INDEX].if_up = 1;
@@ -3482,111 +3156,17 @@ static int oppo_sla_set_game_start_state(struct nlmsghdr *nlh)
 	int *data = (int *)NLMSG_DATA(nlh);
 	int index = data[0];
 
-	game_cell_to_wifi = false;
-
 	if(index && index < GAME_NUM){
-	        game_start_state[index] = data[1];
-	        printk("oppo_sla_netlink:set game_start_state[%d] = %d\n",index,game_start_state[index]);
-	        //reset udp rx data
-	        if (wzry_traffic_info.game_in_front) {
-	                memset(wzry_traffic_info.udp_rx_packet, 0x0, sizeof(u32)*UDP_RX_WIN_SIZE);
-	                wzry_traffic_info.window_index = 0;
-	        } else if (cjzc_traffic_info.game_in_front) {
-	                memset(cjzc_traffic_info.udp_rx_packet, 0x0, sizeof(u32)*UDP_RX_WIN_SIZE);
-	                cjzc_traffic_info.window_index = 0;
-	        }
-	} else {
-	        printk("oppo_sla_netlink: set game_start_state error,index = %d\n",index);
+		game_start_state[index] = data[1];
+		printk("oppo_sla_netlink:set game_start_state[%d] = %d\n",index,game_start_state[index]);
+	}
+	else{
+		printk("oppo_sla_netlink: set game start state error,index = %d\n",index);
 	}
 
 	return	0;
 }
 
-static int oppo_sla_set_game_rtt_params(struct nlmsghdr *nlh)
-{
-	int *data = (int *)NLMSG_DATA(nlh);
-	int index = data[0];
-	int i;
-
-	if(index > 0 && index < GAME_NUM) {
-	        memcpy(&game_params[index], data, sizeof(struct oppo_sla_game_rtt_params));
-		printk("oppo_sla_netlink:set game params index=%d tx_offset=%d tx_len=%d tx_fix=",
-		        game_params[index].game_index, game_params[index].tx_offset, game_params[index].tx_len);
-		for (i = 0; i < game_params[index].tx_len; i++) {
-		        printk("%02x", game_params[index].tx_fixed_value[i]);
-		}
-		printk(" rx_offset=%d rx_len=%d rx_fix=", game_params[index].rx_offset, game_params[index].rx_len);
-		for (i = 0; i < game_params[index].rx_len; i++) {
-		        printk("%02x", game_params[index].rx_fixed_value[i]);
-		}
-		printk("\n");
-	} else {
-		printk("oppo_sla_netlink: set game params error,index = %d\n", index);
-	}
-
-	return	0;
-}
-
-static int oppo_sla_set_game_in_front(struct nlmsghdr *nlh)
-{
-	int *data = (int *)NLMSG_DATA(nlh);
-	int index = data[0];
-	int in_front = data[1];
-
-	if(index > 0 && index < GAME_NUM) {
-	        if (index == GAME_WZRY) {
-        	        if (in_front) {
-            	        wzry_traffic_info.game_in_front = 1;
-            	        cjzc_traffic_info.game_in_front = 0;
-        	        } else {
-        	            wzry_traffic_info.game_in_front = 0;
-        	        }
-        	        printk("oppo_sla_netlink: set_game_in_front game index = %d, in_front=%d\n", index, in_front);
-	        } else if (index == GAME_CJZC) {
-        	        if (in_front) {
-                    	        wzry_traffic_info.game_in_front = 0;
-                    	        cjzc_traffic_info.game_in_front = 1;
-        	        } else {
-                    	        cjzc_traffic_info.game_in_front = 0;
-        	        }
-        	        printk("oppo_sla_netlink: set_game_in_front game index = %d, in_front=%d\n", index, in_front);
-	        } else {
-	                printk("oppo_sla_netlink: set_game_in_front unknow game, index = %d\n", index);
-	        }
-	} else {
-	        printk("oppo_sla_netlink: set_game_in_front error, index = %d\n", index);
-	}
-
-	return	0;
-}
-
-static void oppo_sla_wlan_assi_enable_func(void)
-{
-	printk("oppo_sla_netlink: wlan assi enable sla,enable_to_user = %d\n",enable_to_user);
-	if (!enable_to_user) {
-		enable_to_user = 1;
-		if(oppo_sla_info[WLAN_INDEX].need_up){
-			oppo_sla_info[WLAN_INDEX].if_up = 1;
-		}
-
-		if(oppo_sla_info[CELLULAR_INDEX].need_up){
-			oppo_sla_info[CELLULAR_INDEX].if_up = 1;
-			oppo_sla_info[CELLULAR_INDEX].need_up = false;
-		}
-		do_gettimeofday(&last_enable_to_user_tv);
-	}
-}
-
-static void oppo_sla_init_weight_by_wlan_assi(void)
-{
-	struct timeval tv;
-	do_gettimeofday(&tv);
-	sla_write_lock();
-	init_weight_delay_count = 2;
-	//last_enable_cellular_tv = tv;
-	init_oppo_sla_weight(tv);
-	sla_write_unlock();
-}
 static int sla_netlink_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 {
 	int ret = 0;
@@ -3656,18 +3236,6 @@ static int sla_netlink_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	case SLA_NOTIFY_GAME_STATE:
 		oppo_sla_set_game_start_state(nlh);
 		break;
-	case SLA_NOTIFY_GAME_PARAMS:
-		oppo_sla_set_game_rtt_params(nlh);
-		break;
-	case SLA_NOTIFY_GAME_IN_FRONT:
-		oppo_sla_set_game_in_front(nlh);
-		break;
-	case SLA_ENABLE_BY_WLAN_ASSIST:
-		oppo_sla_wlan_assi_enable_func();
-		break;
-	case SLA_WEIGHT_BY_WLAN_ASSIST:
-		oppo_sla_init_weight_by_wlan_assi();
-		break;
 	default:
 		return -EINVAL;
 	}
@@ -3719,17 +3287,8 @@ static int __init oppo_sla_init(void)
 		printk("oppo_sla module can not register netfilter ops.\n");
 	}
 
-	workqueue_sla= create_singlethread_workqueue("workqueue_sla");
-	if (workqueue_sla) {
-		INIT_WORK(&oppo_sla_work, oppo_sla_work_queue_func);
-	}
-	else {
-		printk("oppo_sla module can not create workqueue_sla\n");
-	}
-
 	oppo_sla_timer_init();
 	statistic_dev_rtt = oppo_statistic_dev_rtt;
-	mark_streams_for_iptables_reject = sla_mark_streams_for_iptables_reject;
 
 	return ret;
 }
@@ -3739,13 +3298,6 @@ static void __exit oppo_sla_fini(void)
 {
 	oppo_sla_timer_fini();
 	statistic_dev_rtt = NULL;
-	mark_streams_for_iptables_reject = NULL;
-
-	if (workqueue_sla) {
-		flush_workqueue(workqueue_sla);
-		destroy_workqueue(workqueue_sla);
-	}
-
 	oppo_sla_netlink_exit();
 
 	if(oppo_sla_table_hrd){

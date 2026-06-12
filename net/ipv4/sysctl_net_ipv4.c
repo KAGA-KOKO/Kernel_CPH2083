@@ -704,18 +704,6 @@ static struct ctl_table ipv4_table[] = {
 		.proc_handler	= proc_do_print_tcpinfo
 	},
     #endif /* VENDOR_EDIT */
-	#ifdef VENDOR_EDIT
-	//Mengqing.Zhao@PSW.CN.WiFi.Network.internet.1394484, 2019/04/02,
-	//add for: When find TCP SYN-ACK Timestamp value error, just do not use Timestamp
-	{
-		.procname	= "tcp_timestamps_control",
-		.data		= &sysctl_tcp_ts_control,
-		.maxlen		= sizeof(sysctl_tcp_ts_control),
-		.mode		= 0664,
-		.proc_handler	= proc_dointvec
-	},
-	#endif /* VENDOR_EDIT */
-
 	{ }
 };
 
