@@ -169,7 +169,7 @@ static ssize_t read_from_kfifo_blocking(struct dbmdx_private *p,
 	int avail = 0;
 	unsigned int copied, total_copied = 0;
 	int ret;
-	unsigned long timeout = jiffies + msecs_to_jiffies(50);
+	unsigned long timeout = jiffies + msecs_to_jiffies(500);
 
 	dev_dbg(p->dbmdx_dev, "%s: count_want:%zu f_pos:%lld\n",
 			__func__, count_want, *f_pos);
@@ -179,12 +179,8 @@ static ssize_t read_from_kfifo_blocking(struct dbmdx_private *p,
 
 		avail = kfifo_len(samples_kfifo);
 
-		if (avail == 0) {
-			if(p->va_flags.buffering)
-				msleep(20);
-			else
-				break;
-		}
+		if (avail == 0 && p->va_flags.buffering)
+			msleep(100);
 
 		if (avail > 0) {
 			to_copy = avail;

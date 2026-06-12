@@ -361,7 +361,6 @@ static const struct snd_soc_ops mt6779_mt6359_vow_ops = {
 #endif  // #ifdef CONFIG_MTK_VOW_SUPPORT
 
 #ifdef VENDOR_EDIT
-#ifdef CONFIG_SND_SOC_ALSACODEC_AK4376
 /* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDAC, 2018/11/06,
  * add for no sound when ap suspend in call.
  */
@@ -382,25 +381,6 @@ static int ak4376_audrx_init(struct snd_soc_pcm_runtime *rtd)
 
 	return 0;
 }
-#endif /* CONFIG_SND_SOC_ALSACODEC_AK4376 */
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine.1792635, 2019/01/10,
- * add for dual spk */
-struct snd_soc_dai_link_component tfa98xx_dails[] = {
-	{
-		.of_node = NULL,
-		.name = "tfa98xx.6-0035",
-		.dai_name = "tfa98xx-aif-6-35",
-	},
-
-	{
-		.of_node = NULL,
-		.name = "tfa98xx.6-0034",
-		.dai_name = "tfa98xx-aif-6-34",
-	},
-};
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 #endif /* VENDOR_EDIT */
 
 static struct snd_soc_dai_link mt6779_mt6359_dai_links[] = {
@@ -784,15 +764,8 @@ static struct snd_soc_dai_link mt6779_mt6359_dai_links[] = {
 /* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2018/11/06,
  * add TFA9890 & AK4376 ALSA driver */
 #ifdef CONFIG_SND_SOC_ALSACODEC_TFA9890
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine.1792635, 2019/01/10,
- * add for dual spk */
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		.codecs = tfa98xx_dails,
-		.num_codecs = ARRAY_SIZE(tfa98xx_dails),
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 		.codec_name = "tfa98xx.6-0035",
 		.codec_dai_name = "tfa98xx-aif-6-35",
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 #else /* CONFIG_SND_SOC_ALSACODEC_TFA9890 */
 		.codec_dai_name = "snd-soc-dummy-dai",
 		.codec_name = "snd-soc-dummy",
@@ -1144,18 +1117,6 @@ static int mt6779_mt6359_dev_probe(struct platform_device *pdev)
 	for (i = 0; i < card->num_links; i++) {
 		if (mt6779_mt6359_dai_links[i].codec_name)
 			continue;
-
-#ifdef VENDOR_EDIT
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine.1792635, 2019/01/13,
-		 * add for dual spk */
-		if (!strcmp(mt6779_mt6359_dai_links[i].name, "I2S3")) {
-			dev_info(card->dev, "%s: codec_node no use for I2S3\n", __func__);
-			continue;
-		}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
-#endif /* VENDOR_EDIT */
-
 		mt6779_mt6359_dai_links[i].codec_of_node = codec_node;
 	}
 

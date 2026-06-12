@@ -1856,7 +1856,7 @@ int AudDrv_Allocate_DL1_Buffer(struct device *pDev, kal_uint32 Afe_Buf_Length,
 	pblock->pucPhysBufAddr = (kal_uint32)dma_addr;
 	pblock->pucVirtBufAddr = dma_area;
 
-	pr_debug(
+	pr_info(
 		"%s(), Afe_Buf_Length = %d, pucVirtBufAddr = %p, pblock->pucPhysBufAddr = 0x%x\n",
 		__func__, Afe_Buf_Length, pblock->pucVirtBufAddr,
 		pblock->pucPhysBufAddr);
@@ -2637,10 +2637,7 @@ void Auddrv_DL1_Interrupt_Handler(void)
 	struct afe_block_t *Afe_Block = &(
 		AFE_Mem_Control_context[Soc_Aud_Digital_Block_MEM_DL1]->rBlock);
 	unsigned long flags;
-#ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	kal_int32 Afe_consumed_bytes_ktv = 0;
-#endif /* CONFIG_OPPO_KTV_DEV */
+
 	if (Mem_Block == NULL)
 		return;
 
@@ -2733,29 +2730,7 @@ void Auddrv_DL1_Interrupt_Handler(void)
 		Afe_Block->u4DMAReadIdx += Afe_consumed_bytes;
 		Afe_Block->u4DMAReadIdx %= Afe_Block->u4BufferSize;
 	}
-#ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	//pr_info("%s: ReadIdx:%x ,DataRemained:%x\n", __func__,
-	//	       Afe_Block->u4DMAReadIdx, Afe_Block->u4DataRemained);
-	if (ktv_running == 1) {
-		spin_lock_irqsave(&ktv_dl_data_lock, flags);
-		Afe_consumed_bytes_ktv = (Afe_Block->u4DMAReadIdx + Afe_Block->u4BufferSize - prevu4read) % Afe_Block->u4BufferSize;
-		prevu4read = Afe_Block->u4DMAReadIdx;
 
-		user_dl_block.u4DataRemained -= Afe_consumed_bytes_ktv;
-		//pr_info("%s: user %d, afe %d, cunsumed %d\n", __func__, user_dl_block.u4DataRemained, Afe_Block->u4DataRemained, Afe_consumed_bytes_ktv);
-		if (user_dl_block.u4DataRemained < 0) {
-			user_dl_block.u4DataRemained = 0;
-			pr_info("%s: ktv data underflow\n", __func__);
-		}
-		spin_unlock_irqrestore(&ktv_dl_data_lock, flags);
-
-		if ((user_dl_block.u4DataRemained + 1920) <= Afe_Block->u4DataRemained) {
-			//pr_info("%s: user %d, afe %d, data enough, wakeup\n", __func__, user_dl_block.u4DataRemained, Afe_Block->u4DataRemained);
-			wake_up(&ktvsleep);
-		}
-	}
-#endif /* CONFIG_OPPO_KTV_DEV */
 	AFE_Mem_Control_context[Soc_Aud_Digital_Block_MEM_DL1]
 		->interruptTrigger = 1;
 	/* pr_debug("-DL_Handling normal ReadIdx:%x ,DataRemained:%x,
@@ -2825,10 +2800,6 @@ void auddrv_dl1_write_init(void)
 	user_dl_block.u4DMAReadIdx = (afe_block->u4DMAReadIdx + noiseOffset) % afe_block->u4BufferSize;
 	user_dl_block.u4BufferSize = afe_block->u4BufferSize;
 
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	user_dl_block.u4DataRemained = noiseOffset;
-	prevu4read = afe_block->u4DMAReadIdx;
-
 	pr_info("%s: User_Block->u4DMAReadIdx = %d, Afe_Block->u4DMAReadIdx = %d, afe_block->u4BufferSize = %d\n",
 		__func__, user_dl_block.u4DMAReadIdx, afe_block->u4DMAReadIdx, afe_block->u4BufferSize);
 	return;
@@ -2842,39 +2813,9 @@ void auddrv_dl1_write_handler(kal_uint32 bytes)
 	struct afe_block_t *afe_block = &(AFE_Mem_Control_context[Soc_Aud_Digital_Block_MEM_DL1]->rBlock);
 	struct afe_block_t *user_block = &(user_dl_block);
 	unsigned long flags;
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	long wait_time, tout;
-	wait_queue_t wait;
-	wait_time = msecs_to_jiffies(20);
-
-	if (user_block->u4DataRemained == 0) {
-		pr_warn("%s: data speed does not match xxx, remained ktv 0 bytes, reset\n", __func__);
-		auddrv_dl1_write_init();
-	}
-
-	if ((user_block->u4DataRemained > 0)
-		&& ((user_block->u4DataRemained + ktvUnitSize) > afe_block->u4DataRemained)) {
-		init_waitqueue_entry(&wait, current);
-		set_current_state(TASK_INTERRUPTIBLE);
-		add_wait_queue(&ktvsleep, &wait);
-		//pr_warn("%s: offset is not enough xxx, user remained %d bytes, afe remained %d bytes\n", __func__, user_block->u4DataRemained, afe_block->u4DataRemained);
-		tout = schedule_timeout(wait_time);
-		remove_wait_queue(&ktvsleep, &wait);
-		set_current_state(TASK_RUNNING);
-	}
-
-	//pr_warn("%s: continue user remained %d bytes, afe remained %d bytes\n", __func__, user_block->u4DataRemained, afe_block->u4DataRemained);
-	//pr_info("%s: continue User_Block->u4DMAReadIdx = %d, Afe_Block->u4DMAReadIdx = %d\n",
-	//	__func__, user_block->u4DMAReadIdx, afe_block->u4DMAReadIdx);
 
 	spin_lock_irqsave(&ktv_dl_data_lock, flags);
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	if (((user_block->u4DMAReadIdx + afe_block->u4BufferSize - afe_block->u4DMAReadIdx) % afe_block->u4BufferSize) >= (afe_block->u4BufferSize * 3 / 4)) {
-		pr_warn("%s: data speed does not match, remained %d bytes, reset\n", __func__, afe_block->u4DataRemained);
-		auddrv_dl1_write_init();
-	}
-#else /* VENDOR_EDIT */
+
 	if (((user_block->u4DMAReadIdx + afe_block->u4BufferSize - afe_block->u4DMAReadIdx) % afe_block->u4BufferSize) >= NOISE_OFFSET * 8) {
 		pr_warn("%s: data speed does not match, reset\n", __func__);
 		auddrv_dl1_write_init();
@@ -2891,7 +2832,6 @@ void auddrv_dl1_write_handler(kal_uint32 bytes)
 		ktvUnitSize = word_size_align(afe_block->u4DataRemained - NOISE_OFFSET);
 		pr_warn("%s: remained size is less than requested, u4DataRemained = 0x%x\n", __func__, afe_block->u4DataRemained);
 	}
-#endif /* VENDOR_EDIT */
 
 	ktvWriteIdx_tmp = user_block->u4DMAReadIdx % user_block->u4BufferSize;
 
@@ -2908,9 +2848,6 @@ void auddrv_dl1_write_handler(kal_uint32 bytes)
 	}
 
 	user_block->u4DMAReadIdx = (user_block->u4DMAReadIdx + ktvUnitSize) % user_block->u4BufferSize;
-
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	user_block->u4DataRemained += ktvUnitSize;
 
 	spin_unlock_irqrestore(&ktv_dl_data_lock, flags);
 
@@ -4412,10 +4349,6 @@ get_dlmem_frame_index(struct snd_pcm_substream *substream,
 	kal_int32 Afe_consumed_bytes = 0;
 	struct afe_block_t *Afe_Block = &afe_mem_control->rBlock;
 	unsigned long flags;
-#ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	kal_int32 Afe_consumed_bytes_ktv = 0;
-#endif /* CONFIG_OPPO_KTV_DEV */
 
 	if (afe_mem_control == NULL) {
 		pr_err("%s err afe_mem_control = NULL", __func__);
@@ -4480,24 +4413,6 @@ get_dlmem_frame_index(struct snd_pcm_substream *substream,
 		};
 		Frameidx = bytes_to_frames(substream->runtime,
 					   Afe_Block->u4DMAReadIdx);
-#ifdef CONFIG_OPPO_KTV_DEV
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-		//pr_info("%s: ReadIdx:%x ,DataRemained:%x\n", __func__,
-		//		   Afe_Block->u4DMAReadIdx, Afe_Block->u4DataRemained);
-		if (ktv_running == 1) {
-			spin_lock_irqsave(&ktv_dl_data_lock, flags);
-			Afe_consumed_bytes_ktv = (Afe_Block->u4DMAReadIdx + Afe_Block->u4BufferSize - prevu4read) % Afe_Block->u4BufferSize;
-			prevu4read = Afe_Block->u4DMAReadIdx;
-
-			user_dl_block.u4DataRemained -= Afe_consumed_bytes_ktv;
-			//pr_info("%s: user %d, afe %d, cunsumed %d\n", __func__, user_dl_block.u4DataRemained, Afe_Block->u4DataRemained, Afe_consumed_bytes_ktv);
-			if (user_dl_block.u4DataRemained < 0) {
-				user_dl_block.u4DataRemained = 0;
-				pr_info("%s: ktv data underflow\n", __func__);
-			}
-			spin_unlock_irqrestore(&ktv_dl_data_lock, flags);
-		}
-#endif /* CONFIG_OPPO_KTV_DEV */
 	} else {
 		Frameidx = bytes_to_frames(substream->runtime,
 					   Afe_Block->u4DMAReadIdx);
@@ -4918,18 +4833,6 @@ static int mtk_mem_dlblk_copy(struct snd_pcm_substream *substream, int channel,
 				Afe_Block->u4DataRemained);
 #endif
 		}
-#ifdef CONFIG_OPPO_KTV_DEV
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-		//pr_info("%s: ReadIdx:%x ,DataRemained:%x\n", __func__,
-		//		   Afe_Block->u4DMAReadIdx, Afe_Block->u4DataRemained);
-		if (ktv_running == 1) {
-			//pr_info("%s: user %d, afe %d\n", __func__, user_dl_block.u4DataRemained, Afe_Block->u4DataRemained);
-			if ((user_dl_block.u4DataRemained + 1920) <= Afe_Block->u4DataRemained) {
-				//pr_info("%s: user %d, afe %d, data enough, wakeup\n", __func__, user_dl_block.u4DataRemained, Afe_Block->u4DataRemained);
-				wake_up(&ktvsleep);
-			}
-		}
-#endif /* CONFIG_OPPO_KTV_DEV */
 	}
 #ifdef AFE_CONTROL_DEBUG_LOG
 	pr_debug("pcm_copy return\n");

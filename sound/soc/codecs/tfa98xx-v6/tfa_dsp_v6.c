@@ -20,13 +20,6 @@
 #include "tfa98xx_tfafieldnames.h"
 #include "tfa_internal.h"
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
- * add for applying calibration range and result to APP */
-#include <soc/oppo/oppo_project.h>
-#endif /* VENDOR_EDIT */
-
-
 /* handle macro for bitfield */
 #define TFA_MK_BF(reg, pos, len) ((reg<<8)|(pos<<4)|(len-1))
 
@@ -74,16 +67,9 @@ void tfa9894_ops(struct tfa_device_ops *ops);
 #define TFA_MTPEX_POS           TFA98XX_KEY2_PROTECTED_MTP0_MTPEX_POS /**/
 
 #ifdef VENDOR_EDIT
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/06,
-* add for dual spk calibration */
-bool g_speaker_resistance_fail_1 = false;
-bool g_speaker_resistance_fail_2 = false;
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 /*xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12,
   Add for speaker resistance*/
 bool g_speaker_resistance_fail = false;
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 #endif /* VENDOR_EDIT */
 
 int tfa_get_calibration_info_v6(struct tfa_device *tfa, int channel)
@@ -771,15 +757,11 @@ void tfa98xx_key2_v6(struct tfa_device *tfa, int lock)
 void tfa2_manual_mtp_cpy(struct tfa_device *tfa,  uint16_t reg_row_to_keep,uint16_t reg_row_to_set ,uint8_t row)///MCH_TO_TEST
 {
 		uint16_t value;
-		int loop = 0;
 		enum Tfa98xx_Error error;
 	/* Assure FAIM is enabled (enable it when neccesery) */
-		if (tfa->is_probus_device)
-		{
-			error = tfa98xx_faim_protect(tfa, 1);
-			if (tfa->verbose) {
-				pr_debug("FAIM enabled (err:%d).\n", error);
-			}
+	    error = tfa98xx_faim_protect(tfa, 1);
+		if (tfa->verbose) {
+			pr_debug("FAIM enabled (err:%d).\n", error);
 		}
 		tfa_reg_read(tfa, (unsigned char)reg_row_to_keep, &value);
 		if(!row)
@@ -793,18 +775,12 @@ void tfa2_manual_mtp_cpy(struct tfa_device *tfa,  uint16_t reg_row_to_keep,uint1
 		tfa_reg_write(tfa, 0xA8 , value);	
 		}
 		tfa_reg_write(tfa, 0xA3 , 0x10 | row);	
-		if (tfa->is_probus_device)
-		{
-			/* Assure FAIM is enabled (enable it when neccesery) */
-			for (loop = 0; loop < 100 /*x10ms*/; loop++) {
-				msleep_interruptible(10); 			/* wait 10ms to avoid busload */
-				if (tfa_dev_get_mtpb(tfa) == 0)
-					break;
-			}
-			error = tfa98xx_faim_protect(tfa, 0);
-			if (tfa->verbose) {
-				pr_debug("FAIM disabled (err:%d).\n", error);
-			}
+
+		/* Assure FAIM is enabled (enable it when neccesery) */
+
+	    error = tfa98xx_faim_protect(tfa, 0);
+		if (tfa->verbose) {
+			pr_debug("FAIM disabled (err:%d).\n", error);
 		}
 }
 
@@ -852,6 +828,15 @@ enum Tfa98xx_Error tfa98xx_set_mtp_v6(struct tfa_device *tfa, uint16_t value, ui
      tfa2_manual_mtp_cpy(tfa,0xF1,mtp_new,0);
 	else
 	TFA_SET_BF(tfa, CIMTP, 1);
+
+	for (loop = 0; loop<100 /*x10ms*/; loop++) {
+		msleep_interruptible(10); 			/* wait 10ms to avoid busload */
+		if (tfa_dev_get_mtpb(tfa) == 0) 
+			break;
+		}
+	/* no check for MTPBUSY here, i2c delay assumed to be enough */
+	tfa98xx_key2_v6(tfa, 1); /* lock */
+
 	/* wait until MTP write is done */
 	error = Tfa98xx_Error_StateTimedOut;
 	for(loop=0; loop<100 /*x10ms*/ ;loop++) {
@@ -861,10 +846,8 @@ enum Tfa98xx_Error tfa98xx_set_mtp_v6(struct tfa_device *tfa, uint16_t value, ui
 			break;
 		}
 	}
-	tfa98xx_key2_v6(tfa, 1); /* lock */
 	/* MTP setting failed due to timeout ?*/
 	if (error) {
-	  tfa98xx_faim_protect(tfa, 0);
 		return error;
 	}
 
@@ -2753,52 +2736,12 @@ enum Tfa98xx_Error tfaRunSpeakerCalibration_v6(struct tfa_device *tfa)
 }
 
 #ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
- * add for applying calibration range and result to APP */
-void tfa_getBoundary_v6(int slave_address, int* min_mohms, int* max_mohms)
-{
-	int project_id = 0;
-	if (!min_mohms || !min_mohms) {
-		pr_err("null ptr to get boundary\n");
-		return;
-	}
-
-	project_id = get_project();
-	pr_info("current project = %d\n", project_id);
-
-	if ((project_id == 19531) || (project_id == 19011)) {
-		*min_mohms = 4800;
-		*max_mohms = 7800;
-	} else if (project_id == 18073) {
-		if (slave_address == 0x34) {
-			*min_mohms = 9000;
-			*max_mohms = 15000;
-		} else if (slave_address == 0x35) {
-			*min_mohms = 4800;
-			*max_mohms = 7800;
-		}
-	} else {
-		*min_mohms = 6000;
-		*max_mohms = 10500;
-	}
-
-	pr_info("tfa spk calib get boundary address = 0x%x, min_mohms = %d, max_mohms = %d\n",
-				slave_address, *min_mohms, *max_mohms);
-}
-
-
 /*xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, Add for speaker resistance*/
 enum Tfa98xx_Error tfaRunSpeakerCalibration_result_v6(struct tfa_device *tfa, int *result)
 {
 	enum Tfa98xx_Error err = Tfa98xx_Error_Ok;
 	int calibrateDone;
 	int spkr_count = 0;
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
-	 * add for applying calibration range and result to APP */
-	int min_mohms = 0;
-	int max_mohms = 0;
-#endif /* VENDOR_EDIT */
 
 	/* return if there is no audio running */
 	if ((tfa->tfa_family == 2) && TFA_GET_BF(tfa, NOCLK))
@@ -2824,27 +2767,13 @@ enum Tfa98xx_Error tfaRunSpeakerCalibration_result_v6(struct tfa_device *tfa, in
 		} else {
 			pr_info("%s:Prim:%d mOhms, Sec:%d mOhms\n", __func__, tfa->mohm[0], tfa->mohm[1]);
 		}
-#ifdef VENDOR_EDIT
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
-		 * add for applying calibration range and result to APP */
-		tfa_getBoundary_v6(tfa->slave_address, &min_mohms, &max_mohms);
-		if ((tfa->mohm[0] < min_mohms) || (tfa->mohm[0] > max_mohms))
-#endif /* VENDOR_EDIT */
-		{
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-			/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/06,
-			* add for dual spk calibration */
-			if (tfa->slave_address == 0x34) {
-				pr_info("speaker_resistance_fail 0x34\n");
-				g_speaker_resistance_fail_1 = true;
-			} else if (tfa->slave_address == 0x35) {
-				pr_info("speaker_resistance_fail 0x35\n");
-				g_speaker_resistance_fail_2 = true;
-			}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
+
+		//6ohm - 10.5ohm
+		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2018/11/27, add for new speaker */
+		pr_info("%s: speaker resistance acceptable: 4.8-7.8 mOhm\n", __func__);
+		if ((tfa->mohm[0] < 4800) || (tfa->mohm[0] > 7800)) {
 			pr_info("speaker_resistance_fail\n");
 			g_speaker_resistance_fail = true;
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 
 			/* When MTPOTC is set (cal=once) re-lock key2 */
 			if (TFA_GET_BF(tfa, MTPOTC) == 1) {
@@ -2855,21 +2784,7 @@ enum Tfa98xx_Error tfaRunSpeakerCalibration_result_v6(struct tfa_device *tfa, in
 			err = Tfa98xx_Error_Fail;
 			return err;
 		}
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		else {
-			/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/06,
-			* add for dual spk calibration */
-			if (tfa->slave_address == 0x34) {
-				pr_info("speaker_resistance_ok 0x34\n");
-				g_speaker_resistance_fail_1 = false;
-			} else if (tfa->slave_address == 0x35) {
-				pr_info("speaker_resistance_ok 0x35\n");
-				g_speaker_resistance_fail_2 = false;
-			}
-		}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 		g_speaker_resistance_fail = false;
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 	}
 
 	/* When MTPOTC is set (cal=once) re-lock key2 */
@@ -3235,16 +3150,25 @@ enum tfa_error tfa_dev_start(struct tfa_device *tfa, int next_profile, int vstep
 		tfa98xx_set_osc_powerdown(tfa, 0);
 
 		/* Go to the Operating state */
-		tfa_dev_set_state(tfa, TFA_STATE_OPERATING);
+		tfa_dev_set_state(tfa, TFA_STATE_OPERATING | TFA_STATE_MUTE);
 		}
 		active_profile = tfa_dev_get_swprof(tfa);
 
+		#ifdef VENDOR_EDIT
+		/*xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, Modify for
+		force Profile switching everytime when open speaker path*/
+		err = tfaContWriteProfile_v6(tfa, next_profile, vstep);
+		if (err!=Tfa98xx_Error_Ok) {
+			goto error_exit;
+		}
+		#else /* VENDOR_EDIT */
 		/* Profile switching */
 		if ((next_profile != active_profile && active_profile >= 0)) {
 			err = tfaContWriteProfile_v6(tfa, next_profile, vstep);
 			if (err!=Tfa98xx_Error_Ok)
 				goto error_exit;
 		}
+		#endif /* VENDOR_EDIT */
 
 		/* If the profile contains the .standby suffix go to powerdown
 		 * else we should be in operating state
@@ -3290,7 +3214,7 @@ enum tfa_error tfa_dev_stop(struct tfa_device *tfa)
 	int times = 0, ready;
 	
 	pr_info("%s\n", __func__);
-
+    dump_stack();
 	/* mute */
 	tfaRunMute_v6(tfa);
 

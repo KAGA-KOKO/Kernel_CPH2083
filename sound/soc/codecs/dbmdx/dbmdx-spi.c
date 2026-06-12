@@ -796,8 +796,7 @@ static void spi_transport_enable(struct dbmdx_private *p, bool enable)
 
 	if (enable) {
 		p->wakeup_set(p);
-		if (p->asleep)
-			msleep(DBMDX_MSLEEP_SPI_WAKEUP);
+		msleep(DBMDX_MSLEEP_SPI_WAKEUP);
 	} else {
 #ifdef CONFIG_PM_WAKELOCKS
 		__pm_relax(&spi_p->ps_nosuspend_wl);
@@ -937,6 +936,11 @@ static int spi_read_audio_data(struct dbmdx_private *p,
 
 	ret = samples;
 
+	/* FW performes SPI reset after each chunk transaction
+	 * Thus delay is required
+	 */
+	usleep_range(DBMDX_USLEEP_SPI_AFTER_CHUNK_READ,
+		DBMDX_USLEEP_SPI_AFTER_CHUNK_READ + 100);
 out:
 	return ret;
 }

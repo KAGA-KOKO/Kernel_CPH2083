@@ -42,12 +42,6 @@
 
 #define TFA98XX_NUM_RATES		9
 
-//#define TFA9874_NONDSP_STEREO
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-#define TFA98XX_FLAG_CHIP_SELECTED      (1 << 16)
-#endif
-
 /* DSP init status */
 enum tfa98xx_dsp_init_state {
 	TFA98XX_DSP_INIT_STOPPED,	/* DSP not running */

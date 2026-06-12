@@ -67,7 +67,7 @@
 #define AFE_MASK_ALL (0xffffffff)
 
 #ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature.1209435, 2017/08/01,
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/07,
  * add for KTV */
 #ifdef CONFIG_OPPO_KTV_DEV
 #define KTV_DATA_UNIT_SIZE 3840
@@ -75,11 +75,6 @@
 extern char ktv_dl_data_unit[KTV_DATA_UNIT_SIZE];
 extern spinlock_t ktv_dl_data_lock;
 extern spinlock_t ktv_dl_ctrl_lock;
-
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-extern wait_queue_head_t ktvsleep;
-extern int ktv_running;
-extern int prevu4read;
 
 extern int write_access;
 extern int dl_init_done;

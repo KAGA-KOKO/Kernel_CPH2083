@@ -1196,12 +1196,6 @@ static const struct snd_kcontrol_new memif_ul1_ch1_mix[] = {
 				    I_ADDA_UL_CH1, 1, 0),
 	SOC_DAPM_SINGLE_AUTODISABLE("ADDA_UL_CH3", AFE_CONN21,
 				    I_ADDA_UL_CH3, 1, 0),
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/02/21,
-	 * add for 4-channel record */
-	SOC_DAPM_SINGLE_AUTODISABLE("I2S0_CH1", AFE_CONN21,
-				    I_I2S0_CH1, 1, 0),
-#endif /* VENDOR_EDIT */
 };
 
 static const struct snd_kcontrol_new memif_ul1_ch2_mix[] = {
@@ -1209,12 +1203,6 @@ static const struct snd_kcontrol_new memif_ul1_ch2_mix[] = {
 				    I_ADDA_UL_CH2, 1, 0),
 	SOC_DAPM_SINGLE_AUTODISABLE("ADDA_UL_CH4", AFE_CONN22,
 				    I_ADDA_UL_CH4, 1, 0),
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/02/21,
-	 * add for 4-channel record */
-	SOC_DAPM_SINGLE_AUTODISABLE("I2S0_CH2", AFE_CONN22,
-				    I_I2S0_CH2, 1, 0),
-#endif /* VENDOR_EDIT */
 };
 
 static const struct snd_kcontrol_new memif_ul1_ch3_mix[] = {
@@ -1485,12 +1473,7 @@ static const struct snd_soc_dapm_route mt6779_memif_routes[] = {
 	{"UL1_CH2", "ADDA_UL_CH4", "ADDA_CH34_UL_Mux"},
 	{"UL1_CH3", "ADDA_UL_CH3", "ADDA_CH34_UL_Mux"},
 	{"UL1_CH4", "ADDA_UL_CH4", "ADDA_CH34_UL_Mux"},
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/02/21,
-	 * add for 4-channel record */
-	{"UL1_CH1", "I2S0_CH1", "I2S0"},
-	{"UL1_CH2", "I2S0_CH2", "I2S0"},
-#endif /* VENDOR_EDIT */
+
 	{"UL2", NULL, "UL2_CH1"},
 	{"UL2", NULL, "UL2_CH2"},
 

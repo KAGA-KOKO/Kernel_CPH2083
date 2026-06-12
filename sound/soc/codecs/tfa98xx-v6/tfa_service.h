@@ -1019,12 +1019,6 @@ enum Tfa98xx_Error tfa_status(struct tfa_device *tfa);
  */
 int tfa_dev_get_mtpb(struct tfa_device *tfa);
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
- * add for applying calibration range and result to APP */
-void tfa_getBoundary_v6(int slave_address, int* min_mohms, int* max_mohms);
-#endif /* VENDOR_EDIT */
-
 #ifdef __cplusplus
 }
 #endif
