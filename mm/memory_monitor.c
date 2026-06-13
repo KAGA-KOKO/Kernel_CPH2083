@@ -45,6 +45,7 @@ void ohm_action_trig(int type)
 
 extern void warn_alloc_failed(gfp_t gfp_mask, unsigned int order, const char *fmt, ...);
 
+bool mem_monitor_enable = false;
 static int alloc_wait_h_ms = 500;
 static int alloc_wait_l_ms = 100;
 static int alloc_wait_log_ms = 1000;
@@ -52,6 +53,9 @@ static int alloc_wait_trig_ms = 10000;
 
 void memory_alloc_monitor(gfp_t gfp_mask, unsigned int order, u64 wait_ms)
 {
+        if (!mem_monitor_enable)
+		return; 
+       
         int fg = 0;
         if (!ohm_memmon_ctrl)
                 return;
@@ -90,6 +94,7 @@ void memory_alloc_monitor(gfp_t gfp_mask, unsigned int order, u64 wait_ms)
 	}
 }
 
+module_param_named(mem_monitor_enable, mem_monitor_enable, bool, S_IRUGO | S_IWUSR);
 module_param_named(alloc_wait_h_ms, alloc_wait_h_ms, int, S_IRUGO | S_IWUSR);
 module_param_named(alloc_wait_l_ms, alloc_wait_l_ms, int, S_IRUGO | S_IWUSR);
 module_param_named(alloc_wait_log_ms, alloc_wait_log_ms, int, S_IRUGO | S_IWUSR);

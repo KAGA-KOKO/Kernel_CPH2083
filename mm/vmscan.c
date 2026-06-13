@@ -1807,7 +1807,9 @@ static bool inactive_reclaimable_pages(struct lruvec *lruvec,
 extern bool is_fg(int uid);
 static inline int get_current_adj(void)
 {
+#ifdef CONFIG_OPPO_FG_OPT
 	int cur_uid;
+#endif
 
 	if (current->signal->oom_score_adj < 0)
 		return 0;

@@ -3411,6 +3411,10 @@ static inline int calculate_order(int size, int reserved)
 	 * we reduce the minimum objects required in a slab.
 	 */
 	min_objects = slub_min_objects;
+#ifdef VENDOR_EDIT
+/*Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-08-01, reduce slowpath opt*/
+	slub_min_objects = 12;
+#endif /*VENDOR_EDIT*/
 	if (!min_objects)
 		min_objects = 4 * (fls(nr_cpu_ids) + 1);
 	max_objects = order_objects(slub_max_order, size, reserved);

@@ -3179,8 +3179,13 @@ void warn_alloc(gfp_t gfp_mask, const char *fmt, ...)
 	pr_cont(", mode:%#x(%pGg)\n", gfp_mask, &gfp_mask);
 
 	dump_stack();
-	if (!should_suppress_show_mem())
-		show_mem(filter);
+	if (!should_suppress_show_mem()) {
+	    /*yangtao@ODM_AD.Kernel.memory 2020/06/02 add for remove Mem-Info log*/
+	    #ifdef ODM_HQ_EDIT
+	    #else
+	    show_mem(filter);
+	    #endif
+	}
 }
 
 static inline struct page *
