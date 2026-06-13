@@ -10,20 +10,6 @@
 #include <linux/rwsem.h>
 #include <linux/memcontrol.h>
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM)
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-07,
- * implement process reclaim */
-extern int isolate_lru_page(struct page *page);
-extern void putback_lru_page(struct page *page);
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-12-25, record the scaned task*/
-extern unsigned long reclaim_pages_from_list(struct list_head *page_list,
-		struct vm_area_struct *vma, struct mm_walk *walk);
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-12-25, check current need
- * cancel reclaim or not, please check task not NULL first.*/
-extern int is_reclaim_should_cancel(struct mm_walk *walk);
-extern int is_reclaim_addr_over(struct mm_walk *walk, unsigned long addr);
-#endif
-
 /*
  * The anon_vma heads a list of private "related" vmas, to scan if
  * an anonymous page pointing to this anon_vma needs to be unmapped:
@@ -69,8 +55,6 @@ struct anon_vma {
 	 * mm_take_all_locks() (mm_all_locks_mutex).
 	 */
 	struct rb_root rb_root;	/* Interval tree of private "related" vmas */
-	/* key to tell if an valid anon_vma type */
-	unsigned long private;
 };
 
 /*
@@ -202,15 +186,7 @@ int page_referenced(struct page *, int is_locked,
 
 #define TTU_ACTION(x) ((x) & TTU_ACTION_MASK)
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM)
-/* Kui.Zhang@PSW.TEC.Kernel.Performance. 2019/01/16,
- * Support reclaimm the special vma to get more memroy
- */
-int try_to_unmap(struct page *, enum ttu_flags flags,
-		struct vm_area_struct *vma);
-#else
 int try_to_unmap(struct page *, enum ttu_flags flags);
-#endif
 
 /*
  * Used by uprobes to replace a userspace page safely
@@ -287,12 +263,6 @@ int page_mapped_in_vma(struct page *page, struct vm_area_struct *vma);
  */
 struct rmap_walk_control {
 	void *arg;
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM)
-	/* Kui.Zhang@PSW.TEC.Kernel.Performance. 2019/01/16,
-	 * record the special vma
-	 */
-	struct vm_area_struct *target_vma;
-#endif
 	int (*rmap_one)(struct page *page, struct vm_area_struct *vma,
 					unsigned long addr, void *arg);
 	int (*done)(struct page *page);
@@ -317,14 +287,7 @@ static inline int page_referenced(struct page *page, int is_locked,
 	return 0;
 }
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM)
-/* Kui.Zhang@PSW.TEC.Kernel.Performance. 2019/01/16,
- * Support reclaimm the special vma to get more memroy
- */
-#define try_to_unmap(page, refs, vma) SWAP_FAIL
-#else
 #define try_to_unmap(page, refs) SWAP_FAIL
-#endif
 
 static inline int page_mkclean(struct page *page)
 {

@@ -1,5 +1,5 @@
 /*
-* Linux Security plug
+ * Linux Security plug
  *
  * Copyright (C) 2001 WireX Communications, Inc <chris@wirex.com>
  * Copyright (C) 2001 Greg Kroah-Hartman <greg@kroah.com>
@@ -1732,4 +1732,22 @@ static inline char *alloc_secdata(void)
 static inline void free_secdata(void *secdata)
 { }
 #endif /* CONFIG_SECURITY */
+
+#ifdef VENDOR_EDIT
+//Jiemin.Zhu@PSW.Android.SELinux, 2017/11/03, add for security context
+extern int is_oppo_permissive(u32 ssid, u32 tsid, u32 requested);
+#endif /* VENDOR_EDIT */
+
+#ifdef VENDOR_EDIT /*ChenYong@Rom.Framework,2019/01/15, add for execve blocking(root defence)*/
+#ifdef CONFIG_SECURITY
+extern int get_current_security_context(char **context, u32 *context_len);
+#else
+static inline int get_current_security_context(char **context, u32 *context_len)
+{
+	return -EOPNOTSUPP;
+}
+#endif
+#endif /* VENDOR_EDIT */
+
 #endif /* ! __LINUX_SECURITY_H */
+

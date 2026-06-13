@@ -28,6 +28,6 @@ struct alloc_wait_para {
 	u64 fg_alloc_wait_max_order;
 };
 
-extern void memory_alloc_monitor(gfp_t gfp_mask, unsigned int order, u64 wait_ms);
+extern void memory_alloc_monitor(unsigned int order, u64 wait_ms);
 extern struct alloc_wait_para allocwait_para;
 #endif /*_MEMORY_MONITOR_H_*/

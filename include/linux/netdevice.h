@@ -3393,66 +3393,9 @@ void netdev_run_todo(void);
  *
  * Release reference to device to allow it to be freed.
  */
-#define REFCNT_DEBUG 1
-#define REFCNT_MEMORY_DEBUG 1
-#if defined (REFCNT_DEBUG) && defined (REFCNT_MEMORY_DEBUG)
-#include <linux/stacktrace.h>
-
-#define MAX_TRACE_DEPTH 10
-#define MAX_TRACE_LEN  4096
-#define TRACE_SKIP_DEPTH 0
-#define DEV_PUT_FLAG   (1 << 28)
-#define DEV_HOLD_FLAG  (2 << 28)
-
-struct refcnt_trace {
-	int refcnt;
-	unsigned int info;
-	unsigned int entry_nr;
-	unsigned long time;
-	unsigned long entry[MAX_TRACE_DEPTH];
-};
-
-extern struct refcnt_trace trace_array[MAX_TRACE_LEN];
-extern unsigned int trace_idx;
-
-#endif
-
 static inline void dev_put(struct net_device *dev)
 {
-	#if defined (REFCNT_DEBUG) && defined (REFCNT_MEMORY_DEBUG)
-	struct stack_trace trace;
-	unsigned int cpu, idx;
-	#endif
-
 	this_cpu_dec(*dev->pcpu_refcnt);
-
-	#ifdef REFCNT_DEBUG
-	if (!strncmp(dev->name, "wlan0", 5)) {
-		#ifdef REFCNT_MEMORY_DEBUG
-		cpu = get_cpu();
-		idx = trace_idx;
-		if (++trace_idx >= MAX_TRACE_LEN)
-			trace_idx = 0;
-		put_cpu();
-		trace_array[idx].time = sched_clock();
-		trace_array[idx].refcnt = this_cpu_read(*dev->pcpu_refcnt);
-		trace_array[idx].info = DEV_PUT_FLAG |
-					current->pid | (cpu << 24);
-
-		trace.nr_entries = 0;
-		trace.max_entries = MAX_TRACE_DEPTH;
-		trace.entries = trace_array[idx].entry;
-		trace.skip = TRACE_SKIP_DEPTH;
-		save_stack_trace(&trace);
-		trace_array[idx].entry_nr = trace.nr_entries;
-		pr_info("[mtk_net] dev_put:%s, cpu%d_refcnt=%d, idx=%d(%d), time=%ld\n",
-			dev->name, cpu, trace_array[idx].refcnt,
-			idx, trace_idx, trace_array[idx].time);
-		#else
-		dump_stack();
-		#endif
-	}
-	#endif
 }
 
 /**
@@ -3463,40 +3406,7 @@ static inline void dev_put(struct net_device *dev)
  */
 static inline void dev_hold(struct net_device *dev)
 {
-	#if defined (REFCNT_DEBUG) && defined (REFCNT_MEMORY_DEBUG)
-	struct stack_trace trace;
-	unsigned int cpu, idx;
-	#endif
-
 	this_cpu_inc(*dev->pcpu_refcnt);
-
-	#ifdef REFCNT_DEBUG
-	if (!strncmp(dev->name, "wlan0", 5)) {
-		#ifdef REFCNT_MEMORY_DEBUG
-		cpu = get_cpu();
-		idx = trace_idx;
-		if (++trace_idx >= MAX_TRACE_LEN)
-			trace_idx = 0;
-		put_cpu();
-		trace_array[idx].time = sched_clock();
-		trace_array[idx].refcnt = this_cpu_read(*dev->pcpu_refcnt);
-		trace_array[idx].info = DEV_HOLD_FLAG |
-					current->pid | (cpu << 24);
-
-		trace.nr_entries = 0;
-		trace.max_entries = MAX_TRACE_DEPTH;
-		trace.entries = trace_array[idx].entry;
-		trace.skip = TRACE_SKIP_DEPTH;
-		save_stack_trace(&trace);
-		trace_array[idx].entry_nr = trace.nr_entries;
-		pr_info("[mtk_net] dev_hold:%s, cpu%d_refcnt=%d, idx=%d(%d), time=%ld\n",
-			dev->name, cpu, trace_array[idx].refcnt,
-			idx, trace_idx, trace_array[idx].time);
-		#else
-		dump_stack();
-		#endif
-	}
-	#endif
 }
 
 /* Carrier loss detection, dial on demand. The functions netif_carrier_on

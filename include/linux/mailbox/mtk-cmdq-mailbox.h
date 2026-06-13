@@ -159,7 +159,6 @@ do { \
 #define cmdq_dump(fmt, args...) \
 	pr_notice("[cmdq][err] "fmt"\n", ##args)
 
-void cmdq_mbox_thread_err_reset(struct mbox_chan *chan);
 void cmdq_mbox_channel_stop(struct mbox_chan *chan);
 void cmdq_thread_dump_err(struct mbox_chan *chan);
 void cmdq_mbox_thread_remove_task(struct mbox_chan *chan,

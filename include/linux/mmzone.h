@@ -159,10 +159,6 @@ enum zone_stat_item {
  */
 	NR_FREE_OPPO2_PAGES,
 #endif /* VENDOR_EDIT */
-#ifdef VENDOR_EDIT
-/*Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-09-25, add ion cached account*/
-	NR_IONCACHE_PAGES,
-#endif /* VENDOR_EDIT */
 	NR_VM_ZONE_STAT_ITEMS };
 
 enum node_stat_item {

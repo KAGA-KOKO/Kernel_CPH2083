@@ -96,8 +96,6 @@ struct bio {
 	unsigned int		bi_key_idx;
 #endif
 
-	struct inode		*bi_dio_inode;
-
 	/*
 	 * Everything starting with bi_max_vecs will be preserved by bio_reset()
 	 */
@@ -280,7 +278,7 @@ enum rq_flag_bits {
 #define REQ_PREFLUSH		(1ULL << __REQ_PREFLUSH)
 #ifdef VENDOR_EDIT
 /*Huacai.Zhou@PSW.BSP.Kernel.Performance, 2018-04-28, add foreground task io opt*/
-#define REQ_FG			(1ULL << __REQ_FG)
+#define REQ_FG		(1ULL << __REQ_FG)
 #endif /*VENDOR_EDIT*/
 #define REQ_FLUSH_SEQ		(1ULL << __REQ_FLUSH_SEQ)
 #define REQ_IO_STAT		(1ULL << __REQ_IO_STAT)

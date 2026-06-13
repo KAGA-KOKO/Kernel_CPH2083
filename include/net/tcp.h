@@ -290,13 +290,6 @@ extern int tcp_memory_pressure;
 extern int sysctl_tcp_info_print;
 #endif /* VENDOR_EDIT */
 
-#ifdef VENDOR_EDIT
-//Mengqing.Zhao@PSW.CN.WiFi.Network.internet.1394484, 2019/04/02,
-//add for: When find TCP SYN-ACK Timestamp value error, just do not use Timestamp
-extern int sysctl_tcp_ts_control[2];
-#endif /* VENDOR_EDIT */
-
-
 /* optimized version of sk_under_memory_pressure() for TCP sockets */
 static inline bool tcp_under_memory_pressure(const struct sock *sk)
 {
