@@ -34,17 +34,6 @@
 
 #include <trace/events/sched.h>
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_HEALTHINFO)
-// wenbin.liu@PSW.BSP.MM, 2018/05/02
-// Add for get cpu load
-#include <soc/oppo/oppo_healthinfo.h>
-#endif /*VENDOR_EDIT*/
-
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-#include <linux/oppocfs/oppo_cfs_common.h>
-#endif
-
 #include "sched.h"
 #include "tune.h"
 #include "walt.h"
@@ -148,33 +137,6 @@ unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
  * util * margin < capacity * 1024
  */
 unsigned int capacity_margin = 1280; /* ~20% */
-
-#ifdef VENDOR_EDIT
-int sched_get_updown_migrate(unsigned int *up_migrate,
-				unsigned int *down_migrate)
-{
-        if (!up_migrate || !down_migrate)
-                return -1;
-        *up_migrate = SCHED_FIXEDPOINT_SCALE * 100 / capacity_margin;
-        *down_migrate = *up_migrate;
-        return 0;
-}
-EXPORT_SYMBOL(sched_get_updown_migrate);
-
-int sched_set_updown_migrate(unsigned int up_migrate,
-				unsigned int down_migrate)
-{
-        if ((up_migrate < down_migrate) || (up_migrate <= 0)
-			|| (down_migrate <= 0))
-                return -1;
-
-        capacity_margin = SCHED_FIXEDPOINT_SCALE * 100 / up_migrate;
-
-        pr_debug("%s:Current capacity_margin=%u\n", __func__, capacity_margin);
-        return 0;
-}
-EXPORT_SYMBOL(sched_set_updown_migrate);
-#endif
 
 static inline void update_load_add(struct load_weight *lw, unsigned long inc)
 {
@@ -954,10 +916,55 @@ update_stats_wait_start(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	schedstat_set(se->statistics.wait_start, wait_start);
 }
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_HEALTHINFO)
+#if defined(VENDOR_EDIT) && defined(CONFIG_SCHEDSTATS)
 // wenbin.liu@PSW.BSP.MM, 2018/05/09
 // Add for cat io_wait stats
-extern void ohm_schedstats_record(int sched_type, int fg, u64 delta);
+struct wait_para {
+        int low_thresh_ms;
+        int high_thresh_ms;
+        u64 low_cnt;
+        u64 high_cnt;
+        u64 total_ms;
+        u64 total_cnt;
+        u64 fg_low_cnt;
+        u64 fg_high_cnt;
+        u64 fg_total_ms;
+        u64 fg_total_cnt;
+        u64 delta_ms;
+};
+struct wait_para sched_latency_para = {100, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+struct wait_para iowait_para = {100, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+extern bool oppo_healthinfo_switch;
+
+/* wenbin.liu@PSW.BSP.MM, 2018/05/09  Add for cat foreground thread */
+static void healthinfo_fair_stat_cal(u64 delta_ns, struct wait_para *para, bool cal_switch)
+{
+        u64 delta_ms = 0;
+
+        if (!cal_switch)
+                return;
+
+        delta_ms = delta_ns >> 20;
+        para->delta_ms = delta_ms;
+        para->total_ms += para->delta_ms;
+        para->total_cnt++;
+        if (current_is_fg()) {
+                para->fg_total_ms += para->delta_ms;
+                para->fg_total_cnt++;
+        }
+        if (para->delta_ms >= para->high_thresh_ms) {
+                para->high_cnt++;
+                if (current_is_fg()) {
+                        para->fg_high_cnt++;
+                }
+        } else if (para->delta_ms >= para->low_thresh_ms) {
+                para->low_cnt++;
+                if (current_is_fg()) {
+                        para->fg_low_cnt++;
+                }
+        }
+        return;
+}
 #endif /*VENDOR_EDIT*/
 
 static inline void
@@ -982,12 +989,6 @@ update_stats_wait_end(struct cfs_rq *cfs_rq, struct sched_entity *se)
 			schedstat_set(se->statistics.wait_start, delta);
 			return;
 		}
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_HEALTHINFO)
-// wenbin.liu@PSW.BSP.MM, 2018/05/26
-// Add for get sched latency stat
-			ohm_schedstats_record(OHM_SCHED_SCHEDLATENCY, current_is_fg(), (delta >> 20));
-#endif /*VENDOR_EDIT*/
-
 		trace_sched_stat_wait(p, delta);
 	}
 
@@ -996,6 +997,11 @@ update_stats_wait_end(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	schedstat_inc(se->statistics.wait_count);
 	schedstat_add(se->statistics.wait_sum, delta);
 	schedstat_set(se->statistics.wait_start, 0);
+#ifdef VENDOR_EDIT
+// wenbin.liu@PSW.BSP.MM, 2018/05/26
+// Add for get sched latency stat
+        healthinfo_fair_stat_cal(delta, &sched_latency_para, oppo_healthinfo_switch);
+#endif /*VENDOR_EDIT*/
 }
 
 static inline void
@@ -1050,7 +1056,7 @@ update_stats_enqueue_sleeper(struct cfs_rq *cfs_rq, struct sched_entity *se)
 #ifdef VENDOR_EDIT
 // wenbin.liu@PSW.BSP.MM, 2018/05/09
 // Add for get iowait
-                //ohm_schedstats_record(OHM_SCHED_IOWAIT, current_is_fg(), (delta >> 20));
+                healthinfo_fair_stat_cal(delta, &iowait_para, oppo_healthinfo_switch);
 #endif /*VENDOR_EDIT*/
 			}
 
@@ -4974,12 +4980,6 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 		flags = ENQUEUE_WAKEUP;
 	}
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-		if (sysctl_uifirst_enabled) {
-			enqueue_ux_thread(rq, p);
-		}
-#endif
 
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
@@ -5106,12 +5106,6 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		}
 		flags |= DEQUEUE_SLEEP;
 	}
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	if (sysctl_uifirst_enabled) {
-		dequeue_ux_thread(rq, p);
-	}
-#endif
 
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
@@ -8073,12 +8067,6 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	find_matching_se(&se, &pse);
 	update_curr(cfs_rq_of(se));
 	BUG_ON(!pse);
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-    if (sysctl_uifirst_enabled && (p->static_ux || atomic64_read(&p->dynamic_ux))) {
-        goto preempt;
-    }
-#endif
 	if (wakeup_preempt_entity(se, pse) == 1) {
 		/*
 		 * Bias pick_next to pick the sched entity that is
@@ -8167,12 +8155,6 @@ again:
 	} while (cfs_rq);
 
 	p = task_of(se);
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	if (sysctl_uifirst_enabled) {
-		pick_ux_thread(rq, &p, &se);
-	}
-#endif
 
 	/*
 	 * Since we haven't yet done put_prev_entity and if the selected task
@@ -9071,7 +9053,6 @@ static void update_cpu_capacity(struct sched_domain *sd, int cpu)
 		mcc->cpu = cpu;
 #ifdef CONFIG_SCHED_DEBUG
 		raw_spin_unlock_irqrestore(&mcc->lock, flags);
-		/*pr_info("CPU%d: update max cpu_capacity %lu\n", cpu, capacity);*/
 		goto skip_unlock;
 #endif
 	}

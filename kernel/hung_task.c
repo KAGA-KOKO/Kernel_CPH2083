@@ -28,13 +28,9 @@ char last_stopper_comm[64];
 
 #define TWICE_DEATH_PERIOD	300000000000ULL	//300s
 #define MAX_DEATH_COUNT	3
+#define MAX_IO_WAIT_HUNG 2
 #endif
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
-/* Wen.Luo@BSP.Kernel.Stability, 2019/01/12, DeathHealer , Foreground background optimization,change max io count */
-#define MAX_IO_WAIT_HUNG 5
-int __read_mostly sysctl_hung_task_maxiowait_count = MAX_IO_WAIT_HUNG;
-#endif
 /*
  * The number of tasks checked:
  */
@@ -121,9 +117,7 @@ static void check_hung_task(struct task_struct *t, unsigned long timeout)
 		!strncmp(t->comm,"msm-core:sampli", TASK_COMM_LEN)||
 		!strncmp(t->comm,"kworker/u16:1", TASK_COMM_LEN) ||
 		!strncmp(t->comm,"mdss_fb0", TASK_COMM_LEN)||
-		!strncmp(t->comm,"mdss_fb_ffl0", TASK_COMM_LEN)||
-		!strncmp(t->comm,"opmonitor_boot", TASK_COMM_LEN)||
-		!strncmp(t->comm,"panic_flush", TASK_COMM_LEN)) {
+		!strncmp(t->comm,"mdss_fb_ffl0", TASK_COMM_LEN)){
 		return;
 	}
 #endif
@@ -189,7 +183,10 @@ static void check_hung_task(struct task_struct *t, unsigned long timeout)
 			if (cur_death_time - last_death_time < TWICE_DEATH_PERIOD) {
 				printk(KERN_ERR "DeathHealer has been triggered %d times, \
 					last time at: %llu\n", death_count, last_death_time);
+#ifndef CONFIG_OPPO_SPECIAL_BUILD
+/* Fuchun.Liao@BSP.CHG.Basci 2018/05/14 modify for debug when agetest */
 				BUG();
+#endif /* CONFIG_OPPO_SPECIAL_BUILD */
 			}
 		}
 		last_death_time = cur_death_time;
@@ -276,26 +273,19 @@ static bool rcu_lock_break(struct task_struct *g, struct task_struct *t)
  * a really long time (120 seconds). If that happens, print out
  * a warning.
  */
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_HEALTHINFO)
+#ifdef VENDOR_EDIT
 // wenbin.liu@PSW.PLATFORM.KERNEL, 2018/12/19
 // Add for iowait hung ctrl set by QualityProtect APK RUS
-extern bool ohm_iopanic_mon_ctrl;
-extern bool ohm_iopanic_mon_logon;
-extern bool ohm_iopanic_mon_trig;
+extern bool iowait_hung_ctrl;
 extern unsigned int  iowait_hung_cnt;
 extern unsigned int  iowait_panic_cnt;
-#else
-bool ohm_iopanic_mon_ctrl = true;
-bool ohm_iopanic_mon_logon = false;
-bool ohm_iopanic_mon_trig = false;
-unsigned int  iowait_hung_cnt = 0;
-unsigned int  iowait_panic_cnt = 0;
 #endif /*VENDOR_EDIT*/
 static void check_hung_uninterruptible_tasks(unsigned long timeout)
 {
 	int max_count = sysctl_hung_task_check_count;
 	int batch_count = HUNG_TASK_BATCHING;
 	struct task_struct *g, *t;
+
 #if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
 	unsigned int iowait_count = 0;
 #endif
@@ -329,22 +319,15 @@ static void check_hung_uninterruptible_tasks(unsigned long timeout)
 	}
  unlock:
 #if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
-/* yixue.ge@PhoneSW.BSP,20180305,add io wait monitor */
-/* Wen.Luo@BSP.Kernel.Stability, 2019/01/12, DeathHealer , Foreground background optimization,change max io count */
-	if(iowait_count >= sysctl_hung_task_maxiowait_count){
-		#ifdef CONFIG_OPPO_SPECIAL_BUILD
-		panic("hung_task:[%u]IO blocked too long time",iowait_count);
-		#endif
-		if (!ohm_iopanic_mon_ctrl){
-			//panic("hung_task:[%u]IO blocked too long time",iowait_count);
-			pr_err("hung_task:[%u]IO blocked too long time\n",iowait_count);
-		}
-		else
-			iowait_panic_cnt++;
+/*yixue.ge@PhoneSW.BSP,20180305,add io wait monitor*/
+	if(iowait_count >= MAX_IO_WAIT_HUNG){
+                if (iowait_hung_ctrl)
+		        panic("hung_task:[%u]IO blocked too long time",iowait_count);
+                else
+                        iowait_panic_cnt++;
 	}
-    iowait_hung_cnt += iowait_count;
+        iowait_hung_cnt += iowait_count;
 #endif
-
 	rcu_read_unlock();
 }
 

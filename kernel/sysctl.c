@@ -141,6 +141,7 @@ static int two_hundred = 200;
 #endif
 
 static int one_thousand = 1000;
+#endif
 #ifdef VENDOR_EDIT
 /*Huacai.Zhou@PSW.BSP.Kernel.Performance, 2018-04-28, add foreground task io opt*/
 unsigned int sysctl_fg_io_opt = 1;
@@ -152,7 +153,6 @@ static int ten_thousand = 10000;
 #ifdef CONFIG_PERF_EVENTS
 static int six_hundred_forty_kb = 640 * 1024;
 #endif
-
 static int max_kswapd_threads = MAX_KSWAPD_THREADS;
 
 /* this is needed for the proc_doulongvec_minmax of vm_dirty_bytes */
@@ -168,10 +168,6 @@ static const int cap_last_cap = CAP_LAST_CAP;
 /*this is needed for proc_doulongvec_minmax of sysctl_hung_task_timeout_secs */
 #ifdef CONFIG_DETECT_HUNG_TASK
 static unsigned long hung_task_timeout_max = (LONG_MAX/HZ);
-#if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
-/* Wen.Luo@BSP.Kernel.Stability, 2019/01/12, DeathHealer , Foreground background optimization,change max io count */
-static int five = 5;
-#endif
 #endif
 
 #ifdef CONFIG_INOTIFY_USER
@@ -300,16 +296,6 @@ static int max_sched_tunable_scaling = SCHED_TUNABLESCALING_END-1;
 #endif /* CONFIG_SMP */
 #endif /* CONFIG_SCHED_DEBUG */
 
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-int sysctl_uifirst_enabled = 1;
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-// Nian.Sun@TECH.Kernel.Sched, 2019/05/22, add for ui first launcher boost
-int sysctl_launcher_boost_enabled = 0;
-#endif /* VENDOR_EDIT */
-
 #ifdef CONFIG_COMPACTION
 static int min_extfrag_threshold;
 static int max_extfrag_threshold = 1000;
@@ -375,6 +361,7 @@ static struct ctl_table kern_table[] = {
 },
 #endif
 
+#ifdef CONFIG_SCHED_DEBUG
 	{
 		.procname	= "sched_use_walt_task_util",
 		.data		= &sysctl_sched_use_walt_task_util,
@@ -1225,17 +1212,6 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dostring,
 	},
 #endif
-#if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
-/* Wen.Luo@BSP.Kernel.Stability, 2019/01/12, DeathHealer , Foreground background optimization,change max io count */
-	{
-		.procname	= "hung_task_maxiowait_count",
-		.data		= &sysctl_hung_task_maxiowait_count,
-		.maxlen		= sizeof(int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec_minmax,
-		.extra1		= &five,
-	},
-#endif
 #endif
 #ifdef CONFIG_RT_MUTEXES
 	{
@@ -1369,24 +1345,6 @@ static struct ctl_table kern_table[] = {
 		.extra2		= &one,
 	},
 #endif
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	{
-		.procname	= "uifirst_enabled",
-		.data		= &sysctl_uifirst_enabled,
-		.maxlen 	= sizeof(int),
-		.mode		= 0666,
-		.proc_handler = proc_dointvec,
-	},
-	{
-		.procname	= "launcher_boost_enabled",
-		.data		= &sysctl_launcher_boost_enabled,
-		.maxlen 	= sizeof(int),
-		.mode		= 0666,
-		.proc_handler = proc_dointvec,
-	},
-#endif /* VENDOR_EDIT */
-
 	{ }
 };
 

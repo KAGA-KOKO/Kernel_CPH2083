@@ -83,11 +83,6 @@ static ktime_t curr_monotime; /* monotonic time after last suspend */
 static ktime_t last_stime; /* monotonic boottime offset before last suspend */
 static ktime_t curr_stime; /* monotonic boottime offset after last suspend */
 
-
-#ifdef VENDOR_EDIT
-//Wenxian.zhen@Prd.BaseDrv, 2016/07/19, add for analysis power consumption
-void wakeup_src_clean(void);
-#endif /* VENDOR_EDIT */
 #ifdef VENDOR_EDIT
 /* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
 static ssize_t new_resume_reason_show(struct kobject *kobj, struct kobj_attribute *attr,
@@ -179,21 +174,12 @@ static struct kobj_attribute ap_resume_reason_stastics = __ATTR_RO(ap_resume_rea
 static ssize_t last_resume_reason_show(struct kobject *kobj, struct kobj_attribute *attr,
 		char *buf)
 {
-/* Zhengding.Chen@BSP.Power.Basic, 2019/06/14, Add for batterystats count last resume wakeup source correctly*/
-#ifndef VENDOR_EDIT
-	int buf_offset = 0;
-#else
 	int irq_no, buf_offset = 0;
 	struct irq_desc *desc;
-#endif /* VENDOR_EDIT */
 	spin_lock(&resume_reason_lock);
 	if (suspend_abort) {
 		buf_offset = sprintf(buf, "Abort: %s", abort_reason);
 	} else {
-/* Zhengding.Chen@BSP.Power.Basic, 2019/06/14, Add for batterystats count last resume wakeup source correctly*/
-#ifndef VENDOR_EDIT
-		buf_offset = sprintf(buf, "0 %s\n", wakeup_source_buf);
-#else
 		for (irq_no = 0; irq_no < irqcount; irq_no++) {
 			desc = irq_to_desc(irq_list[irq_no]);
 			if (desc && desc->action && desc->action->name)
@@ -203,7 +189,6 @@ static ssize_t last_resume_reason_show(struct kobject *kobj, struct kobj_attribu
 				buf_offset += sprintf(buf + buf_offset, "%d\n",
 						irq_list[irq_no]);
 		}
-#endif /* VENDOR_EDIT */
 	}
 	spin_unlock(&resume_reason_lock);
 	return buf_offset;
@@ -237,36 +222,9 @@ static ssize_t last_suspend_time_show(struct kobject *kobj,
 				sleep_time.tv_sec, sleep_time.tv_nsec);
 }
 
-#ifdef VENDOR_EDIT
-//Wenxian.Zhen@BSP.Power.Basic, 2018/11/17, Add for  clean wake up source  according to echo reset >   /sys/kernel/wakeup_reasons/wakeup_stastisc_reset
-static ssize_t  wakeup_stastisc_reset_store(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	char reset_string[]="reset";
-#ifdef VENDOR_EDIT
-/* Ji.Xu@SW.BSP.CHG, 2018-11-29 modify framework ioctl fail */
-	if(!((count == strlen(reset_string)) || ((count == strlen(reset_string) + 1) && (buf[count-1] == '\n'))))
-#endif /*VENDOR_EDIT*/
-		return count;
-
-	if (strncmp(buf, reset_string, strlen(reset_string)) != 0)
-		return count;
-
-	wakeup_src_clean();
-	return count;
-}
-
-
-#endif /* VENDOR_EDIT */
-
 static struct kobj_attribute resume_reason = __ATTR_RO(last_resume_reason);
 static struct kobj_attribute suspend_time = __ATTR_RO(last_suspend_time);
 
-#ifdef VENDOR_EDIT
-//Wenxian.Zhen@BSP.Power.Basic, 2018/11/17, Add for  clean wake up source  according to echo reset >   /sys/kernel/wakeup_reasons/wakeup_stastisc_reset
-static struct kobj_attribute wakeup_stastisc_reset_sys =
-	__ATTR(wakeup_stastisc_reset, S_IWUSR|S_IRUGO, NULL, wakeup_stastisc_reset_store);
-#endif /* VENDOR_EDIT */
 static struct attribute *attrs[] = {
 	&resume_reason.attr,
 
@@ -277,11 +235,8 @@ static struct attribute *attrs[] = {
 	//Yongyao.Song@PSW.NW.PWR.1053636, 2017/08/01, add for modem wake up source
 	&modem_resume_reason_stastics.attr,
 	//Yongyao.Song@PSW.NW.PWR add end
-#endif /* VENDOR_EDIT */
-#ifdef VENDOR_EDIT
-//Wenxian.Zhen@BSP.Power.Basic, 2018/11/17, Add for  clean wake up source  according to echo reset >   /sys/kernel/wakeup_reasons/wakeup_stastisc_reset
-    &wakeup_stastisc_reset_sys.attr,
-#endif /* VENDOR_EDIT */
+	#endif /* VENDOR_EDIT */
+
 	&suspend_time.attr,
 	NULL,
 };
@@ -428,9 +383,8 @@ static int wakeup_src_fb_notifier_callback(struct notifier_block *self, unsigned
     } else if (evdata && evdata->data && event == FB_EARLY_EVENT_BLANK) {
 			blank = evdata->data;
 			if (*blank == FB_BLANK_POWERDOWN) {
-		//wenxian.Zhen@PSW.BSP.POWER, 2019/01/15, removing for analysis power consumption,clear wakeup source stastatics action according to framework			
-//				wakeup_src_clean();
-//				pr_err("[wakeup_src_fb_notifier_callback] wakeup_src_clean all wakeup\n");
+				wakeup_src_clean();
+				pr_err("[wakeup_src_fb_notifier_callback] wakeup_src_clean all wakeup\n");
 			}
     }
     return 0;

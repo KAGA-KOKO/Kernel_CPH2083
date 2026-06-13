@@ -107,11 +107,6 @@
 #include <mt-plat/fpsgo_common.h>
 #include <mt-plat/l3cc_common.h>
 
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-#include <linux/oppocfs/oppo_cfs_common.h>
-#endif
-
 enum ipi_msg_type {
 	IPI_RESCHEDULE,
 	IPI_CALL_FUNC,
@@ -4259,13 +4254,6 @@ void scheduler_tick(void)
 #endif
 	rq_last_tick_reset(rq);
 
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-    if (sysctl_uifirst_enabled) {
-        trigger_ux_balance(rq);
-    }
-#endif
-
 #ifdef CONFIG_MTK_SCHED_RQAVG_KS
 	sched_max_util_task_tracking();
 #endif
@@ -4487,21 +4475,6 @@ again:
 	BUG(); /* the idle class will always have a runnable task */
 }
 
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM) && defined(CONFIG_OPPO_SPECIAL_BUILD)
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2019-02-26,
- * collect reclaimed_shrinked task schedule record
- */
-static inline void collect_reclaimed_task(struct task_struct *prev,
-		struct task_struct *next)
-{
-	if (next->flags & PF_RECLAIM_SHRINK)
-		next->reclaim_ns = sched_clock();
-
-	if (prev->flags & PF_RECLAIM_SHRINK)
-		prev->reclaim_run_ns += sched_clock() - prev->reclaim_ns;
-}
-#endif
-
 /*
  * __schedule() is the main scheduler function.
  *
@@ -4599,11 +4572,6 @@ static void __sched notrace __schedule(bool preempt)
 		}
 		switch_count = &prev->nvcsw;
 	}
-	
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	prev->enqueue_time = rq->clock;
-#endif
 
 	if (task_on_rq_queued(prev))
 		update_rq_clock(rq);
@@ -4626,12 +4594,6 @@ static void __sched notrace __schedule(bool preempt)
 		++*switch_count;
 
 		trace_sched_switch(preempt, prev, next);
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM) && defined(CONFIG_OPPO_SPECIAL_BUILD)
-		/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2019-02-26,
-		 * collect reclaimed_shrinked task schedule record
-		 */
-		collect_reclaimed_task(prev, next);
-#endif
 		rq = context_switch(rq, prev, next, cookie); /* unlocks the rq */
 	} else {
 		lockdep_unpin_lock(&rq->lock, cookie);
@@ -9336,10 +9298,6 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-        ux_init_rq_data(rq);
-#endif
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -10733,4 +10691,3 @@ const u32 sched_prio_to_wmult[40] = {
  /*  10 */  39045157,  49367440,  61356676,  76695844,  95443717,
  /*  15 */ 119304647, 148102320, 186737708, 238609294, 286331153,
 };
-
