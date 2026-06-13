@@ -1046,6 +1046,12 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
 	assert_spin_locked(&t->sighand->siglock);
 
 	result = TRACE_SIGNAL_IGNORED;
+        #if defined(VENDOR_EDIT) && defined(CONFIG_DEATH_HEALER)
+/*fanhui@PhoneSW.BSP, 2016-06-21, DeathHealer, record the SIGSTOP sender*/
+	if (sig == SIGSTOP && (!strncmp(t->comm,"main", TASK_COMM_LEN) ||
+		!strncmp(t->comm,"system_server", TASK_COMM_LEN) || !strncmp(t->comm,"surfaceflinger", TASK_COMM_LEN)))
+		snprintf(last_stopper_comm, 64, "%s[%d]", current->comm, current->pid);
+#endif
 
 #ifdef VENDOR_EDIT
 //Li.Liu@PSW.AD.Stability.Crash.1054829, 2016/10/08, Add for merging fangpan@oppo.com modify for the sender who kill system_server
@@ -1053,6 +1059,10 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
 	  /*add the SIGKILL print log for some debug*/
 	  if((sig == SIGHUP || sig == 33 || sig == SIGKILL || sig == SIGSTOP || sig == SIGABRT || sig == SIGTERM
 	  	 || sig == SIGCONT) && is_key_process(t)) {
+          //#ifdef VENDOR_EDIT
+	    //Haoran.Zhang@PSW.AD.Stability.Crash.1054829, 2016/03/11, Modify for, to dump call stack of killing android core process.
+	    dump_stack();
+	    //#endif
 	    printk("Some other process %d:%s want to send sig:%d to pid:%d tgid:%d comm:%s\n", current->pid, current->comm,sig, t->pid, t->tgid, t->comm);
 	  }
   }

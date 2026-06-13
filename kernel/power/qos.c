@@ -71,7 +71,10 @@ static struct pm_qos_constraints cpu_dma_constraints = {
 	.default_value = PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(cpu_dma_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &cpu_dma_lat_notifier,
 };
 static struct pm_qos_object cpu_dma_pm_qos = {
@@ -87,7 +90,10 @@ static struct pm_qos_constraints network_lat_constraints = {
 	.default_value = PM_QOS_NETWORK_LAT_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_NETWORK_LAT_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(network_lat_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &network_lat_notifier,
 };
 static struct pm_qos_object network_lat_pm_qos = {
@@ -104,7 +110,10 @@ static struct pm_qos_constraints network_tput_constraints = {
 	.default_value = PM_QOS_NETWORK_THROUGHPUT_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_NETWORK_THROUGHPUT_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(network_tput_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &network_throughput_notifier,
 };
 static struct pm_qos_object network_throughput_pm_qos = {
@@ -121,7 +130,10 @@ static struct pm_qos_constraints memory_bw_constraints = {
 	.default_value = PM_QOS_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &memory_bandwidth_notifier,
 };
 static struct pm_qos_object memory_bandwidth_pm_qos = {
@@ -137,7 +149,10 @@ static struct pm_qos_constraints disp_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(disp_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &disp_freq_notifier,
 };
 static struct pm_qos_object disp_freq_pm_qos = {
@@ -153,7 +168,10 @@ static struct pm_qos_constraints mdp_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(mdp_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &mdp_freq_notifier,
 };
 static struct pm_qos_object mdp_freq_pm_qos = {
@@ -169,7 +187,10 @@ static struct pm_qos_constraints vdec_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(vdec_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &vdec_freq_notifier,
 };
 static struct pm_qos_object vdec_freq_pm_qos = {
@@ -185,7 +206,10 @@ static struct pm_qos_constraints venc_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(venc_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &venc_freq_notifier,
 };
 static struct pm_qos_object venc_freq_pm_qos = {
@@ -201,7 +225,10 @@ static struct pm_qos_constraints img_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(img_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &img_freq_notifier,
 };
 static struct pm_qos_object img_freq_pm_qos = {
@@ -217,7 +244,10 @@ static struct pm_qos_constraints cam_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(cam_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &cam_freq_notifier,
 };
 static struct pm_qos_object cam_freq_pm_qos = {
@@ -233,7 +263,10 @@ static struct pm_qos_constraints dpe_freq_constraints = {
 	.default_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_FREQ_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(dpe_freq_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &dpe_freq_notifier,
 };
 static struct pm_qos_object dpe_freq_pm_qos = {
@@ -249,7 +282,10 @@ static struct pm_qos_constraints cpu_memory_bw_constraints = {
 	.default_value = PM_QOS_CPU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_CPU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(cpu_memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &cpu_memory_bandwidth_notifier,
 };
 static struct pm_qos_object cpu_memory_bandwidth_pm_qos = {
@@ -266,7 +302,10 @@ static struct pm_qos_constraints gpu_memory_bw_constraints = {
 	.default_value = PM_QOS_GPU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_GPU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(gpu_memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &gpu_memory_bandwidth_notifier,
 };
 static struct pm_qos_object gpu_memory_bandwidth_pm_qos = {
@@ -283,7 +322,10 @@ static struct pm_qos_constraints mm_memory_bw_constraints = {
 	.default_value = PM_QOS_MM_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(mm_memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &mm_memory_bandwidth_notifier,
 };
 static struct pm_qos_object mm_memory_bandwidth_pm_qos = {
@@ -300,7 +342,10 @@ static struct pm_qos_constraints other_memory_bw_constraints = {
 	.default_value = PM_QOS_OTHER_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_OTHER_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(other_memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &other_memory_bandwidth_notifier,
 };
 static struct pm_qos_object other_memory_bandwidth_pm_qos = {
@@ -317,7 +362,10 @@ static struct pm_qos_constraints mm0_bw_limiter_constraints = {
 	.default_value = PM_QOS_MM_BANDWIDTH_LIMITER_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_BANDWIDTH_LIMITER_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(mm0_bw_limiter_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &mm0_bandwidth_limiter_notifier,
 };
 static struct pm_qos_object mm0_bandwidth_limiter_pm_qos = {
@@ -333,7 +381,10 @@ static struct pm_qos_constraints mm1_bw_limiter_constraints = {
 	.default_value = PM_QOS_MM_BANDWIDTH_LIMITER_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_MM_BANDWIDTH_LIMITER_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(mm1_bw_limiter_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &mm1_bandwidth_limiter_notifier,
 };
 static struct pm_qos_object mm1_bandwidth_limiter_pm_qos = {
@@ -349,7 +400,10 @@ static struct pm_qos_constraints ddr_opp_constraints = {
 	.default_value = PM_QOS_DDR_OPP_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_DDR_OPP_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(ddr_opp_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &ddr_opp_notifier,
 };
 static struct pm_qos_object ddr_opp_pm_qos = {
@@ -366,7 +420,10 @@ static struct pm_qos_constraints vcore_opp_constraints = {
 	.default_value = PM_QOS_VCORE_OPP_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_VCORE_OPP_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(vcore_opp_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &vcore_opp_notifier,
 };
 static struct pm_qos_object vcore_opp_pm_qos = {
@@ -382,7 +439,10 @@ static struct pm_qos_constraints scp_vcore_req_constraints = {
 	.default_value = PM_QOS_SCP_VCORE_REQUEST_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_SCP_VCORE_REQUEST_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	.qos_lock = __MUTEX_INITIALIZER(scp_vcore_req_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &scp_vcore_req_notifier,
 };
 static struct pm_qos_object scp_vcore_req_pm_qos = {
@@ -398,8 +458,10 @@ static struct pm_qos_constraints power_model_ddr_req_constraints = {
 	.default_value = PM_QOS_POWER_MODEL_DDR_REQUEST_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_POWER_MODEL_DDR_REQUEST_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
-	.qos_lock =
-		__MUTEX_INITIALIZER(power_model_ddr_req_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(power_model_ddr_req_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &power_model_ddr_req_notifier,
 };
 static struct pm_qos_object power_model_ddr_req_pm_qos = {
@@ -415,8 +477,10 @@ static struct pm_qos_constraints power_model_vcore_req_constraints = {
 	.default_value = PM_QOS_POWER_MODEL_VCORE_REQUEST_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_POWER_MODEL_VCORE_REQUEST_DEFAULT_VALUE,
 	.type = PM_QOS_MAX,
-	.qos_lock =
-		__MUTEX_INITIALIZER(power_model_vcore_req_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(power_model_vcore_req_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &power_model_vcore_req_notifier,
 };
 static struct pm_qos_object power_model_vcore_req_pm_qos = {
@@ -432,8 +496,10 @@ static struct pm_qos_constraints vcore_dvfs_force_opp_constraints = {
 	.default_value = PM_QOS_VCORE_DVFS_FORCE_OPP_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_VCORE_DVFS_FORCE_OPP_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
-	.qos_lock =
-		__MUTEX_INITIALIZER(vcore_dvfs_force_opp_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(vcore_dvfs_force_opp_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &vcore_dvfs_force_opp_notifier,
 };
 static struct pm_qos_object vcore_dvfs_force_opp_pm_qos = {
@@ -448,7 +514,10 @@ static struct pm_qos_constraints vvpu_opp_constraints = {
 	.default_value = PM_QOS_VVPU_OPP_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_VVPU_OPP_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
-	.qos_lock = __MUTEX_INITIALIZER(vvpu_opp_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(vvpu_opp_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &vvpu_opp_notifier,
 };
 static struct pm_qos_object vvpu_opp_pm_qos = {
@@ -464,7 +533,10 @@ static struct pm_qos_constraints vmdla_opp_constraints = {
 	.default_value = PM_QOS_VMDLA_OPP_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_VMDLA_OPP_DEFAULT_VALUE,
 	.type = PM_QOS_MIN,
-	.qos_lock = __MUTEX_INITIALIZER(vmdla_opp_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(vmdla_opp_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &vmdla_opp_notifier,
 };
 static struct pm_qos_object vmdla_opp_pm_qos = {
@@ -481,7 +553,10 @@ static struct pm_qos_constraints isp_hrt_bw_constraints = {
 	.default_value = PM_QOS_ISP_HRT_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_ISP_HRT_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
-	.qos_lock = __MUTEX_INITIALIZER(isp_hrt_bw_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(isp_hrt_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &isp_hrt_bandwidth_notifier,
 };
 static struct pm_qos_object isp_hrt_bandwidth_pm_qos = {
@@ -497,7 +572,10 @@ static struct pm_qos_constraints apu_memory_bw_constraints = {
 	.default_value = PM_QOS_APU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.no_constraint_value = PM_QOS_APU_MEMORY_BANDWIDTH_DEFAULT_VALUE,
 	.type = PM_QOS_SUM,
-	.qos_lock = __MUTEX_INITIALIZER(apu_memory_bw_constraints.qos_lock),
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	.qos_lock =	__MUTEX_INITIALIZER(apu_memory_bw_constraints.qos_lock),
+#endif /*ODM_HQ_EDIT*/
 	.notifiers = &apu_memory_bandwidth_notifier,
 };
 static struct pm_qos_object apu_memory_bandwidth_pm_qos = {
@@ -750,7 +828,10 @@ int pm_qos_update_target(struct pm_qos_constraints *c, struct plist_node *node,
 	int prev_value, curr_value, new_value;
 	int ret;
 
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	mutex_lock(&c->qos_lock);
+#endif /*ODM_HQ_EDIT*/
 	spin_lock_irqsave(&pm_qos_lock, flags);
 	prev_value = pm_qos_get_value(c);
 	if (value == PM_QOS_DEFAULT_VALUE)
@@ -793,7 +874,10 @@ int pm_qos_update_target(struct pm_qos_constraints *c, struct plist_node *node,
 	} else {
 		ret = 0;
 	}
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
 	mutex_unlock(&c->qos_lock);
+#endif /*ODM_HQ_EDIT*/
 
 	return ret;
 }
