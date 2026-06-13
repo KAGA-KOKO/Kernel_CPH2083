@@ -69,16 +69,15 @@
 #include <asm/tlbflush.h>
 #include <asm/div64.h>
 #include "internal.h"
+#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_MEM_MONITOR)
+#include <linux/memory_monitor.h>
+#endif /*VENDOR_EDIT*/
 
 #if defined(CONFIG_DMAUSER_PAGES)
 #include <mt-plat/aee.h>
 #endif
 
 #include <mt-plat/mtk_memcfg_reserve_info.h>
-
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_MEM_MONITOR)
-#include <linux/memory_monitor.h>
-#endif /*VENDOR_EDIT*/
 
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
 static DEFINE_MUTEX(pcp_batch_high_lock);
@@ -2207,7 +2206,7 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 #ifndef VENDOR_EDIT
 /* Shiming.Zhang@PSW.BSP.Kernel.MM, 2017-11-15
  * could not steal MIGRATE_OPPO
- */	
+ */
 		if (can_steal)
 #else
 		if (can_steal && get_pageblock_migratetype(page) != MIGRATE_OPPO2)
@@ -2635,7 +2634,7 @@ int __isolate_free_page(struct page *page, unsigned int order)
  * could not steal MIGRATE_OPPO
  */
 				&& mt != MIGRATE_OPPO2)
-#else	
+#else
 				)
 #endif /*VENDOR_EDIT*/
 				set_pageblock_migratetype(page,
@@ -3179,8 +3178,13 @@ void warn_alloc(gfp_t gfp_mask, const char *fmt, ...)
 	pr_cont(", mode:%#x(%pGg)\n", gfp_mask, &gfp_mask);
 
 	dump_stack();
-	if (!should_suppress_show_mem())
-		show_mem(filter);
+	if (!should_suppress_show_mem()) {
+	    /*yangtao@ODM_AD.Kernel.memory 2020/06/02 add for remove Mem-Info log*/
+	    #ifdef ODM_HQ_EDIT
+	    #else
+	    show_mem(filter);
+	    #endif
+	}
 }
 
 static inline struct page *
@@ -3664,10 +3668,6 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	unsigned long alloc_start = jiffies;
 	unsigned int stall_timeout = 10 * HZ;
 	unsigned int cpuset_mems_cookie;
-#if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_MEM_MONITOR)
-/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
-	unsigned long oppo_alloc_start = jiffies;
-#endif /*VENDOR_EDIT*/
 
 	/*
 	 * In the slowpath, we sanity check order to avoid ever trying to
@@ -3897,7 +3897,7 @@ nopage:
 got_pg:
 #if defined(VENDOR_EDIT) && defined(CONFIG_OPPO_MEM_MONITOR)
 /* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
-	memory_alloc_monitor(gfp_mask, order,jiffies_to_msecs(jiffies - oppo_alloc_start));
+	memory_alloc_monitor(order, jiffies_to_msecs(jiffies - alloc_start));
 #endif /*VENDOR_EDIT*/
 	return page;
 }
@@ -6894,8 +6894,8 @@ static int pageblock_is_reserved(unsigned long start_pfn, unsigned long end_pfn)
 
 static const int oppo2_reserve[] = {
 /*TODO: maybe it should be increased if only has one memory zone*/
-	14, /*2GB<===>56MB,only DMA zone*/
-	14, /*3GB<===>56MB,only DMA zone*/
+	16, /*2GB<===>64MB,only DMA zone*/
+	13, /*3GB<===>52MB,only DMA zone*/
 	19, /*4GB<===>76MB,only DMA zone*/
 	21, /*6GB<===>84MB*/
 };
@@ -6971,7 +6971,7 @@ static void setup_zone_migrate_oppo(struct zone *zone, int reserve_migratetype)
 	if (reserve == old_reserve)
 		return;
 
-	if (reserve_migratetype == MIGRATE_OPPO2) 
+	if (reserve_migratetype == MIGRATE_OPPO2)
 		zone->nr_migrate_oppo2_block = reserve;
 
 	for (pfn = start_pfn; pfn < end_pfn; pfn += pageblock_nr_pages) {
