@@ -6751,19 +6751,12 @@ static void oppo_ccdetect_irq_register(struct oppo_chg_chip *chip)
 /* Jianchao.Shi@BSP.CHG.Basic, 2018/05/25, sjc Add for usbtemp */
 static bool oppo_usbtemp_check_is_support(void)
 {
-	struct oppo_chg_chip *chip = g_oppo_chip;
-
-	if (!chip) {
-		printk(KERN_ERR "[OPPO_CHG][%s]: smb2_chg not ready!\n", __func__);
-		return false;
-	}
-
-	if (chip->vbatt_num == 1) { //17107
+	if (is_project(OPPO_17107)) {
 		if (get_PCB_Version() >= HW_VERSION__15)//DVT2
 			return true;
 	}
 
-	if (chip->vbatt_num == 2) { //17127
+	if (is_project(OPPO_17127)) {
 		if (get_PCB_Version() >= HW_VERSION__11)//EVT
 			return true;
 	}

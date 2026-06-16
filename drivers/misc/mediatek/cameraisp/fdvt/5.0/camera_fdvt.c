@@ -56,11 +56,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 
-#ifdef CONFIG_MTK_IOMMU_V2
-#include <mach/mt_iommu.h>
-#else
 #include <m4u.h>
-#endif
 #include <cmdq_core.h>
 #include <cmdq_record.h>
 #include <smi_public.h>
@@ -176,9 +172,9 @@ pr_info(MyTag "[%s] " format, __func__, ##args)
 #define log_notice(format, args...) \
 pr_notice(MyTag "[%s] " format, __func__, ##args)
 #define log_wrn(format, args...) \
-pr_info(MyTag "[%s] " format, __func__, ##args)
+pr_debug(MyTag "[%s] " format, __func__, ##args)
 #define log_err(format, args...) \
-pr_info(MyTag "[%s] " format, __func__, ##args)
+pr_debug(MyTag "[%s] " format, __func__, ##args)
 #define log_ast(format, args...) \
 pr_debug(MyTag "[%s] " format, __func__, ##args)
 
@@ -1644,8 +1640,6 @@ static signed int FDVT_DumpReg(void)
 		(unsigned int)FDVT_RD32(FDVT_RS_REG));
 	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_INT_EN_HW),
 		(unsigned int)FDVT_RD32(FDVT_INT_EN_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_DEBUG_INFO_1_HW),
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_1_REG));
 	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_YUV2RGB_HW),
 		(unsigned int)FDVT_RD32(FDVT_YUV2RGB_REG));
 	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_FD_HW),
@@ -1661,218 +1655,6 @@ static signed int FDVT_DumpReg(void)
 		(unsigned int)FDVT_RD32(FDVT_YUV2RGBCON_BASE_ADR_REG));
 	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_FD_RLT_BASE_ADR_HW),
 		(unsigned int)FDVT_RD32(FDVT_FD_RLT_BASE_ADR_REG));
-
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_IN_BASE_ADR_0_HW),
-		(unsigned int)FDVT_RD32(FDVT_IN_BASE_ADR_0_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_IN_BASE_ADR_1_HW),
-		(unsigned int)FDVT_RD32(FDVT_IN_BASE_ADR_1_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_IN_BASE_ADR_2_HW),
-		(unsigned int)FDVT_RD32(FDVT_IN_BASE_ADR_2_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_IN_BASE_ADR_3_HW),
-		(unsigned int)FDVT_RD32(FDVT_IN_BASE_ADR_3_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_OUT_BASE_ADR_0_HW),
-		(unsigned int)FDVT_RD32(FDVT_OUT_BASE_ADR_0_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_OUT_BASE_ADR_1_HW),
-		(unsigned int)FDVT_RD32(FDVT_OUT_BASE_ADR_1_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_OUT_BASE_ADR_2_HW),
-		(unsigned int)FDVT_RD32(FDVT_OUT_BASE_ADR_2_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_OUT_BASE_ADR_3_HW),
-		(unsigned int)FDVT_RD32(FDVT_OUT_BASE_ADR_3_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_KERNEL_BASE_ADR_0_HW),
-		(unsigned int)FDVT_RD32(FDVT_KERNEL_BASE_ADR_0_REG));
-	log_inf("[0x%08X %08X]\n", (unsigned int)(FDVT_KERNEL_BASE_ADR_1_HW),
-		(unsigned int)FDVT_RD32(FDVT_KERNEL_BASE_ADR_1_REG));
-
-	// DMA DEBUG
-	// DEBUG_MODULE_SEL[13:15] = 0x0
-	FDVT_WR32(FDVT_CTRL_REG,
-		 (FDVT_RD32(FDVT_CTRL_REG) &
-		 0xFFFF1FFF));
-
-	// fdvt_rda_0
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000013);
-	log_inf("fdvt_rda_0: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000113);
-	log_inf("fdvt_rda_0: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000213);
-	log_inf("fdvt_rda_0: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000313);
-	log_inf("fdvt_rda_0: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000101);
-	log_inf("fdvt_rda_0: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x010201);
-	log_inf("fdvt_rda_0: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x030201);
-	log_inf("fdvt_rda_0: fifo_debug_data (case 3) = %08X\n",
-		 (unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_rda_1
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000413);
-	log_inf("fdvt_rda_1: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000513);
-	log_inf("fdvt_rda_1: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000613);
-	log_inf("fdvt_rda_1: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000713);
-	log_inf("fdvt_rda_1: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000102);
-	log_inf("fdvt_rda_1: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x010202);
-	log_inf("fdvt_rda_1: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x030202);
-	log_inf("fdvt_rda_1: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_rdb_0
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001813);
-	log_inf("fdvt_rdb_0: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001913);
-	log_inf("fdvt_rdb_0: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001a13);
-	log_inf("fdvt_rdb_0: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001b13);
-	log_inf("fdvt_rdb_0: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000105);
-	log_inf("fdvt_rdb_0: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x010205);
-	log_inf("fdvt_rdb_0: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x030205);
-	log_inf("fdvt_rdb_0: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_rdb_1
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001c13);
-	log_inf("fdvt_rdb_1: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001d13);
-	log_inf("fdvt_rdb_1: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001e13);
-	log_inf("fdvt_rdb_1: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001f13);
-	log_inf("fdvt_rdb_1: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x000106);
-	log_inf("fdvt_rdb_1: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x010206);
-	log_inf("fdvt_rdb_1: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x030206);
-	log_inf("fdvt_rdb_1: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_wra_0
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001013);
-	log_inf("fdvt_wra_0: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001113);
-	log_inf("fdvt_wra_0: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001213);
-	log_inf("fdvt_wra_0: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001313);
-	log_inf("fdvt_wra_0: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x00040b);
-	log_inf("fdvt_wra_0: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x01030b);
-	log_inf("fdvt_wra_0: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x03030b);
-	log_inf("fdvt_wra_0: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_wra_1
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001413);
-	log_inf("fdvt_wra_1: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001513);
-	log_inf("fdvt_wra_1: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001613);
-	log_inf("fdvt_wra_1: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x001713);
-	log_inf("fdvt_wra_1: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x00040c);
-	log_inf("fdvt_wra_1: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x01030c);
-	log_inf("fdvt_wra_1: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x03030c);
-	log_inf("fdvt_wra_1: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-	// fdvt_wrb_0
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002013);
-	log_inf("fdvt_wra_0: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002113);
-	log_inf("fdvt_wra_0: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002213);
-	log_inf("fdvt_wra_0: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002313);
-	log_inf("fdvt_wra_0: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x00040d);
-	log_inf("fdvt_wra_0: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x01030d);
-	log_inf("fdvt_wra_0: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x03030d);
-	log_inf("fdvt_wra_0: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
-  // fdvt_wrb_1
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002413);
-	log_inf("fdvt_wrb_1: checksum_debug0 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002513);
-	log_inf("fdvt_wrb_1: checksum_debug1 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002613);
-	log_inf("fdvt_wrb_1: checksum_debug2 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x002713);
-	log_inf("fdvt_wrb_1: checksum_debug3 = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x00040e);
-	log_inf("fdvt_wrb_1: smi_debug_data (case 0) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x01030e);
-	log_inf("fdvt_wrb_1: fifo_debug_data (case 1) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-	FDVT_WR32(DMA_DEBUG_SEL_REG, 0x03030e);
-	log_inf("fdvt_wrb_1: fifo_debug_data (case 3) = %08X\n",
-		(unsigned int)FDVT_RD32(FDVT_DEBUG_INFO_3_REG));
-
 #if 0
 	log_inf("FDVT:HWProcessIdx:%d, WriteIdx:%d, ReadIdx:%d\n",
 		g_FDVT_ReqRing.HWProcessIdx,
@@ -2373,7 +2155,7 @@ static signed int FDVT_WaitIrq(FDVT_WAIT_IRQ_STRUCT *WaitIrq)
 		(!FDVT_GetIRQState(WaitIrq->Type, WaitIrq->UserKey,
 				   WaitIrq->Status, whichReq,
 				   WaitIrq->ProcessID))) {
-		log_err("interrupted by system, timeout(%d),irq Type/User/Sts/whichReq/Pid(0x%x/%d/0x%x/%d/%d)\n",
+		log_dbg("interrupted by system, timeout(%d),irq Type/User/Sts/whichReq/Pid(0x%x/%d/0x%x/%d/%d)\n",
 		Timeout, WaitIrq->Type, WaitIrq->UserKey,
 		WaitIrq->Status, whichReq, WaitIrq->ProcessID);
 		/* actually it should be -ERESTARTSYS */
@@ -3732,47 +3514,6 @@ static const struct file_operations FDVTFileOper = {
 #endif
 };
 
-/**************************************************************
- *
- **************************************************************/
-#ifdef CONFIG_MTK_IOMMU_V2
-enum mtk_iommu_callback_ret_t FDVT_M4U_TranslationFault_callback(int port,
-	unsigned int mva, void *data)
-#else
-enum m4u_callback_ret_t FDVT_M4U_TranslationFault_callback(int port,
-	unsigned int mva, void *data)
-#endif
-{
-
-	pr_info("[FDVT_M4U]fault call port=%d, mva=0x%x", port, mva);
-
-	switch (port) {
-	case M4U_PORT_FDVT_RDA:
-	case M4U_PORT_FDVT_RDB:
-	case M4U_PORT_FDVT_WRA:
-	case M4U_PORT_FDVT_WRB:
-	default:  //ISP_FDVT_BASE = 0x1b001000
-		pr_info("FDVT_IN_BASE_ADR_0:0x%08x, FDVT_IN_BASE_ADR_1:0x%08x, FDVT_IN_BASE_ADR_2:0x%08x, FDVT_IN_BASE_ADR_3:0x%08x\n",
-			FDVT_RD32(FDVT_IN_BASE_ADR_0_REG),
-			FDVT_RD32(FDVT_IN_BASE_ADR_1_REG),
-			FDVT_RD32(FDVT_IN_BASE_ADR_2_REG),
-			FDVT_RD32(FDVT_IN_BASE_ADR_3_REG));
-		pr_info("FDVT_OUT_BASE_ADR_0:0x%08x, FDVT_OUT_BASE_ADR_1:0x%08x, FDVT_OUT_BASE_ADR_2:0x%08x, FDVT_OUT_BASE_ADR_3:0x%08x\n",
-			FDVT_RD32(FDVT_OUT_BASE_ADR_0_REG),
-			FDVT_RD32(FDVT_OUT_BASE_ADR_1_REG),
-			FDVT_RD32(FDVT_OUT_BASE_ADR_2_REG),
-			FDVT_RD32(FDVT_OUT_BASE_ADR_3_REG));
-		pr_info("FDVT_KERNEL_BASE_ADR_0:0x%08x, FDVT_KERNEL_BASE_ADR_1:0x%08x\n",
-			FDVT_RD32(FDVT_KERNEL_BASE_ADR_0_REG),
-			FDVT_RD32(FDVT_KERNEL_BASE_ADR_1_REG));
-	break;
-	}
-#ifdef CONFIG_MTK_IOMMU_V2
-	return MTK_IOMMU_CALLBACK_HANDLED;
-#else
-	return M4U_CALLBACK_HANDLED;
-#endif
-}
 /*****************************************************************************
  *
  *****************************************************************************/
@@ -4675,30 +4416,6 @@ static signed int __init FDVT_Init(void)
 			   FDVT_DumpCallback,
 			   FDVT_ResetCallback,
 			   FDVT_ClockOffCallback);
-#endif
-
-#ifdef CONFIG_MTK_IOMMU_V2
-	mtk_iommu_register_fault_callback(M4U_PORT_FDVT_RDA,
-					  FDVT_M4U_TranslationFault_callback,
-					  NULL);
-	mtk_iommu_register_fault_callback(M4U_PORT_FDVT_RDB,
-					  FDVT_M4U_TranslationFault_callback,
-					  NULL);
-	mtk_iommu_register_fault_callback(M4U_PORT_FDVT_WRA,
-					  FDVT_M4U_TranslationFault_callback,
-					  NULL);
-	mtk_iommu_register_fault_callback(M4U_PORT_FDVT_WRB,
-					  FDVT_M4U_TranslationFault_callback,
-					  NULL);
-#else
-	m4u_register_fault_callback(M4U_PORT_FDVT_RDA,
-			FDVT_M4U_TranslationFault_callback, NULL);
-	m4u_register_fault_callback(M4U_PORT_FDVT_RDB,
-			FDVT_M4U_TranslationFault_callback, NULL);
-	m4u_register_fault_callback(M4U_PORT_FDVT_WRA,
-			FDVT_M4U_TranslationFault_callback, NULL);
-	m4u_register_fault_callback(M4U_PORT_FDVT_WRB,
-			FDVT_M4U_TranslationFault_callback, NULL);
 #endif
 
 	log_dbg("- X. Ret: %d.", Ret);

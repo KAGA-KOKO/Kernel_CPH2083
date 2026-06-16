@@ -19,12 +19,6 @@
 
 # add our modules to kernel.
 obj-$(CONFIG_TRUSTONIC_TEE_SUPPORT) += mcDrvModule.o
-#ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2018/12/24,  for enable KASAN, use GCC complile tool, add flag -Wno-unused-value
-ifeq ($(CONFIG_KASAN),y)
-subdir-ccflags-y += -Wno-unused-value
-endif
-#endif /*VENDOR_EDIT*/
 
 mcDrvModule-y := \
 	admin.o \

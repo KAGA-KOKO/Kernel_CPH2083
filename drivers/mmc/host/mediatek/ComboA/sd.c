@@ -40,10 +40,6 @@
 #include <mt-plat/mtk_lpae.h>
 #include <linux/seq_file.h>
 #include <linux/pm_runtime.h>
-#ifdef ODM_WT_EDIT
-/* Mingyao.Xie@ODM_WT.BSP.Storage.Sdcard, 2019/11/16, add sd tray */
-#include <linux/proc_fs.h>
-#endif /*ODM_WT_EDIT*/
 
 #include "mtk_sd.h"
 #include <mmc/core/core.h>
@@ -196,38 +192,6 @@ int msdc_rsp[] = {
 	memset(BUF, 0, BUF_SZ); \
 	BUF_CUR = BUF; \
 }
-
-#ifdef ODM_WT_EDIT
-/* Mingyao.Xie@ODM_WT.BSP.Storage.Sdcard, 2019/11/16, add sd tray */
-static int sd_tray_gpio_show(struct seq_file *m, void *v)
-{
-	int sd_gpio_value = 0;
-
-#ifdef CONFIG_GPIOLIB
-	sd_gpio_value = __gpio_get_value(cd_gpio);
-#endif
-
-	seq_printf(m, "%d\n", sd_gpio_value);
-	return 0;
-}
-
-static int sd_tray_gpio_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, sd_tray_gpio_show, NULL);
-}
-
-static const struct file_operations sd_tray_gpio_fops = {
-	.open	= sd_tray_gpio_proc_open,
-	.read	= seq_read,
-	.llseek	= seq_lseek,
-	.release = single_release,
-};
-
-static void sd_tray_gpio_create_proc(void)
-{
-	proc_create("sd_tray_gpio_value", 0444, NULL, &sd_tray_gpio_fops);
-}
-#endif /*ODM_WT_EDIT*/
 
 void msdc_dump_register_core(char **buff, unsigned long *size,
 	struct seq_file *m, struct msdc_host *host)
@@ -5166,8 +5130,6 @@ static void msdc_cqhci_pre_cqe_enable(struct mmc_host *mmc, bool en)
 	} else {
 		/* disable busy check */
 		MSDC_CLR_BIT32(MSDC_PATCH_BIT1, MSDC_PB1_BUSY_CHECK_SEL);
-		/* switch to PIO mode after cmdq_disable */
-		MSDC_SET_BIT32(MSDC_CFG, MSDC_CFG_PIO);
 	}
 }
 
@@ -5373,7 +5335,6 @@ static int msdc_drv_probe(struct platform_device *pdev)
 	spin_lock_init(&host->lock);
 	spin_lock_init(&host->reg_lock);
 	spin_lock_init(&host->remove_bad_card);
-	spin_lock_init(&host->cmd_dump_lock);
 	spin_lock_init(&host->sdio_irq_lock);
 
 #ifdef CONFIG_MTK_EMMC_CQ_SUPPORT
@@ -5629,10 +5590,7 @@ static int __init mt_msdc_init(void)
 	}
 
 	msdc_debug_proc_init();
-#ifdef ODM_WT_EDIT
-/* Mingyao.Xie@ODM_WT.BSP.Storage.Sdcard, 2019/11/16, add sd tray */
-	sd_tray_gpio_create_proc();
-#endif /*ODM_WT_EDIT*/
+
 	pr_debug(DRV_NAME ": MediaTek MSDC Driver\n");
 
 	return 0;

@@ -121,19 +121,12 @@
 /* AUDENC_ANA_CON9: */
 #define RG_AUDMICBIAS1_DCSW1PEN		(0x01<<8)
 
-#ifdef ODM_HQ_EDIT
-/* xiangchao.zhong@ODM.HQ.MM.Basic 2019.11.07 for HP EINT 2.0V(from HW) */
-/* AUDENC_ANA_CON10: */
-#define RG_ACCDET_MODE_ANA10_MODE1	(0x0C07)
-#define RG_ACCDET_MODE_ANA10_MODE2	(0x0C87)
-#define RG_ACCDET_MODE_ANA10_MODE6	(0x0C87)
-#else
+
 /* AUDENC_ANA_CON10: */
 #define RG_ACCDET_MODE_ANA10_MODE1	(0x0807)
 #define RG_ACCDET_MODE_ANA10_MODE2	(0x0887)
 #define RG_ACCDET_MODE_ANA10_MODE6	(0x0887)
 
-#endif
 /* ------Register_AUXADC_REG  Bit Define------ */
 /* AUXADC_ADC5:  Auxadc CH5 read data */
 #define AUXADC_DATA_RDY_CH5		(1<<15)

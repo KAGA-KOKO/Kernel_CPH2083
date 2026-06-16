@@ -765,7 +765,7 @@ int gauge_dev_get_nag_vbat(
 	return ret;
 }
 
-#ifndef ODM_HQ_EDIT
+#ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.02.25 add set monitci soc for rtc*/
 int gauge_dev_set_monitic_rtc_ui_soc(
 	struct gauge_device *gauge_dev, int ui_soc)

@@ -68,7 +68,6 @@ extern  bool oppo_get_otg_switch_status_dwc3(void);
 static bool oppo_get_otg_switch_status(void);
 extern int oppo_ccdetect_support_check(void);
 static bool oppo_usbtemp_check_is_support(void);
-extern void oppo_force_to_fulldump(bool force);
 #define OPPO_CHG_MONITOR_INTERVAL round_jiffies_relative(msecs_to_jiffies(5000))
 #define OPPO_SUPPORT_CCDETECT_IN_FTM_MODE	2
 #define OPPO_SUPPORT_CCDETECT_NOT_FTM_MODE	1
@@ -3946,7 +3945,6 @@ void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 		cancel_delayed_work_sync(&chg->divider_set_work);
 		schedule_delayed_work(&chg->divider_set_work, 0);
 		schedule_work(&chg->dpdm_set_work);
-		oppo_force_to_fulldump(false);
 	} else {
 		fg_oppo_set_input_current = false;
 		cancel_delayed_work_sync(&chg->chg_monitor_work);
@@ -4077,7 +4075,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 		cancel_delayed_work_sync(&chg->divider_set_work);
 		schedule_delayed_work(&chg->divider_set_work, 0);
 		schedule_work(&chg->dpdm_set_work);
-		oppo_force_to_fulldump(false);
 	} else {
 		fg_oppo_set_input_current = false;
 		cancel_delayed_work_sync(&chg->chg_monitor_work);
@@ -10434,7 +10431,7 @@ static bool qcom_check_charger_resume(void)
 
 bool smbchg_need_to_check_ibatt(void)
 {
-	return false;
+	return true;
 }
 
 static int smbchg_get_chg_current_step(void)

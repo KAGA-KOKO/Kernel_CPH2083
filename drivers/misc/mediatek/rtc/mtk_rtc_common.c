@@ -422,7 +422,6 @@ void rtc_mark_recovery(void)
 	hal_rtc_clear_alarm(&defaulttm);
 	spin_unlock_irqrestore(&rtc_lock, flags);
 }
-
 void rtc_mark_kpoc(void)
 {
 	unsigned long flags;
@@ -506,7 +505,6 @@ void oppo_rtc_mark_safe(void)
 	spin_unlock_irqrestore(&rtc_lock, flags);
 }
 
-/* Fuchun.Liao@BSP.CHG.Basic 2018/08/08 modify for sensor i2c workaround*/
 void oppo_rtc_mark_sensor_cause_panic(void)
 {
 	unsigned long flags;

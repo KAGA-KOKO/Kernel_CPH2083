@@ -220,12 +220,7 @@ static int mtk_memcfg_memory_layout_open(struct inode *inode, struct file *file)
 	return single_open(file, mtk_memcfg_memory_layout_show, NULL);
 }
 
-//#ifdef VENDOR_EDIT
-//Wen.Luo@BSP.Kernel.Stability, 2018/11/28, Enable slabtrace for ageing test
-#ifdef CONFIG_SLUB_DEBUG
-//#else
-//#ifdef CONFIG_MTK_ENG_BUILD
-//#endif
+#ifdef CONFIG_MTK_ENG_BUILD
 /* memblock reserve information */
 static int mtk_memcfg_memblock_reserved_show(struct seq_file *m, void *v)
 {
@@ -615,12 +610,7 @@ static int __init mtk_memcfg_late_init(void)
 
 		mtk_memcfg_reserve_info_init(mtk_memcfg_dir);
 
-//#ifdef VENDOR_EDIT
-//Wen.Luo@BSP.Kernel.Stability, 2018/11/28, Enable slabtrace for ageing test
-#ifdef CONFIG_SLUB_DEBUG
-//#else
-//#ifdef CONFIG_MTK_ENG_BUILD
-//#endif
+#ifdef CONFIG_MTK_ENG_BUILD
 		/* memblock reserved */
 		entry = proc_create("memblock_reserved", 0644,
 				mtk_memcfg_dir,

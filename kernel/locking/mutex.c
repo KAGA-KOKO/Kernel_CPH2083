@@ -56,10 +56,6 @@ __mutex_init(struct mutex *lock, const char *name, struct lock_class_key *key)
 #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
 	osq_lock_init(&lock->osq);
 #endif
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	lock->ux_dep_task = NULL;
-#endif
 
 	debug_mutex_init(lock, name, key);
 }
@@ -543,17 +539,8 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 	debug_mutex_lock_common(lock, &waiter);
 	debug_mutex_add_waiter(lock, &waiter, task);
 
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-    if (sysctl_uifirst_enabled) {
-        mutex_list_add(task, &waiter.list, &lock->wait_list, lock);
-    } else {
-        list_add_tail(&waiter.list, &lock->wait_list);
-    }
-#else
 	/* add waiting tasks to the end of the waitqueue (FIFO): */
 	list_add_tail(&waiter.list, &lock->wait_list);
-#endif
 	waiter.task = task;
 
 	lock_contended(&lock->dep_map, ip);
@@ -577,10 +564,7 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 		 * got a signal? (This code gets eliminated in the
 		 * TASK_UNINTERRUPTIBLE case.)
 		 */
-		//#ifdef VENDOR_EDIT fangpan@Swdp.shanghai,2015/11/12
-		if (unlikely(signal_pending_state(state, task))
-			|| hung_long_and_fatal_signal_pending(task)) {
-		//#endif
+		if (unlikely(signal_pending_state(state, task))) {
 			ret = -EINTR;
 			goto err;
 		}
@@ -590,12 +574,6 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 			if (ret)
 				goto err;
 		}
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-		if (sysctl_uifirst_enabled) {
-			mutex_dynamic_ux_enqueue(lock, task);
-		}
-#endif
 
 		__set_task_state(task, state);
 
@@ -761,12 +739,6 @@ __mutex_unlock_common_slowpath(struct mutex *lock, int nested)
 	spin_lock_mutex(&lock->wait_lock, flags);
 	mutex_release(&lock->dep_map, nested, _RET_IP_);
 	debug_mutex_unlock(lock);
-#ifdef VENDOR_EDIT
-// Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-	if (sysctl_uifirst_enabled) {
-		mutex_dynamic_ux_dequeue(lock, current);
-	}
-#endif
 
 	if (!list_empty(&lock->wait_list)) {
 		/* get the first entry from the wait-list: */

@@ -77,10 +77,6 @@ imgsensor_sensor_control(
 		enum MSDK_SCENARIO_ID_ENUM ScenarioId);
 
 extern struct IMGSENSOR_HW_CFG imgsensor_custom_config[];
-#ifdef VENDOR_EDIT
-/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-extern struct IMGSENSOR_HW_CFG imgsensor_custom_config_19301[];
-#endif
 
 #endif
 

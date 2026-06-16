@@ -22,16 +22,5 @@ source "drivers/soc/oppo/oppo_devinfo/Kconfig"
 source "drivers/soc/oppo/oppo_criticallog/Kconfig"
 source "drivers/soc/oppo/oppo_hypnus/Kconfig"
 source "drivers/soc/oppo/oppo_custom/Kconfig"
-source "drivers/soc/oppo/oppo_healthinfo/Kconfig"
-source "drivers/soc/oppo/oppo_als_cali_value/Kconfig"
 
-
-#ifdef VENDOR_EDIT
-#//Kun.Hu@PSW.TECH 2018/11/15, Add phoenix base
-#source "drivers/soc/oppo/oppo_phoenix/Kconfig"
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-#* wen.luo@PSW.BSP.kernel, 2019/6/25, Add for parsar powoff/powon */
-source "drivers/soc/oppo/oppo_lastpmic/Kconfig"
 #endif /* VENDOR_EDIT */

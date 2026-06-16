@@ -65,15 +65,6 @@ extern unsigned int mt_get_abist_freq(unsigned int ID);
 extern unsigned int mt_get_ckgen_freq(unsigned int ID);
 extern void print_enabled_clks_once(void);
 extern void mtk_wcn_cmb_stub_clock_fail_dump(void);
-#ifdef VENDOR_EDIT
-/*Yijun.Tan@Camera add for resolve monkey hwt issue 20190403*/
-extern int smi_bus_prepare_enable(const unsigned int reg_indx,
-	const char *user_name, const bool mtcmos);
-extern int smi_bus_disable_unprepare(const unsigned int reg_indx,
-	const char *user_name, const bool mtcmos);
-extern int smi_debug_bus_hang_detect(unsigned int reg_indx, const bool dump,
-	const bool gce, const bool m4u);
-#endif
 /*ram console api*/
 /*
  *[0] bus protect reg

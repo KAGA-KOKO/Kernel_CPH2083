@@ -712,7 +712,7 @@ void arch_reset(char mode, const char *cmd)
 		oppo_rtc_mark_factory();
 	} else if (cmd && !strcmp(cmd, "safe")) {
 		oppo_rtc_mark_safe();
-	#endif
+#endif
 	} else {
 		reboot = WD_SW_RESET_BYPASS_PWR_KEY;
 	}

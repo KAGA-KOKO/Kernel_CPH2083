@@ -79,11 +79,11 @@
 #include <mtk_battery_table.h>
 #include "simulator_kernel.h"
 #endif
+
+#ifdef ODM_HQ_EDIT
+/*Hanxing.Duan@ODM.HQ.BSP.Charger 2018.11.29 add for battery name file node */
 #include "mtk_auxadc.h"
-/* WT000695@ODM_WT.BSP.Charger.vendor.20191223, Add Battery MMI hardware info in KERNEL */
-#ifdef ODM_WT_EDIT
-#include <linux/hardware_info.h>
-#endif
+#endif /*ODM_HQ_EDIT*/
 
 
 /* ============================================================ */
@@ -94,10 +94,6 @@ struct mtk_battery gm;
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.01.04 add for gauge*/
 int init_uisoc_done = 0;
 #endif /*ODM_HQ_EDIT*/
-/* WT000695@ODM_WT.BSP.Charger.vendor.20191223, Add Battery MMI hardware info in KERNEL */
-#ifdef ODM_WT_EDIT
-static char battery_name[][27] ={"oppo-sdi-4v4-4230mah","oppo-atl-4v4-4230mah","oppo-unknown-battery"};
-#endif
 /* ============================================================ */
 /* gauge hal interface */
 /* ============================================================ */
@@ -357,6 +353,10 @@ int gauge_get_nag_dltv(void)
 /* custom setting */
 /* ============================================================ */
 #ifdef MTK_GET_BATTERY_ID_BY_AUXADC
+#ifdef ODM_HQ_EDIT
+/*Hanxing.Duan@ODM.HQ.BSP.Charger 2018.11.29 add for battery name file node */
+char battery_name[20];
+#endif /*ODM_HQ_EDIT*/
 
 void fgauge_get_profile_id(void)
 {
@@ -395,31 +395,28 @@ void fgauge_get_profile_id(void)
 /*Hanxing.Duan@ODM.HQ.BSP.Charger 2018.12.20 add for battery name and check battery id */
 	if ((id_volt > SDI_BATTERY_VOLTAGE_MIN) &&  (id_volt < SDI_BATTERY_VOLTAGE_MAX) )
 	{
-		gm.battery_id = 0;
+		gm.battery_id =1;
+		strcpy(battery_name, "SDI");
+		pr_err("battery id SDI\n");
 	}
 	else if ((id_volt > ATL_BATTERY_VOLTAGE_MIN) && (id_volt < ATL_BATTERY_VOLTAGE_MAX))
 	{
-		gm.battery_id = 1;
+
+		gm.battery_id =0;
+		strcpy(battery_name, "ATL");
+		pr_err("battery id ATL\n");
 	}
 	else
 	{
-		gm.battery_id = 2;
+		gm.battery_id =2;
+		strcpy(battery_name, "Unknown");
+		pr_err("battery id unknown\n");
 	}
 #endif /*ODM_HQ_EDIT*/
-	pr_err("battery id = %d\n",id_volt);
+
 	bm_debug("[%s]Battery id (%d)\n",
 		__func__,
 		gm.battery_id);
-
-/* WT000695@ODM_WT.BSP.Charger.vendor.20191223, Add Battery MMI hardware info in KERNEL */
-#ifdef ODM_WT_EDIT
-	if(gm.battery_id == 2){
-		hardwareinfo_set_prop(HARDWARE_BATTERY_ID,battery_name[gm.battery_id]);
-		gm.battery_id =0;
-	} else {
-		hardwareinfo_set_prop(HARDWARE_BATTERY_ID,battery_name[gm.battery_id]);
-	}
-#endif
 }
 #elif defined(MTK_GET_BATTERY_ID_BY_GPIO)
 void fgauge_get_profile_id(void)
@@ -3744,7 +3741,7 @@ void bmd_ctrl_cmd_from_user(void *nl_data, struct fgd_nl_msg_t *ret_msg)
 		gm.uisoc_oldtime = now_time;
 		if (init_uisoc_done == 0)
 		{
-			gauge_dev_get_rtc_ui_soc(gm.gdev, &rtc_soc);
+			gauge_dev_get_monitic_rtc_ui_soc(gm.gdev, &rtc_soc);
 			bm_err("[fg_read] GET RTC MONITIC SOC = %d GM.UISOC = %d \n",rtc_soc ,gm.ui_soc);
 			if (rtc_soc > 0 && rtc_soc <= 100)
 			{
@@ -3922,7 +3919,6 @@ void bmd_ctrl_cmd_from_user(void *nl_data, struct fgd_nl_msg_t *ret_msg)
 
 			rtc_ui_soc = 0;
 		}
-
 		gauge_dev_set_rtc_ui_soc(gm.gdev, rtc_ui_soc);
 		bm_debug(
 			"[fr] BATTERY_METER_CMD_SET_RTC_UI_SOC=%d\n",
@@ -4387,6 +4383,3 @@ void gm3_log_dump(bool force)
 	gm.log.phone_state = 0;
 
 }
-
-
-

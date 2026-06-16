@@ -75,9 +75,9 @@ struct ap_task_manage_t ap_task_manage;
 
 static struct CCU_INFO_STRUCT ccuInfo;
 static bool bWaitCond;
-static bool AFbWaitCond[IMGSENSOR_SENSOR_IDX_MAX_NUM];
+static bool AFbWaitCond[2];
 static unsigned int g_LogBufIdx = 1;
-static unsigned int AFg_LogBufIdx[IMGSENSOR_SENSOR_IDX_MAX_NUM] = {1};
+static unsigned int AFg_LogBufIdx[2] = {1, 1};
 
 static int _ccu_powerdown(bool need_check_ccu_stat);
 
@@ -125,7 +125,7 @@ static void isr_sp_task(void)
 irqreturn_t ccu_isr_handler(int irq, void *dev_id)
 {
 	enum mb_result mailboxRet;
-	int n;
+
 	LOG_DBG("+++:%s\n", __func__);
 
 	/*write clear mode*/
@@ -191,49 +191,54 @@ irqreturn_t ccu_isr_handler(int irq, void *dev_id)
 			break;
 		}
 #ifdef CCU_AF_ENABLE
-		case MSG_TO_APMCU_CAM_AFO_i:
+		case MSG_TO_APMCU_CAM_A_AFO_i:
 		{
 			LOG_DBG
 			       ("AFWaitQueueHead:%d\n",
 				receivedCcuCmd.in_data_ptr);
-			if ((receivedCcuCmd.sensor_idx >=
-				IMGSENSOR_SENSOR_IDX_MIN_NUM) &&
-				(receivedCcuCmd.sensor_idx <
-					IMGSENSOR_SENSOR_IDX_MAX_NUM)) {
-				LOG_DBG("==== AFO_%d_done_from_CCU =====\n",
-					receivedCcuCmd.sensor_idx);
+			if (receivedCcuCmd.tg_info == 1) {
+				LOG_DBG
+			       ("================== AFO_A_done_from_CCU ===================\n");
+			    AFbWaitCond[0] = true;
+				AFg_LogBufIdx[0] = 3;
 
-				AFbWaitCond[receivedCcuCmd.sensor_idx] = true;
-				AFg_LogBufIdx[receivedCcuCmd.sensor_idx] =
-					receivedCcuCmd.sensor_idx;
+				wake_up_interruptible(&ccuInfo.AFWaitQueueHead[0]);
+				LOG_DBG("wakeup ccuInfo.AFWaitQueueHead done\n");
+			} else if (receivedCcuCmd.tg_info == 2) {
+				LOG_DBG
+			       ("================== AFO_B_done_from_CCU ===================\n");
+				AFbWaitCond[1] = true;
+				AFg_LogBufIdx[1] = 4;
 
-				wake_up_interruptible(
-					&ccuInfo.AFWaitQueueHead[
-						receivedCcuCmd.sensor_idx]);
-
-				LOG_DBG(
-					"wakeup ccuInfo.AFWaitQueueHead done\n");
-			} else if (receivedCcuCmd.sensor_idx ==
-				IMGSENSOR_SENSOR_IDX_MAX_NUM) {
-				for (n = 0;
-					n < IMGSENSOR_SENSOR_IDX_MAX_NUM; n++) {
-
-					AFbWaitCond[n] = true;
-					AFg_LogBufIdx[n] =
-						receivedCcuCmd.sensor_idx;
-					wake_up_interruptible(
-						&ccuInfo.AFWaitQueueHead[n]);
-			LOG_DBG("wakeup ccuInfo.AFWaitQueueHead[%d] done\n", n);
-					LOG_DBG_MUST("abort and wakeup\n");
-				}
+				wake_up_interruptible(&ccuInfo.AFWaitQueueHead[1]);
+				LOG_DBG("wakeup ccuInfo.AFBWaitQueueHead done\n");
 			} else {
-				LOG_DBG_MUST(
-					"unknown interrupt (%d)(MSG_TO_APMCU_CAM_AFO_i)\n",
-					receivedCcuCmd.sensor_idx);
+				AFbWaitCond[0] = true;
+				AFbWaitCond[1] = true;
+				AFg_LogBufIdx[0] = 5;
+				AFg_LogBufIdx[1] = 5;
+				wake_up_interruptible(&ccuInfo.AFWaitQueueHead[0]);
+				LOG_DBG("wakeup ccuInfo.AFWaitQueueHead done\n");
+				wake_up_interruptible(&ccuInfo.AFWaitQueueHead[1]);
+				LOG_DBG("wakeup ccuInfo.AFBWaitQueueHead done\n");
+				LOG_DBG("abort and wakeup\n");
 			}
 			break;
 		}
+		case MSG_TO_APMCU_CAM_B_AFO_i:
+		{
+			LOG_DBG
+			       ("AFBWaitQueueHead:%d\n",
+				receivedCcuCmd.in_data_ptr);
+			LOG_DBG
+			       ("================== AFO_B_done_from_CCU ===================\n");
+			AFbWaitCond[1] = true;
+			AFg_LogBufIdx[1] = 4;
 
+			wake_up_interruptible(&ccuInfo.AFWaitQueueHead[1]);
+			LOG_DBG("wakeup ccuInfo.AFBWaitQueueHead done\n");
+			break;
+		}
 #endif /*CCU_AF_ENABLE*/
 
 		default:
@@ -369,9 +374,8 @@ int ccu_init_hw(struct ccu_device_s *device)
 	/* init waitqueue */
 	init_waitqueue_head(&cmd_wait);
 	init_waitqueue_head(&ccuInfo.WaitQueueHead);
-	for (n = 0; n < IMGSENSOR_SENSOR_IDX_MAX_NUM; n++)
-		init_waitqueue_head(&ccuInfo.AFWaitQueueHead[n]);
-
+	init_waitqueue_head(&ccuInfo.AFWaitQueueHead[0]);
+	init_waitqueue_head(&ccuInfo.AFWaitQueueHead[1]);
 	/* init atomic task counter */
 	/*ccuInfo.taskCount = ATOMIC_INIT(0);*/
 
@@ -813,48 +817,48 @@ int ccu_waitirq(struct CCU_WAIT_IRQ_STRUCT *WaitIrq)
 	return ret;
 }
 
-int ccu_AFwaitirq(struct CCU_WAIT_IRQ_STRUCT *WaitIrq, int sensoridx)
+int ccu_AFwaitirq(struct CCU_WAIT_IRQ_STRUCT *WaitIrq, int tg_num)
 {
 	signed int ret = 0, Timeout = WaitIrq->EventInfo.Timeout;
 
-	LOG_DBG("Clear(%d),AFbWaitCond(%d),Timeout(%d)\n",
-		WaitIrq->EventInfo.Clear,
-		AFbWaitCond[sensoridx], Timeout);
+	LOG_DBG("Clear(%d),AFbWaitCond(%d),Timeout(%d)\n", WaitIrq->EventInfo.Clear, AFbWaitCond[tg_num-1], Timeout);
 	LOG_DBG("arg is struct CCU_WAIT_IRQ_STRUCT, size:%zu\n", sizeof(struct CCU_WAIT_IRQ_STRUCT));
 
 	if (Timeout != 0) {
 		/* 2. start to wait signal */
 		LOG_DBG("+:wait_event_interruptible_timeout\n");
-		AFbWaitCond[sensoridx] = false;
-		Timeout = wait_event_interruptible_timeout(
-				ccuInfo.AFWaitQueueHead[sensoridx],
-				AFbWaitCond[sensoridx],
+	AFbWaitCond[tg_num-1] = false;
+		Timeout = wait_event_interruptible_timeout(ccuInfo.AFWaitQueueHead[tg_num-1],
+				AFbWaitCond[tg_num-1],
 				CCU_MsToJiffies(WaitIrq->EventInfo.
 					Timeout));
 
 		LOG_DBG("-:wait_event_interruptible_timeout\n");
 	} else {
 		LOG_DBG("+:ccu wait_event_interruptible\n");
+		/*task_count_temp = atomic_read(&(ccuInfo.taskCount))*/
+		/*if(task_count_temp == 0)*/
+		/*{*/
 
 		mutex_unlock(&ap_task_manage.ApTaskMutex);
 		LOG_DBG("unlock ApTaskMutex\n");
-		wait_event_interruptible(
-			ccuInfo.AFWaitQueueHead[sensoridx],
-			AFbWaitCond[sensoridx]);
+		wait_event_interruptible(ccuInfo.AFWaitQueueHead[tg_num-1], AFbWaitCond[tg_num-1]);
 		LOG_DBG("accuiring ApTaskMutex\n");
 		mutex_lock(&ap_task_manage.ApTaskMutex);
 		LOG_DBG("got ApTaskMutex\n");
-
-		AFbWaitCond[sensoridx] = false;
+		/*}*/
+		/*else*/
+		/*{*/
+		/*LOG_DBG("ccuInfo.taskCount is not zero: %d\n", task_count_temp);*/
+		/*}*/
+		AFbWaitCond[tg_num-1] = false;
 		LOG_DBG("-:ccu wait_event_interruptible\n");
 	}
 
 	if (Timeout > 0) {
-		LOG_DBG("remain timeout:%d, task: %d\n",
-			Timeout, AFg_LogBufIdx[sensoridx]);
+		LOG_DBG("remain timeout:%d, task: %d\n", Timeout, AFg_LogBufIdx[tg_num-1]);
 		/*send to user if not timeout*/
-		WaitIrq->EventInfo.TimeInfo.passedbySigcnt =
-			(int)AFg_LogBufIdx[sensoridx];
+		WaitIrq->EventInfo.TimeInfo.passedbySigcnt = (int)AFg_LogBufIdx[tg_num-1];
 	}
 	/*EXIT:*/
 

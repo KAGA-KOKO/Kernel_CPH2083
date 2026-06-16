@@ -558,22 +558,7 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 			output-low;
 		};
 		};
-		flashlights_cola_pins_hwen_default:hwen_default {
-		};
-		flashlights_cola_pins_hwen_high: hwen_high {
-                pins_cmd_dat {
-                        pinmux = <PINMUX_GPIO152__FUNC_GPIO152>;
-                        slew-rate = <1>;
-                        output-high;
-                };
-		};
-		flashlights_cola_pins_hwen_low: hwen_low {
-                pins_cmd_dat {
-                        pinmux = <PINMUX_GPIO152__FUNC_GPIO152>;
-                        slew-rate = <1>;
-                        output-low;
-                };
-		};
+
 	};
 
 	sleep@10006000 {
@@ -725,12 +710,18 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 		mode = "IRQ";
 		status = "okay";
 	};
+/* #ifdef ODM_HQ_EDIT */
+/* duwenchao@ODM_HQ.BSP.Kernel.GPIO 2018/12/5 LowSar*/
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+/* #endif */
 
 	touch: touch {
 		compatible = "mediatek,touch";
 	};
 
-/* Sunshiyue@ODM.Muiltimedia.lcm  2019/9/21 add for bring up lcm */
+/* zhangmengchun@ODM.Muiltimedia.lcm  2018/11/28 add for bring up lcm */
 	lcm: lcm {
 		compatible = "mediatek,lcm_mode";
 	};
@@ -739,9 +730,16 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 		compatible = "mediatek,pmic-accdet";
 	};
 
-	silead_fp: silead_fp {
-		compatible = "mediatek,silead_fp","mediatek,egis_fp";
+	goodix_fp: fingerprint {
+		compatible = "mediatek,goodix-fp";
 	};
+
+//#ifdef VENDOR_EDIT
+/*Hongdao.yu@BSP.Fingerprint.Basic, 2019/01/11, add for common secure */
+	oppo_secure_common:oppo_secure_common { //Slave driver and CS ID
+		compatible = "oppo,secure_common"; //Manufacture, and Model
+	};
+//#endif /*VENDOR_EDIT*/
 
 	mt6357_gauge {
 		compatible = "mediatek,mt6357_gauge";
@@ -1654,14 +1652,6 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 		clocks = <&clk26m>, <&infracfg_ao CLK_IFR_UART1>;
 		clock-names = "baud", "bus";
 	};
-
-//#ifdef VENDOR_EDIT
-//Anhui.Sun@PSW.NW.RF, 2018/12/19, Add for SWTP - RF cable detection
-	swtp: swtp {
-	};
-	swtp_1: swtp_1 {
-	};
-//#endif  /*VENDOR_EDIT*/
 
 	i2c_common: i2c_common {
 		compatible = "mediatek,i2c_common";
@@ -2665,7 +2655,6 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 	kd_camera_hw1: kd_camera_hw1@1a040000 {
 		compatible = "mediatek,camera_hw";
 		reg = <0 0x1a040000 0 0x1000>;
-                camera-main-af-en = <&pio 177 0>;
 		/* SENINF_ADDR */
 		/* Camera Common Clock Framework (CCF) */
 		clocks = <&topckgen CLK_TOP_CAMTG_SEL>,
@@ -2777,22 +2766,7 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 			ct = <0>;
 			part = <0>;
 		};
-	};
-	flashlights_cola: flashlights_cola {
-                compatible = "mediatek,flashlights_cola";
-                pinctrl-names = "hwen_default","hwen_high","hwen_low";
-                pinctrl-0 = <&flashlights_cola_pins_hwen_default>;
-                pinctrl-1 = <&flashlights_cola_pins_hwen_high>;
-                pinctrl-2 = <&flashlights_cola_pins_hwen_low>;
-                status = "okay";
-
-		decouple = <1>;
-		channel@1 {
-                       type = <0>;
-                       ct = <0>;
-                       part = <0>;
-               };
-	};
+		};
 	gps {
 		compatible = "mediatek,gps";
 	};
@@ -2804,13 +2778,6 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 		clocks = <&camsys CLK_CAM_CCU>;
 		clock-names = "CCU_CLK_CAM_CCU";
 	};
-
-    //#ifdef VENDOR_EDIT
-    /*Dongnan.Wu@BSP.Fingerprint.Secure, 2019/10/24, add for secure commom*/
-    oppo_secure_common:oppo_secure_common { //Slave driver and CS ID
-        compatible = "oppo,secure_common"; //Manufacture, and Model
-    };
-    //#endif /* VENDOR_EDIT */
 
 	mt_charger: mt_charger {
 		compatible = "mediatek,mt-charger";
@@ -2867,7 +2834,7 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 /* Hanxing.Duan@ODM.HQ.BSP.CHG.Basic  2018/12/18 modify for current to 2A start*/
 		ac_charger_input_current = <2000000>;
 		non_std_ac_charger_current = <2000000>;
-		charging_host_charger_current = <1500000>;
+		charging_host_charger_current = <500000>;
 		apple_1_0a_charger_current = <2000000>;
 		apple_2_1a_charger_current = <2000000>;
 /* Hanxing.Duan@ODM.HQ.BSP.CHG.Basic  2018/12/18 modify for current to 2A enad*/
@@ -2875,29 +2842,29 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 
 		/* sw jeita */
 /* Mengchun.Zhang@ODM.HQ.BSP.CHG.Basic 2018/12/27 Modify software jeita data */
-		jeita_temp_t5_to_t6_cc = <1200000>;
-		jeita_temp_t4_to_t5_cc = <2040000>;
-		jeita_temp_t3_to_t4_cc = <1800000>;
-		jeita_temp_t2_to_t3_cc = <1200000>;
-		jeita_temp_t1_to_t2_cc = <600000>;
-		jeita_temp_t0_to_t1_cc = <360000>;
-		jeita_temp_above_t7_cv = <4368000>;
-		jeita_temp_t6_to_t7_cv = <4368000>;
+		jeita_temp_t5_to_t6_cc = <1080000>;
+		jeita_temp_t4_to_t5_cc = <1980000>;
+		jeita_temp_t3_to_t4_cc = <1680000>;
+		jeita_temp_t2_to_t3_cc = <900000>;
+		jeita_temp_t1_to_t2_cc = <480000>;
+		jeita_temp_t0_to_t1_cc = <300000>;
+		jeita_temp_above_t7_cv = <4112000>;
+		jeita_temp_t6_to_t7_cv = <4112000>;
 		jeita_temp_t5_to_t6_cv = <4368000>;
 		jeita_temp_t4_to_t5_cv = <4368000>;
 		jeita_temp_t3_to_t4_cv = <4368000>;
 		jeita_temp_t2_to_t3_cv = <4368000>;
-		jeita_temp_t1_to_t2_cv = <4368000>;
-		jeita_temp_t0_to_t1_cv = <4368000>;
-		jeita_temp_below_t0_cv = <4368000>;
+		jeita_temp_t1_to_t2_cv = <3984000>;
+		jeita_temp_t0_to_t1_cv = <3984000>;
+		jeita_temp_below_t0_cv = <3984000>;
 		temp_t5_thres = <53>;
 		temp_t5_thres_minus_x_degree = <51>;
-		temp_t4_thres = <44>;
-		temp_t4_thres_minus_x_degree = <42>;
-		temp_t3_thres = <16>;
-		temp_t3_thres_minus_x_degree = <18>;
+		temp_t4_thres = <45>;
+		temp_t4_thres_minus_x_degree = <43>;
+		temp_t3_thres = <22>;
+		temp_t3_thres_minus_x_degree = <20>;
 		temp_t2_thres = <12>;
-		temp_t2_thres_plus_x_degree = <10>;
+		temp_t2_thres_plus_x_degree = <14>;
 		temp_t1_thres = <5>;
 		temp_t1_thres_plus_x_degree = <7>;
 		temp_t0_thres = <0>;

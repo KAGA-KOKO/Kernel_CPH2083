@@ -28,79 +28,18 @@ enum LCM_DSI_MODE_CON lcm_dsi_mode;
 #define LCD_HW_ID_STATUS_ERROR  0x03
 
 struct LCM_DRIVER *lcm_driver_list[] = {
-
-#ifdef ODM_WT_EDIT
-#if defined(ILI9881H_HDP_DSI_VDO_TXD)
-	&ili9881h_hdp_dsi_vdo_txd_lcm_drv,
-#endif
-
-#if defined(ILI9881H_HDP_DSI_VDO_HLT)
-	&ili9881h_hdp_dsi_vdo_hlt_lcm_drv,
-#endif
-
-#if defined(ILI9881H_HDP_DSI_VDO_TXD_BOE)
-	&ili9881h_hdp_dsi_vdo_txd_boe_lcm_drv,
-#endif
-
-#if defined(HX83102D_HDP_DSI_VDO_HLT)
-	&hx83102d_hdp_dsi_vdo_hlt_lcm_drv,
-#endif
-
-#if defined(NT36525B_HUAXIAN_HDP_DSI_VDO)
-	&nt36525b_huaxian_hdp_dsi_vdo_lcm_drv,
-#endif
-
-#if defined(VIRTUAL_DSI_VDO_DEFAULT)
-	&virtual_dsi_vdo_default,
-#endif
-
-#endif
-
-//#ifdef VENDOR_EDIT
-/* YongPeng.Yi@PSW.MM.Display.LCD.Machine 2018/10/15, Add for lcm ic tm himax83112a*/
-#if defined(OPPO18531_TM_HIMAX83112A_2_1080P_DSI_VDO)
-	&oppo18531_tm_himax83112a_2_1080p_dsi_vdo_lcm_drv,
-#endif
-/* YongPeng.Yi@PSW.MM.Display.LCD.Machine 2018/10/22, Add for lcm ic dsjm td4330*/
-#if defined(OPPO18151_DSJM_JDI_TD4330_1080P_DSI_CMD)
-	&oppo18151_dsjm_jdi_td4330_1080p_dsi_cmd_lcm_drv,
-#endif
-/* YongPeng.Yi@PSW.MM.Display.LCD.Machine 2018/10/25, Add for lcm ic dpt td4330*/
-#if defined(OPPO18151_DPT_JDI_TD4330_1080P_DSI_CMD)
-	&oppo18151_dpt_jdi_td4330_1080p_dsi_cmd_lcm_drv,
-#endif
-
-/* Ling.Guo@PSW.MM.Display.LCD.Machine 2019/01/08, Add for lcm ic samsung*/
-#if defined(OPPO18073_SAMSUNG_AMS641RW01_1080P_DSI_CMD)
-	&oppo18073_samsung_ams641rw01_1080p_dsi_cmd_lcm_drv,
-#endif
-
-/* Ling.Guo@PSW.MM.Display.LCD.Machine 2019/01/08, Add for lcm ic samsung*/
-#if defined(OPPO19011_SAMSUNG_AMS641RW01_1080P_DSI_CMD)
-	&oppo19011_samsung_ams641rw01_1080p_dsi_cmd_lcm_drv,
-#endif
-//#endif /* VENDOR_EDIT */
-
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/21 add for LCD bring up */
-#if defined(ILI9881H_HDP_DSI_VDO_INX_AL2350)
-	&ili9881h_hdp_dsi_vdo_inx_al2350_lcm_drv,
+/* Wangxianfei@ODM.Multimedia.LCD  2018/11/29 add for LCD bring up */
+#if defined(ILI9881C_HD_DSI_VDO_TXD_BOE_ZAL1890)
+	&ili9881c_hd_dsi_vdo_txd_boe_zal1890_lcm_drv,
 #endif
 
-#if defined(NT36525B_HDP_DSI_VDO_HLT_AL2350)
-	&nt36525b_hdp_dsi_vdo_hlt_al2350_lcm_drv,
+#if defined (ILI9881C_HD_DSI_VDO_LS_INX_ZAL1890)
+	&ili9881c_hd_dsi_vdo_ls_inx_zal1890_lcm_drv,
 #endif
 
-#if defined(NT36525B_HDP_DSI_VDO_BOE_AL2350)
-	&nt36525b_hdp_dsi_vdo_boe_al2350_lcm_drv,
-#endif
-
-#if defined(ILI9881H_HDP_DSI_VDO_TXD_AL2350)
-	&ili9881h_hdp_dsi_vdo_txd_al2350_lcm_drv,
-#endif
-
-#if defined(NT36525B_HDP_DSI_VDO_DJN_AL2350)
-	&nt36525b_hdp_dsi_vdo_djn_al2350_lcm_drv,
+#if defined (HX8394F_HD_DSI_VDO_HLT_HSD_ZAL1890)
+	&hx8394f_hd_dsi_vdo_hlt_hsd_zal1890_lcm_drv,
 #endif
 #endif
 #if defined(OTM1284A_HD720_DSI_VDO_TM)

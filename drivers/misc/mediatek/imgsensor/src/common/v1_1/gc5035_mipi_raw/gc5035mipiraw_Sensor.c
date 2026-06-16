@@ -31,7 +31,6 @@
 #include "kd_imgsensor.h"
 #include "kd_imgsensor_define.h"
 #include "kd_imgsensor_errcode.h"
-#include "imgsensor_common.h"
 
 #include "gc5035mipiraw_Sensor.h"
 
@@ -45,19 +44,10 @@
 #else
 #define LOG_INF(format, args...)
 #endif
-
-#ifndef VENDOR_EDIT
-#define VENDOR_EDIT
-#endif
-
-#ifdef VENDOR_EDIT
-/*Feng.Hu@Camera.Driver 20170815 add for multi project using one build*/
-#include <soc/oppo/oppo_project.h>
-#endif
-
+#undef VENDOR_EDIT
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
-static kal_uint32 Dgain_ratio = 256;
+static kal_uint32 Dgain_ratio = 1;
 extern u32 pinSetIdx;
 
 static struct imgsensor_info_struct imgsensor_info = {
@@ -162,7 +152,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.custom1_delay_frame = 2,                               /*enter custom1 delay frame num*/
 	.frame_time_delay_frame = 2,                            /*enter custom1 delay frame num*/
 
-	.isp_driving_current = ISP_DRIVING_4MA,                 /*mclk driving current*/
+	.isp_driving_current = ISP_DRIVING_6MA,                 /*mclk driving current*/
 	.sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,    /*sensor_interface_type*/
 	.mipi_sensor_type = MIPI_OPHY_NCSI2,                    /*0,MIPI_OPHY_NCSI2;  1,MIPI_OPHY_CSI2*/
 	.mipi_settle_delay_mode = MIPI_SETTLEDELAY_AUTO,
@@ -185,17 +175,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 };
 
 static struct imgsensor_struct imgsensor = {
-	#if defined(GC5035_MIRROR_NORMAL)
 	.mirror = IMAGE_NORMAL,       /*mirrorflip information*/
-	#elif defined(GC5035_MIRROR_H)
-	.mirror = IMAGE_H_MIRROR,       /*mirrorflip information*/
-	#elif defined(GC5035_MIRROR_V)
-	.mirror = IMAGE_V_MIRROR,       /*mirrorflip information*/
-	#elif defined(GC5035_MIRROR_HV)
-	.mirror = IMAGE_HV_MIRROR,       /*mirrorflip information*/
-	#else
-	.mirror = IMAGE_NORMAL,       /*mirrorflip information*/
-	#endif
 	.sensor_mode = IMGSENSOR_MODE_INIT,
 	/*IMGSENSOR_MODE enum value, record current sensor mode,
 	such as: INIT, Preview, Capture, Video,High Speed Video, Slim Video*/
@@ -241,113 +221,7 @@ static void write_cmos_sensor(kal_uint32 addr, kal_uint32 para)
 	iWriteRegI2C(pu_send_cmd, 2, imgsensor.i2c_write_id);
 }
 
-#ifdef VENDOR_EDIT
-/*Henry.Chang@Camera.Driver add for 18531 ModuleSN*/
-static kal_uint8 gGc5035_SN[CAMERA_MODULE_SN_LENGTH];
-static void read_eeprom_SN(void)
-{
-	kal_uint16 idx = 0;
-	kal_uint8 *get_byte= &gGc5035_SN[0];
-	for (idx = 0; idx <CAMERA_MODULE_SN_LENGTH; idx++) {
-		char pusendcmd[2] = {0x00 , (char)((0xE0 + idx) & 0xFF) };
-		iReadRegI2C(pusendcmd , 2, (u8*)&get_byte[idx],1, 0xA0);
-		LOG_INF("gGc5035_SN[%d]: 0x%x  0x%x\n", idx, get_byte[idx], gGc5035_SN[idx]);
-	}
-}
 
-/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
-#define   WRITE_DATA_MAX_LENGTH     (16)
-static kal_int32 table_write_eeprom_30Bytes(kal_uint16 addr, kal_uint8 *para, kal_uint32 len)
-{
-	kal_int32 ret = IMGSENSOR_RETURN_SUCCESS;
-	char pusendcmd[WRITE_DATA_MAX_LENGTH+2];
-	pusendcmd[0] = (char)(addr >> 8);
-	pusendcmd[1] = (char)(addr & 0xFF);
-
-	memcpy(&pusendcmd[2], para, len);
-
-	ret = iBurstWriteReg((kal_uint8 *)pusendcmd , (len + 2), 0xA0);
-
-	return ret;
-}
-
-static kal_uint16 read_cmos_eeprom_8(kal_uint16 addr)
-{
-	kal_uint16 get_byte=0;
-	char pusendcmd[2] = {(char)(addr >> 8) , (char)(addr & 0xFF) };
-	iReadRegI2C(pusendcmd , 2, (u8*)&get_byte, 1, 0xA0);
-	return get_byte;
-}
-
-/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
-static kal_int32 write_Module_data(ACDK_SENSOR_ENGMODE_STEREO_STRUCT * pStereodata)
-{
-	kal_int32  ret = IMGSENSOR_RETURN_SUCCESS;
-	kal_uint16 data_base, data_length;
-	kal_uint32 idx, idy;
-	kal_uint8 *pData;
-	UINT32 i = 0;
-	if(pStereodata != NULL) {
-		pr_debug("gc5035 SET_SENSOR_OTP: 0x%x %d 0x%x %d\n",
-                       pStereodata->uSensorId,
-                       pStereodata->uDeviceId,
-                       pStereodata->baseAddr,
-                       pStereodata->dataLength);
-
-		data_base = pStereodata->baseAddr;
-		data_length = pStereodata->dataLength;
-		pData = pStereodata->uData;
-		if ((pStereodata->uSensorId == GC5035_SENSOR_ID)
-				&& (data_base == 0x1600)
-				&& (data_length == 1561)) {
-			pr_debug("gc5035 Write: %x %x %x %x %x %x %x %x\n", pData[0], pData[39], pData[40], pData[1556],
-					pData[1557], pData[1558], pData[1559], pData[1560]);
-			idx = data_length/WRITE_DATA_MAX_LENGTH;
-			idy = data_length%WRITE_DATA_MAX_LENGTH;
-			for (i = 0; i < idx; i++ ) {
-				ret = table_write_eeprom_30Bytes((data_base+WRITE_DATA_MAX_LENGTH*i),
-					    &pData[WRITE_DATA_MAX_LENGTH*i], WRITE_DATA_MAX_LENGTH);
-				if (ret != IMGSENSOR_RETURN_SUCCESS) {
-				    pr_err("write_eeprom error: i= %d\n", i);
-					return IMGSENSOR_RETURN_ERROR;
-				}
-				msleep(6);
-			}
-			ret = table_write_eeprom_30Bytes((data_base+WRITE_DATA_MAX_LENGTH*idx),
-				      &pData[WRITE_DATA_MAX_LENGTH*idx], idy);
-			if (ret != IMGSENSOR_RETURN_SUCCESS) {
-				pr_err("write_eeprom error: idx= %d idy= %d\n", idx, idy);
-				return IMGSENSOR_RETURN_ERROR;
-			}
-			msleep(6);
-			pr_debug("com 0x1600:0x%x\n", read_cmos_eeprom_8(0x1600));
-			msleep(6);
-			pr_debug("com 0x1627:0x%x\n", read_cmos_eeprom_8(0x1627));
-			msleep(6);
-			pr_debug("innal 0x1628:0x%x\n", read_cmos_eeprom_8(0x1628));
-			msleep(6);
-			pr_debug("innal 0x1C14:0x%x\n", read_cmos_eeprom_8(0x1C14));
-			msleep(6);
-			pr_debug("tail1 0x1C15:0x%x\n", read_cmos_eeprom_8(0x1C15));
-			msleep(6);
-			pr_debug("tail2 0x1C16:0x%x\n", read_cmos_eeprom_8(0x1C16));
-			msleep(6);
-			pr_debug("tail3 0x1C17:0x%x\n", read_cmos_eeprom_8(0x1C17));
-			msleep(6);
-			pr_debug("tail4 0x1C18:0x%x\n", read_cmos_eeprom_8(0x1C18));
-			msleep(6);
-			pr_debug("gc5035write_Module_data Write end\n");
-		}else {
-			pr_err("Invalid Sensor id:0x%x write_gm1 eeprom\n", pStereodata->uSensorId);
-			return IMGSENSOR_RETURN_ERROR;
-		}
-	} else {
-		pr_err("gc5035write_Module_data pStereodata is null\n");
-		return IMGSENSOR_RETURN_ERROR;
-	}
-	return ret;
-}
-#endif
 
 static kal_uint8 gc5035_otp_read_byte(kal_uint16 addr)
 {
@@ -1069,15 +943,17 @@ static void sensor_init(void)
 	write_cmos_sensor(0x0f, 0x0a);
 	write_cmos_sensor(0x10, 0x30);
 	write_cmos_sensor(0x11, 0x02);
-	if (imgsensor.mirror == IMAGE_HV_MIRROR)
-		write_cmos_sensor(0x17, 0x83);
-	else if ( imgsensor.mirror == IMAGE_V_MIRROR)
-		write_cmos_sensor(0x17, 0x82);
-	else if ( imgsensor.mirror == IMAGE_H_MIRROR)
-		write_cmos_sensor(0x17, 0x81);
-	else
-		write_cmos_sensor(0x17, 0x80);
-
+#if defined(GC5035_MIRROR_NORMAL)
+	write_cmos_sensor(0x17, 0x80);
+#elif defined(GC5035_MIRROR_H)
+	write_cmos_sensor(0x17, 0x81);
+#elif defined(GC5035_MIRROR_V)
+	write_cmos_sensor(0x17, 0x82);
+#elif defined(GC5035_MIRROR_HV)
+	write_cmos_sensor(0x17, 0x83);
+#else
+	write_cmos_sensor(0x17, 0x80);
+#endif
 	//write_cmos_sensor(0x17, GC5035_MIRROR);
 	//write_cmos_sensor(0x17, 0x83);
 	write_cmos_sensor(0x19, 0x05);
@@ -1117,11 +993,17 @@ static void sensor_init(void)
 	write_cmos_sensor(0x20, 0x10);
 	write_cmos_sensor(0x46, 0xe3);
 	write_cmos_sensor(0x4a, 0x04);
-	if (imgsensor.mirror == IMAGE_HV_MIRROR || imgsensor.mirror == IMAGE_V_MIRROR)
-		write_cmos_sensor(0x54, 0x03);
-	else
-		write_cmos_sensor(0x54, 0x02);
-
+#if defined(GC5035_MIRROR_NORMAL)
+	write_cmos_sensor(0x54, 0x02);
+#elif defined(GC5035_MIRROR_H)
+	write_cmos_sensor(0x54, 0x02);
+#elif defined(GC5035_MIRROR_V)
+	write_cmos_sensor(0x54, 0x03);
+#elif defined(GC5035_MIRROR_HV)
+	write_cmos_sensor(0x54, 0x03);
+#else
+	write_cmos_sensor(0x54, 0x02);
+#endif
 	//write_cmos_sensor(0x54, GC5035_RSTDUMMY1);
 	//write_cmos_sensor(0x54, 0x03);
 	write_cmos_sensor(0x62, 0x00);
@@ -1139,10 +1021,17 @@ static void sensor_init(void)
 	write_cmos_sensor(0x13, 0x01);
 	write_cmos_sensor(0x14, 0x01);
 	write_cmos_sensor(0x15, 0x02);
-	if (imgsensor.mirror == IMAGE_HV_MIRROR || imgsensor.mirror == IMAGE_V_MIRROR)
-		write_cmos_sensor(0x22, 0xfc);
-	else
-		write_cmos_sensor(0x22, 0x7c);
+#if defined(GC5035_MIRROR_NORMAL)
+	write_cmos_sensor(0x22, 0x7c);
+#elif defined(GC5035_MIRROR_H)
+	write_cmos_sensor(0x22, 0x7c);
+#elif defined(GC5035_MIRROR_V)
+	write_cmos_sensor(0x22, 0xfc);
+#elif defined(GC5035_MIRROR_HV)
+	write_cmos_sensor(0x22, 0xfc);
+#else
+	write_cmos_sensor(0x22, 0x7c);
+#endif
 	//write_cmos_sensor(0x22, GC5035_RSTDUMMY2);
 	//write_cmos_sensor(0x22, 0xfc);
 	write_cmos_sensor(0xfe, 0x00);
@@ -1827,15 +1716,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 			*sensor_id = return_sensor_id();
 			if (*sensor_id == imgsensor_info.sensor_id) {
 				LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id, *sensor_id);
-				#ifdef VENDOR_EDIT
-				/*Henry.Chang@Camera.Driver add for P90 ModuleSN*/
-				read_eeprom_SN();
-				if (is_project(OPPO_18073)) {
-					LOG_INF("18073: 5035 set default mirrorflip\n");
-					imgsensor.mirror = IMAGE_HV_MIRROR;
-					imgsensor_info.sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_B;
-				}
-				#endif
 				return ERROR_NONE;
 			}
 			LOG_INF("Read sensor id fail, write id: 0x%x, id: 0x%x\n", imgsensor.i2c_write_id, *sensor_id);
@@ -2120,9 +2000,6 @@ static kal_uint32 get_resolution(MSDK_SENSOR_RESOLUTION_INFO_STRUCT *sensor_reso
 
 	sensor_resolution->SensorSlimVideoWidth = imgsensor_info.slim_video.grabwindow_width;
 	sensor_resolution->SensorSlimVideoHeight = imgsensor_info.slim_video.grabwindow_height;
-
-	sensor_resolution->SensorCustom1Width = imgsensor_info.custom1.grabwindow_width;
-	sensor_resolution->SensorCustom1Height = imgsensor_info.custom1.grabwindow_height;
 	return ERROR_NONE;
 }
 
@@ -2154,7 +2031,6 @@ static kal_uint32 get_info(enum MSDK_SCENARIO_ID_ENUM scenario_id,
 	sensor_info->VideoDelayFrame = imgsensor_info.video_delay_frame;
 	sensor_info->HighSpeedVideoDelayFrame = imgsensor_info.hs_video_delay_frame;
 	sensor_info->SlimVideoDelayFrame = imgsensor_info.slim_video_delay_frame;
-	sensor_info->Custom1DelayFrame = imgsensor_info.custom1_delay_frame;
 
 	sensor_info->SensorMasterClockSwitch = 0;                                             /*not use*/
 	sensor_info->SensorDrivingCurrent = imgsensor_info.isp_driving_current;
@@ -2439,94 +2315,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 
 	LOG_INF("feature_id = %d\n", feature_id);
 	switch (feature_id) {
-    #ifdef VENDOR_EDIT
-    /*Henry.Chang@Camera.Driver add for 18531 ModuleSN*/
-    case SENSOR_FEATURE_GET_MODULE_SN:
-        LOG_INF("gc5035 GET_MODULE_SN:%d %d\n", *feature_para_len, *feature_data_32);
-        if (*feature_data_32 < CAMERA_MODULE_SN_LENGTH/4)
-            *(feature_data_32 + 1) = (gGc5035_SN[4*(*feature_data_32) + 3] << 24)
-                        | (gGc5035_SN[4*(*feature_data_32) + 2] << 16)
-                        | (gGc5035_SN[4*(*feature_data_32) + 1] << 8)
-                        | (gGc5035_SN[4*(*feature_data_32)] & 0xFF);
-        break;
-    /*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
-    case SENSOR_FEATURE_SET_SENSOR_OTP:
-        {
-            kal_int32 ret = IMGSENSOR_RETURN_SUCCESS;
-            LOG_INF("SENSOR_FEATURE_SET_SENSOR_OTP length :%d\n", (UINT32)*feature_para_len);
-            ret = write_Module_data((ACDK_SENSOR_ENGMODE_STEREO_STRUCT *)(feature_para));
-
-            if (ret == ERROR_NONE)
-                return ERROR_NONE;
-            else
-                return ERROR_MSDK_IS_ACTIVED;
-        }
-    /*Longyuan.Yang@camera.driver add for video crash */
-    case SENSOR_FEATURE_GET_PIXEL_CLOCK_FREQ_BY_SCENARIO:
-        switch (*feature_data) {
-        case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.cap.pclk;
-                break;
-        case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.normal_video.pclk;
-                break;
-        case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.hs_video.pclk;
-                break;
-        case MSDK_SCENARIO_ID_CUSTOM1:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.custom1.pclk;
-                break;
-        case MSDK_SCENARIO_ID_SLIM_VIDEO:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.slim_video.pclk;
-                break;
-        case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-        default:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = imgsensor_info.pre.pclk;
-                break;
-        }
-        break;
-    case SENSOR_FEATURE_GET_PERIOD_BY_SCENARIO:
-        switch (*feature_data) {
-        case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.cap.framelength << 16)
-                                 + imgsensor_info.cap.linelength;
-                break;
-        case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.normal_video.framelength << 16)
-                                + imgsensor_info.normal_video.linelength;
-                break;
-        case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.hs_video.framelength << 16)
-                                 + imgsensor_info.hs_video.linelength;
-                break;
-        case MSDK_SCENARIO_ID_SLIM_VIDEO:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.slim_video.framelength << 16)
-                                 + imgsensor_info.slim_video.linelength;
-                break;
-        case MSDK_SCENARIO_ID_CUSTOM1:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.custom1.framelength << 16)
-                                 + imgsensor_info.custom1.linelength;
-                break;
-        case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-        default:
-                *(MUINT32 *)(uintptr_t)(*(feature_data + 1))
-                        = (imgsensor_info.pre.framelength << 16)
-                                 + imgsensor_info.pre.linelength;
-                break;
-        }
-        break;
-	#endif
 	case SENSOR_FEATURE_GET_PERIOD:
 		*feature_return_para_16++ = imgsensor.line_length;
 		*feature_return_para_16 = imgsensor.frame_length;

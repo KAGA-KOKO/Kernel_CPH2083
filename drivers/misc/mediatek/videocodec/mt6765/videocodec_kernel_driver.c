@@ -443,14 +443,25 @@ void vdec_power_off(void)
 {
 
 	mutex_lock(&VdecPWRLock);
+// #ifdef ODM_HQ_EDIT
+// /*Zhongqiu.Yu@ODM.HQ.MM.CODEC 2019.04.22 do polling NOP ahead of reset codec_sel register, patch:ALPS04411133*/
+//	/* cervino VCODEC_SEL reset */
+//	do {
+//		VDO_HW_WRITE(KVA_VDEC_GCON_BASE + 0x20, 0);
+//	} while (VDO_HW_READ(KVA_VDEC_GCON_BASE + 0x20) != 0);
+// #endif /*ODM_HQ_EDIT*/
+
 	if (gu4VdecPWRCounter == 0) {
 		pr_debug("[VCODEC] gu4VdecPWRCounter = 0\n");
 	} else {
 		vdec_polling_status();
-		/* VCODEC_SEL reset */
+//#ifdef ODM_HQ_EDIT
+/*Zhongqiu.Yu@ODM.HQ.MM.CODEC 2019.04.22 do polling NOP ahead of reset codec_sel register, patch:ALPS04411133*/
+		/* cervino VCODEC_SEL reset */
 		do {
 			VDO_HW_WRITE(KVA_VDEC_GCON_BASE + 0x20, 0);
 		} while (VDO_HW_READ(KVA_VDEC_GCON_BASE + 0x20) != 0);
+//#endif /*ODM_HQ_EDIT*/
 
 		gu4VdecPWRCounter--;
 

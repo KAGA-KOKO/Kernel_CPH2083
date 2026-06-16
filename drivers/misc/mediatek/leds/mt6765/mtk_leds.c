@@ -927,12 +927,6 @@ void mt_mt65xx_led_work(struct work_struct *work)
 	mutex_unlock(&leds_mutex);
 }
 
-#ifdef ODM_WT_EDIT
-//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-extern int primary_display_set_dimming_mode(unsigned int level);
-int set_dimming =1;
-#endif
-
 void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 {
 	struct mt65xx_led_data *led_data =
@@ -942,14 +936,6 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 
 #ifdef CONFIG_MTK_AAL_SUPPORT
 	if (led_data->level != level) {
-		#ifdef ODM_WT_EDIT
-		//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-		if((led_data->level == 0) && (level > 0))
-			set_dimming = 1;
-		else
-			set_dimming = 0;
-		#endif
-
 		led_data->level = level;
 		if (strcmp(led_data->cust.name, "lcd-backlight") != 0) {
 			LEDS_DEBUG("Set NLED directly %d at time %lu\n",
@@ -985,13 +971,6 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 				level = 0;
 			}
 			disp_aal_notify_backlight_changed(level);
-
-			#ifdef ODM_WT_EDIT
-			//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-			if(set_dimming)
-				primary_display_set_dimming_mode(1);
-			#endif
-
 			#endif
 		}
 	}

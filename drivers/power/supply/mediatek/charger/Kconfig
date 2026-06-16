@@ -17,13 +17,6 @@ config BQ2560X_CHARGER
 	    say Y to support bq2560x charger ic.
 #endif #ODM_HQ_EDIT
 
-#WT000695@ODM_WT.BSP.Charger.Basic.20191210, Add the charger driver in lk
-config MTK_SM5414_SUPPORT
-	bool "Charger Driver for SM SM5414 Charger IC"
-	help
-	  Say Y to enable
-	  SM SM5414 driver.
-
 config POWER_EXT
 	bool "MediaTek Power Ext"
 	default n

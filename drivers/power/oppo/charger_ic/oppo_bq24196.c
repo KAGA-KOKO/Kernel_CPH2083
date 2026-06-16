@@ -1347,7 +1347,7 @@ static int bq24196_resume(struct device *dev)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if (sleep_time < 1) {
+	if (sleep_time < 0) {
 		sleep_time = 0;
 	}
 	chg_err(" resume_sec:%ld,sleep_time:%ld\n\n",resume_tm_sec,sleep_time);
@@ -1393,7 +1393,7 @@ static int bq24196_resume(struct i2c_client *client)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if(sleep_time < 1) {
+	if(sleep_time < 0) {
 		sleep_time = 0;
 	}
 	oppo_chg_soc_update_when_resume(sleep_time);

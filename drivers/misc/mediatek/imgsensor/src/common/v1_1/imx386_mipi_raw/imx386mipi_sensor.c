@@ -270,14 +270,14 @@ static struct imgsensor_info_struct imgsensor_info = {
 
 	.frame_time_delay_frame = 3,
 
-	.cap_delay_frame = 3,	/* enter capture delay frame num */
-	.pre_delay_frame = 3,	/* enter preview delay frame num */
-	.custom1_delay_frame = 3,
-	.custom2_delay_frame = 3,	/* enter capture delay frame num */
-	.custom3_delay_frame = 3,
-	.video_delay_frame = 3,	/* enter video delay frame num */
-	.hs_video_delay_frame = 3, /* enter high speed video  delay frame num */
-	.slim_video_delay_frame = 3,	/* enter slim video delay frame num */
+	.cap_delay_frame = 2,	/* enter capture delay frame num */
+	.pre_delay_frame = 2,	/* enter preview delay frame num */
+	.custom1_delay_frame = 2,
+	.custom2_delay_frame = 2,	/* enter capture delay frame num */
+	.custom3_delay_frame = 2,
+	.video_delay_frame = 2,	/* enter video delay frame num */
+	.hs_video_delay_frame = 2, /* enter high speed video  delay frame num */
+	.slim_video_delay_frame = 2,	/* enter slim video delay frame num */
 
 	.isp_driving_current = ISP_DRIVING_8MA,	/* mclk driving current */
 
@@ -718,6 +718,18 @@ static void set_shutter(kal_uint32 shutter)
 	if (imgsensor.frame_length > imgsensor_info.max_frame_length)
 		imgsensor.frame_length = imgsensor_info.max_frame_length;
 	spin_unlock(&imgsensor_drv_lock);
+
+	/* Just should be called in capture case with long exposure */
+	if (shutter == 6) {
+		/*
+		 * return to normal mode from long exposure mode.
+		 */
+		write_cmos_sensor(0x0100, 0x00);
+		write_cmos_sensor(0x3004, 0x00);
+		write_cmos_sensor(0x0342, imgsensor.line_length >> 8);
+		write_cmos_sensor(0x0343, imgsensor.line_length & 0xFF);
+		write_cmos_sensor(0x0100, 0x01);
+	}
 
 if (shutter > (imgsensor_info.max_frame_length - imgsensor_info.margin)) {
 	long_exp_times =
@@ -1652,6 +1664,7 @@ static void preview_setting(void)
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
 
+	write_cmos_sensor(0x0100, 0x01);
 }				/* preview_setting */
 
 static void capture_setting(kal_uint16 currefps)
@@ -1739,6 +1752,8 @@ static void capture_setting(kal_uint16 currefps)
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
+	write_cmos_sensor(0x0100, 0x01);	/* stream on? */
+	pr_info("start streamming. 0x0100 =%d\n", read_cmos_sensor(0x0100));
 }				/* capture setting */
 
 static void custom1_setting(void)
@@ -1824,6 +1839,8 @@ static void custom1_setting(void)
 	write_cmos_sensor(0x0213, 0x00);
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
+
+	write_cmos_sensor(0x0100, 0x01);
 }
 
 static void hd_4k_setting(void)
@@ -1916,6 +1933,7 @@ static void hd_4k_setting(void)
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
 
+	write_cmos_sensor(0x0100, 0x01);
 }
 
 static void custom3_setting(void)
@@ -2011,6 +2029,8 @@ static void custom3_setting(void)
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend*/
+
+	write_cmos_sensor(0x0100, 0x01);
 }
 
 static void normal_video_setting(kal_uint16 currefps)
@@ -2098,6 +2118,9 @@ static void normal_video_setting(kal_uint16 currefps)
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
+
+	write_cmos_sensor(0x0100, 0x01);
+	pr_info("start streamming. 0x0100 =%d\n", read_cmos_sensor(0x0100));
 }
 
 static void hs_video_setting(void)
@@ -2191,6 +2214,8 @@ static void hs_video_setting(void)
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
+
+	write_cmos_sensor(0x0100, 0x01);
 }
 
 static void slim_video_setting(void)
@@ -2284,6 +2309,8 @@ static void slim_video_setting(void)
 	write_cmos_sensor(0x0214, 0x01);
 	write_cmos_sensor(0x0215, 0x00);
 	write_cmos_sensor(0x0350, 0x01); /* enable auto extend */
+
+	write_cmos_sensor(0x0100, 0x01);
 }
 
 

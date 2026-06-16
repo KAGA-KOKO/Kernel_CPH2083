@@ -36,15 +36,6 @@ config OPPO_CHARGER_MTK6779
 	  smart battery.
 	  Set No to disable OPPO_CHARGER_MTK6779 features
 	  smart battery.
-	  
-config OPPO_CHARGER_MTK6765
-	bool "OPPO_CHARGER_MTK6765"
-	default n
-	help
-	  Set yes to support OPPO_CHARGER_MTK6765 features
-	  smart battery.
-	  Set No to disable OPPO_CHARGER_MTK6765 features
-	  smart battery.
 
 config OPPO_CHECK_CHARGERID_VOLT
 	bool "OPPO_CHECK_CHARGERID_VOLT"
@@ -79,11 +70,6 @@ config OPPO_SHIP_MODE_SUPPORT
 config OPPO_SHORT_HW_CHECK
 	bool "OPPO batt HW SHORT"
 	default n
-	help
-	  Say Y to include support
-
-config OPPO_SMART_CHARGER_SUPPORT
-	bool "OPPO smart charger support"
 	help
 	  Say Y to include support
 #endif /* VENDOR_EDIT */

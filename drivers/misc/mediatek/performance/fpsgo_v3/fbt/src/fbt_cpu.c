@@ -95,12 +95,6 @@ struct fbt_cpu_dvfs_info {
 };
 #endif
 
-enum FPSGO_JERK {
-	FPSGO_JERK_NO_NEED = 0,
-	FPSGO_JERK_NEED = 1,
-	FPSGO_JERK_POSTPONE = 2,
-};
-
 static struct dentry *fbt_debugfs_dir;
 
 static int bhr;
@@ -943,36 +937,16 @@ static unsigned int fbt_get_new_base_blc(struct ppm_limit_data *pld, int jerkid)
 	return blc_wt;
 }
 
-static int fbt_check_to_jerk(
-		unsigned long long enq_start, unsigned long long enq_end,
-		unsigned long long deq_start, unsigned long long deq_end,
+static int fbt_is_queue_time_long(unsigned long long enq_len,
 		unsigned long long deq_len, int pid)
 {
-	/*during enqueue*/
-	if (enq_start >= enq_end) {
-		fpsgo_systrace_c_fbt(pid, 1, "wait_enqueue");
-		fpsgo_systrace_c_fbt(pid, 0, "wait_enqueue");
-		return FPSGO_JERK_NO_NEED;
+	if (enq_len > deqtime_bound || deq_len > deqtime_bound) {
+		fpsgo_systrace_c_fbt(pid, 1, "wait_queue");
+		fpsgo_systrace_c_fbt(pid, 0, "wait_queue");
+		return 1;
 	}
 
-	/*after enqueue before dequeue*/
-	if (enq_end > enq_start && enq_end >= deq_start)
-		return FPSGO_JERK_NEED;
-
-	/*after dequeue before enqueue*/
-	if (deq_end >= deq_start && deq_start > enq_end) {
-		if (deq_len > deqtime_bound) {
-			fpsgo_systrace_c_fbt(pid, 1, "wait_dequeue");
-			fpsgo_systrace_c_fbt(pid, 0, "wait_dequeue");
-			return FPSGO_JERK_NO_NEED;
-		} else
-			return FPSGO_JERK_NEED;
-	}
-
-	/*during dequeue*/
-	fpsgo_systrace_c_fbt(pid, 1, "jerk_postpone");
-	fpsgo_systrace_c_fbt(pid, 0, "jerk_postpone");
-	return FPSGO_JERK_POSTPONE;
+	return 0;
 }
 
 static void fbt_do_jerk_boost(struct render_info *thr, int blc_wt)
@@ -1039,61 +1013,55 @@ static void fbt_do_jerk(struct work_struct *work)
 		mutex_unlock(&blc_mlock);
 
 		if (temp_blc) {
-			int do_jerk;
-
 			pld = kcalloc(cluster_num,
 				sizeof(struct ppm_limit_data),
 				GFP_KERNEL);
-			if (!pld)
-				goto leave;
+			if (pld) {
+				int check_queue;
 
-			blc_wt = fbt_get_new_base_blc(pld, jerk->id);
-			if (!blc_wt)
-				goto leave;
+				blc_wt = fbt_get_new_base_blc(pld, jerk->id);
+				check_queue = fbt_is_queue_time_long(
+						thr->enqueue_length,
+						thr->dequeue_length,
+						thr->pid);
 
-			do_jerk = fbt_check_to_jerk(
-					thr->t_enqueue_start,
-					thr->t_enqueue_end,
-					thr->t_dequeue_start,
-					thr->t_dequeue_end,
-					thr->dequeue_length,
-					thr->pid);
+				if (blc_wt) {
+					if (!check_queue) {
+						fbt_do_jerk_boost(thr, blc_wt);
+						fpsgo_systrace_c_fbt(thr->pid,
+							blc_wt,	"perf idx");
+					}
 
-			if (do_jerk == FPSGO_JERK_NEED) {
-				fbt_do_jerk_boost(thr, blc_wt);
-				fpsgo_systrace_c_fbt(thr->pid,
-						blc_wt,	"perf idx");
-			}
+					{
+						struct pob_fpsgo_qtsk_info
+							pfqi = {0};
 
-			{
-				struct pob_fpsgo_qtsk_info pfqi = {0};
+						pfqi.tskid = thr->pid;
+						pfqi.cur_cpu_cap = blc_wt;
+						pfqi.rescue_cpu = 1;
 
-				pfqi.tskid = thr->pid;
-				pfqi.cur_cpu_cap = blc_wt;
-				pfqi.rescue_cpu = 1;
+						pob_fpsgo_qtsk_update(
+						POB_FPSGO_QTSK_CPUCAP_UPDATE,
+							&pfqi);
+					}
 
-				pob_fpsgo_qtsk_update(
-				POB_FPSGO_QTSK_CPUCAP_UPDATE, &pfqi);
-			}
-
-			if (do_jerk != FPSGO_JERK_POSTPONE) {
-				update_userlimit_cpu_freq(
-					CPU_KIR_FPSGO, cluster_num, pld);
-				for (cluster = 0; cluster < cluster_num;
-					cluster++) {
-					fpsgo_systrace_c_fbt(
-					thr->pid, pld[cluster].max,
-					"cluster%d ceiling_freq", cluster);
+					update_userlimit_cpu_freq(CPU_KIR_FPSGO,
+							cluster_num, pld);
+					for (cluster = 0;
+						cluster < cluster_num;
+						cluster++) {
+						fpsgo_systrace_c_fbt(thr->pid,
+						pld[cluster].max,
+						"cluster%d ceiling_freq",
+						cluster);
+					}
 				}
-			} else
-				jerk->postpone = 1;
-leave:
+			}
 			kfree(pld);
 		}
 	}
 
-	if (!(jerk->postpone))
-		jerk->jerking = 0;
+	jerk->jerking = 0;
 
 	if (thr->boost_info.proc.jerks[0].jerking == 0 &&
 		thr->boost_info.proc.jerks[1].jerking == 0 &&
@@ -1981,26 +1949,6 @@ void fpsgo_comp2fbt_frame_start(struct render_info *thr,
 	fbt_frame_start(thr, ts);
 }
 
-void fpsgo_comp2fbt_deq_end(struct render_info *thr,
-		unsigned long long ts)
-{
-	struct fbt_jerk *jerk;
-
-	if (!thr)
-		return;
-
-	if (!fbt_is_enable())
-		return;
-
-	jerk = &(thr->boost_info.proc.jerks[
-			thr->boost_info.proc.active_jerk_id]);
-
-	if (jerk->postpone) {
-		jerk->postpone = 0;
-		schedule_work(&jerk->work);
-	}
-}
-
 void fpsgo_comp2fbt_bypass_enq(void)
 {
 	mutex_lock(&fbt_mlock);
@@ -2340,15 +2288,10 @@ int fbt_switch_idleprefer(int enable)
 
 	mutex_lock(&fbt_mlock);
 
-#if VENDOR_EDIT
-//cuixiaogang@SRC.hypnus. avoid the conflict between hypnus and fpsgo
-/*
 	if (!fbt_enable) {
 		mutex_unlock(&fbt_mlock);
 		return 0;
 	}
-*/
-#endif /* VENDOR_EDIT */
 
 	last_enable = fbt_idleprefer_enable;
 

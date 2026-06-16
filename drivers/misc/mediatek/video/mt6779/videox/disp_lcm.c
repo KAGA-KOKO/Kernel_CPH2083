@@ -25,19 +25,6 @@
 #include <linux/of.h>
 #endif
 
-#ifdef VENDOR_EDIT
-/* MingQiang.Guo@PSW.BSP.TP.Function, 2017/12/30, Add for TP gesture*/
-extern int tp_gesture_enable_flag(void);
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-/*
-* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2017/07/25,
-* add for lcd status flag
-*/
-bool flag_lcd_off = false;
-
-#endif /* VENDOR_EDIT */
 /* This macro and arrya is designed for multiple LCM support */
 /* for multiple LCM, we should assign I/F Port id in lcm driver, */
 /* such as DPI0, DSI0/1 */
@@ -1410,21 +1397,8 @@ int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 			return -1;
 		}
 
-		#ifndef VENDOR_EDIT
-		/* MingQiang.Guo@PSW.BSP.TP.Function, 2017/12/30, delete for TP gesture*/
 		if (lcm_drv->suspend_power)
-		#else/*VENDOR_EDIT*/
-		if (lcm_drv->suspend_power && (0 == tp_gesture_enable_flag()))
-		#endif/*VENDOR_EDIT*/
 			lcm_drv->suspend_power();
-
-		#ifdef VENDOR_EDIT
-		/*
-		* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2017/07/25,
-		* add for lcd status flag
-		*/
-		flag_lcd_off = true;
-		#endif /*VENDOR_EDIT*/
 
 		return 0;
 	}
@@ -1450,14 +1424,6 @@ int disp_lcm_resume(struct disp_lcm_handle *plcm)
 			return -1;
 		}
 
-		#ifdef VENDOR_EDIT
-		/*
-		* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2017/07/25,
-		* add for lcd status flag
-		*/
-		flag_lcd_off = false;
-		#endif /*VENDOR_EDIT*/
-
 		return 0;
 	}
 	DISP_PR_ERR("lcm_drv is null\n");
@@ -1471,31 +1437,12 @@ int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter)
 	DISPMSG("%s, enter:%d\n", __func__, enter);
 	if (_is_lcm_inited(plcm)) {
 		lcm_drv = plcm->drv;
-
-		#ifdef VENDOR_EDIT
-		/*
-		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/15,
-		* add for aod
-		*/
-		if (lcm_drv->resume_power)
-			lcm_drv->resume_power();
-		#endif /*VENDOR_EDIT*/
-
 		if (lcm_drv->aod) {
 			lcm_drv->aod(enter);
 		} else {
 			DISP_PR_ERR("FATAL ERROR, lcm_drv->aod is null\n");
 			return -1;
 		}
-
-		#ifdef VENDOR_EDIT
-		/*
-		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/15,
-		* add for lcd status flag
-		*/
-		flag_lcd_off = false;
-		#endif /*VENDOR_EDIT*/
-
 		return 0;
 	}
 
@@ -1553,86 +1500,6 @@ int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
 	}
 
 	return 0;
-}
-
-int disp_lcm_get_hbm_state(struct disp_lcm_handle *plcm)
-{
-	if (!_is_lcm_inited(plcm)) {
-		DISP_PR_ERR("lcm_drv is null\n");
-		return -1;
-	}
-
-	if (!plcm->drv->get_hbm_state) {
-		DISP_PR_ERR("FATAL ERROR, lcm_drv->get_hbm_state is null\n");
-		return -1;
-	}
-
-	return plcm->drv->get_hbm_state();
-}
-
-int disp_lcm_get_hbm_wait(struct disp_lcm_handle *plcm)
-{
-	if (!_is_lcm_inited(plcm)) {
-		DISP_PR_ERR("lcm_drv is null\n");
-		return -1;
-	}
-
-	if (!plcm->drv->get_hbm_wait) {
-		DISP_PR_ERR("FATAL ERROR, lcm_drv->get_hbm_wait is null\n");
-		return -1;
-	}
-
-	return plcm->drv->get_hbm_wait();
-}
-
-int disp_lcm_set_hbm_wait(bool wait, struct disp_lcm_handle *plcm)
-{
-	if (!_is_lcm_inited(plcm)) {
-		DISP_PR_ERR("lcm_drv is null\n");
-		return -1;
-	}
-
-	if (!plcm->drv->set_hbm_wait) {
-		DISP_PR_ERR("FATAL ERROR, lcm_drv->set_hbm_wait is null\n");
-		return -1;
-	}
-
-	plcm->drv->set_hbm_wait(wait);
-	return 0;
-}
-
-int mtk_disp_lcm_set_hbm(bool en, struct disp_lcm_handle *plcm, void *qhandle)
-{
-	if (!_is_lcm_inited(plcm)) {
-		DISP_PR_ERR("lcm_drv is null\n");
-		return -1;
-	}
-
-	if (!plcm->drv->set_hbm_cmdq) {
-		DISP_PR_ERR("FATAL ERROR, lcm_drv->set_hbm_cmdq is null\n");
-		return -1;
-	}
-
-	plcm->drv->set_hbm_cmdq(en, qhandle);
-
-	return 0;
-}
-
-unsigned int disp_lcm_get_hbm_time(bool en, struct disp_lcm_handle *plcm)
-{
-	unsigned int time = 0;
-
-	if (!_is_lcm_inited(plcm)) {
-		DISP_PR_ERR("lcm_drv is null\n");
-		return -1;
-	}
-
-	if (en)
-		time = plcm->params->hbm_en_time;
-	else
-		time = plcm->params->hbm_dis_time;
-
-	return time;
 }
 
 int disp_lcm_ioctl(struct disp_lcm_handle *plcm, enum LCM_IOCTL ioctl,
@@ -1818,9 +1685,9 @@ int disp_lcm_poweroff_after_ulps(struct disp_lcm_handle *plcm)
 		lcm_drv = plcm->drv;
 		if (lcm_drv->poweroff_after_ulps) {
 			//if ((0 == tp_gesture_enable_flag()) || (1 == display_esd_recovery_lcm())) {
-			if (0 == tp_gesture_enable_flag()) {
+			//if (0 == tp_gesture_enable_flag()) {
 				lcm_drv->poweroff_after_ulps();
-			}
+			//}
 		} else {
 			DISP_PR_ERR("FATAL ERROR, lcm_drv->poweroff_after_ulps is null\n");
 			return -1;
@@ -1855,49 +1722,29 @@ int disp_lcm_set_hbm(struct disp_lcm_handle *plcm, void *handle, unsigned int hb
 }
 
 /*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
-* modify for support aod state.
+* Yongpeng.Yi@PSW.MM.Display.LCD.Feature, 2018/09/26,
+* add for Aod feature
 */
-int disp_lcm_aod_from_display_on(struct disp_lcm_handle *plcm)
-{
-	struct LCM_DRIVER *lcm_drv = NULL;
-
-	DISPMSG("[soso] %s \n", __func__);
-	if (_is_lcm_inited(plcm)) {
-		lcm_drv = plcm->drv;
-
-		if (lcm_drv->resume_power)
-			lcm_drv->resume_power();
-
-		if (lcm_drv->disp_lcm_aod_from_display_on) {
-			lcm_drv->disp_lcm_aod_from_display_on();
-		} else {
-			DISP_PR_ERR("FATAL ERROR, lcm_drv->aod is null\n");
-			return -1;
-		}
-
-		flag_lcd_off = false;
-
-		return 0;
-	}
-
-	DISP_PR_ERR("lcm_drv is null\n");
-	return -1;
-}
-
-int disp_lcm_set_aod_mode(struct disp_lcm_handle *plcm, void *handle, unsigned int mode)
+unsigned int aod_mode = 0;
+int disp_lcm_aod_doze_resume(struct disp_lcm_handle *plcm)
 {
 	struct LCM_DRIVER *lcm_drv = NULL;
 
 	DISPFUNC();
 	if (_is_lcm_inited(plcm)) {
 		lcm_drv = plcm->drv;
-		if (lcm_drv->set_aod_brightness) {
-			lcm_drv->set_aod_brightness(handle, mode);
+
+		if (lcm_drv->resume_power)
+			lcm_drv->resume_power();
+
+
+		if (lcm_drv->aod_doze_resume) {
+			lcm_drv->aod_doze_resume();
 		} else {
-			DISP_PR_ERR("FATAL ERROR, lcm_drv->set_aod_brightness is null\n");
+			DISP_PR_ERR("FATAL ERROR, lcm_drv->resume is null\n");
 			return -1;
 		}
+		//flag_lcd_off = false;
 		return 0;
 	}
 	DISP_PR_ERR("lcm_drv is null\n");

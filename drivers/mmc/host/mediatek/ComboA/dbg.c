@@ -263,7 +263,6 @@ inline void dbg_add_host_log(struct mmc_host *mmc, int type, int cmd, int arg)
 {
 	unsigned long long t, tn;
 	unsigned long long nanosec_rem;
-	unsigned long flags;
 	static int last_cmd, last_arg, skip;
 	int l_skip = 0;
 	struct msdc_host *host = mmc_priv(mmc);
@@ -277,7 +276,6 @@ inline void dbg_add_host_log(struct mmc_host *mmc, int type, int cmd, int arg)
 		return;
 
 	t = cpu_clock(printk_cpu_test);
-	spin_lock_irqsave(&host->cmd_dump_lock, flags);
 
 	switch (type) {
 	case 0: /*normal - cmd*/
@@ -373,7 +371,6 @@ inline void dbg_add_host_log(struct mmc_host *mmc, int type, int cmd, int arg)
 	default:
 		break;
 	}
-	spin_unlock_irqrestore(&host->cmd_dump_lock, flags);
 }
 
 #ifdef MTK_MSDC_LOW_IO_DEBUG
@@ -521,11 +518,6 @@ void mmc_cmd_dump(char **buff, unsigned long *size, struct seq_file *m,
 	SPREAD_PRINTF(buff, size, m,
 		"part_curr  : %d\n",
 		mmc->card->part_curr);
-	SPREAD_PRINTF(buff, size, m,
-		"claimed(%d),claim_cnt(%d),claimer pid(%d) comm %s\n",
-		mmc->claimed, mmc->claim_cnt,
-		mmc->claimer ? mmc->claimer->pid : 0,
-		mmc->claimer ? mmc->claimer->comm : "NULL");
 #endif
 }
 
@@ -668,12 +660,8 @@ void msdc_cmdq_status_print(struct msdc_host *host, struct seq_file *m)
 		mmc->card->part_curr);
 	seq_printf(m, "host claimed : %d\n",
 		mmc->claimed);
-	seq_printf(m, "host claim cnt : %d\n",
-		mmc->claim_cnt);
 	seq_printf(m, "host claimer pid : %d\n",
 		mmc->claimer ? mmc->claimer->pid : 0);
-	seq_printf(m, "host claimer comm : %s\n",
-		mmc->claimer ? mmc->claimer->comm : "NULL");
 	seq_puts(m, "hardware cq support\n");
 #endif
 

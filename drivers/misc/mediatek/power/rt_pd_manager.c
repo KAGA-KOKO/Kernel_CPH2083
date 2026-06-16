@@ -21,10 +21,6 @@
 #include <linux/pm_wakeup.h>
 #include <linux/reboot.h>
 #include <linux/pm.h>
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-#include <linux/delay.h>
-#endif
 
 #include "tcpm.h"
 
@@ -50,10 +46,6 @@ struct pd_manager_info {
 	/* Charger Detection */
 	struct mutex chgdet_lock;
 	bool chgdet_en;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-	unsigned int chgdet_mdelay;
-#endif
 	atomic_t chgdet_cnt;
 	wait_queue_head_t waitq;
 	struct kthread_work chgdet_task_threadfn;
@@ -291,10 +283,6 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			charger_ignore_usb(false);
 			mutex_lock(&pmi->chgdet_lock);
 			pmi->chgdet_en = true;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-			pmi->chgdet_mdelay = 450;
-#endif
 			atomic_inc(&pmi->chgdet_cnt);
 			wake_up_interruptible(&pmi->waitq);
 			mutex_unlock(&pmi->chgdet_lock);
@@ -316,10 +304,7 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 				vbus = battery_get_vbus();
 				pr_info("%s KPOC Plug out, vbus = %d\n",
 					__func__, vbus);
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/02, sjc Delete for charging */
 				schedule_work(&pmi->pwr_off_work);
-#endif
 				break;
 			}
 			pr_info("%s USB Plug out\n", __func__);
@@ -340,10 +325,6 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 #endif
 			mutex_lock(&pmi->chgdet_lock);
 			pmi->chgdet_en = false;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-			pmi->chgdet_mdelay = 0;
-#endif
 			atomic_inc(&pmi->chgdet_cnt);
 			wake_up_interruptible(&pmi->waitq);
 			mutex_unlock(&pmi->chgdet_lock);
@@ -363,10 +344,6 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			charger_ignore_usb(true);
 			mutex_lock(&pmi->chgdet_lock);
 			pmi->chgdet_en = true;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-			pmi->chgdet_mdelay = 0;
-#endif
 			atomic_inc(&pmi->chgdet_cnt);
 			wake_up_interruptible(&pmi->waitq);
 			mutex_unlock(&pmi->chgdet_lock);
@@ -376,10 +353,6 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			charger_ignore_usb(true);
 			mutex_lock(&pmi->chgdet_lock);
 			pmi->chgdet_en = false;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-			pmi->chgdet_mdelay = 0;
-#endif
 			atomic_inc(&pmi->chgdet_cnt);
 			wake_up_interruptible(&pmi->waitq);
 			mutex_unlock(&pmi->chgdet_lock);
@@ -459,10 +432,6 @@ static int chgdet_task_threadfn(void *data)
 {
 	struct pd_manager_info *pmi = data;
 	bool attach = false;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-	unsigned int ms = 0;
-#endif
 	int ret = 0;
 
 	dev_info(pmi->dev, "%s: ++\n", __func__);
@@ -479,15 +448,7 @@ static int chgdet_task_threadfn(void *data)
 		mutex_lock(&pmi->chgdet_lock);
 		atomic_set(&pmi->chgdet_cnt, 0);
 		attach = pmi->chgdet_en;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-		ms = pmi->chgdet_mdelay;
-#endif
 		mutex_unlock(&pmi->chgdet_lock);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-		msleep(ms);
-#endif
 #ifdef CONFIG_MTK_EXTERNAL_CHARGER_TYPE_DETECT
 #if CONFIG_MTK_GAUGE_VERSION == 30
 		ret = charger_dev_enable_chg_type_det(primary_charger, attach);

@@ -492,7 +492,7 @@ static int exfat_readdir(struct file *filp, void *dirent, filldir_t filldir)
 	FS_INFO_T *p_fs = &(sbi->fs_info);
 	BD_INFO_T *p_bd = &(EXFAT_SB(sb)->bd_info);
 	DIR_ENTRY_T de;
-	unsigned long inum;
+	unsigned long inum = 0;
 	loff_t cpos;
 	int err = 0;
 

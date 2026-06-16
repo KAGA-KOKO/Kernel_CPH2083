@@ -17,8 +17,9 @@
 #include <linux/miscdevice.h>   /* needed by miscdevice* */
 #include <linux/sysfs.h>
 #include <linux/device.h>       /* needed by device_* */
-#include <linux/vmalloc.h>      /* needed by vmalloc */
+#include <linux/vmalloc.h>      /* needed by kmalloc */
 #include <linux/uaccess.h>      /* needed by copy_to_user */
+#include <linux/slab.h>         /* needed by kmalloc */
 #include <linux/poll.h>         /* needed by poll */
 #include <linux/mutex.h>
 #include <linux/sched.h>
@@ -216,7 +217,7 @@ static int parsing_ipi_msg_from_user_space(
 	if (data_type == AUDIO_IPI_DMA) {
 		/* get hal data & write hal data to DRAM */
 		hal_data_size = dma_info->hal_buf.data_size;
-		copy_hal_data = vmalloc(hal_data_size);
+		copy_hal_data = kmalloc(hal_data_size, GFP_KERNEL);
 		if (copy_hal_data == NULL) {
 			retval = -ENOMEM;
 			goto parsing_exit;
@@ -318,7 +319,7 @@ static int parsing_ipi_msg_from_user_space(
 
 parsing_exit:
 	if (copy_hal_data != NULL) {
-		vfree(copy_hal_data);
+		kfree(copy_hal_data);
 		copy_hal_data = NULL;
 	}
 	if (dram_buf.addr_val != 0)

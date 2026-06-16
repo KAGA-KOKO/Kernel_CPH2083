@@ -42,6 +42,7 @@
 
 /* FIXME: IT with vcorefs ? */
 void __attribute__((weak)) dvfsrc_md_scenario_update(bool suspend) {}
+void __attribute__((weak)) dpmaif_dump_reg(void) {}
 
 /********************************************************************
  * dp/so3/so pcm_flags and pcm_flags1
@@ -87,24 +88,15 @@ static unsigned int idle_pcm_flags[NR_IDLE_TYPES] = {
 static unsigned int idle_pcm_flags1[NR_IDLE_TYPES] = {
 	[IDLE_TYPE_DP] =
 		SPM_FLAG1_ENABLE_BIG_BUCK_OFF |
-		SPM_FLAG1_ENABLE_BIG_BUCK_ON |
-		SPM_FLAG1_FORCE_CPU_BUCK_OFF |
-		SPM_FLAG1_DISABLE_VS1_VOTER |
-		SPM_FLAG1_DISABLE_VS2_VOTER,
+		SPM_FLAG1_ENABLE_BIG_BUCK_ON,
 
 	[IDLE_TYPE_SO3] =
 		SPM_FLAG1_ENABLE_BIG_BUCK_OFF |
-		SPM_FLAG1_ENABLE_BIG_BUCK_ON |
-		SPM_FLAG1_FORCE_CPU_BUCK_OFF |
-		SPM_FLAG1_DISABLE_VS1_VOTER |
-		SPM_FLAG1_DISABLE_VS2_VOTER,
+		SPM_FLAG1_ENABLE_BIG_BUCK_ON,
 
 	[IDLE_TYPE_SO] =
 		SPM_FLAG1_ENABLE_BIG_BUCK_OFF |
-		SPM_FLAG1_ENABLE_BIG_BUCK_ON |
-		SPM_FLAG1_FORCE_CPU_BUCK_OFF |
-		SPM_FLAG1_DISABLE_VS1_VOTER |
-		SPM_FLAG1_DISABLE_VS2_VOTER,
+		SPM_FLAG1_ENABLE_BIG_BUCK_ON,
 
 	[IDLE_TYPE_RG] = 0,
 };
@@ -470,22 +462,16 @@ static unsigned int mtk_dpidle_output_log(
 	if (!(idle_flag & MTK_IDLE_LOG_REDUCE)) {
 		print_log = true;
 	} else {
-		if (wakesta->is_abort != 0 || wakesta->r12 == 0) {
+		if (wakesta->is_abort != 0 || wakesta->r12 == 0)
 			print_log = true;
-		} else if (check_print_log_duration()) {
+		else if (wakesta->timer_out <= IDLE_TIMER_OUT_CRITERIA)
 			print_log = true;
-		} else if (wakesta->timer_out <= IDLE_TIMER_OUT_CRITERIA) {
+		else if (check_print_log_duration())
 			print_log = true;
-			if (wakesta->r12 == R12_AP2AP_PEER_WAKEUP_EVENT)
-				print_log = false;
-		}
 	}
 
 	if (print_log) {
-		#if defined(VENDOR_EDIT) && !defined(OPPO_RELEASE_FLAG)
-		/*Bin.Li@BSP.Kernel.Debug, 2019/04/26, Modify for limiting kernel log*/
 		pr_info("Power/swap op_cond = 0x%x\n", op_cond);
-		#endif
 		wr = __spm_output_wake_reason(
 			wakesta, false, mtk_idle_name(idle_type));
 		if (idle_flag & MTK_IDLE_LOG_RESOURCE_USAGE)
@@ -502,6 +488,8 @@ static unsigned int mtk_sodi_output_log(
 	unsigned int op_cond, unsigned int idle_flag)
 {
 	bool print_log = false;
+	static unsigned int timeout_cnt;
+	bool timeout_log = false;
 	unsigned int wr = WR_NONE;
 
 	/* No log for latency profiling case */
@@ -510,27 +498,38 @@ static unsigned int mtk_sodi_output_log(
 
 	if (!(idle_flag & MTK_IDLE_LOG_REDUCE)) {
 		print_log = true;
+		timeout_cnt = 0;
 	} else {
 		if (wakesta->is_abort != 0 || wakesta->r12 == 0) {
 			print_log = true;
-		} else if (check_print_log_duration()) {
-			print_log = true;
+			timeout_cnt = 0;
 		} else if (wakesta->timer_out <= IDLE_TIMER_OUT_CRITERIA) {
 			print_log = true;
-			if (wakesta->r12 == R12_AP2AP_PEER_WAKEUP_EVENT)
-				print_log = false;
+			if (wakesta->r12 & R12_AP2AP_PEER_WAKEUP_EVENT)
+				if (timeout_cnt++ > 220)
+					timeout_log = true;
+		} else if (check_print_log_duration()) {
+			print_log = true;
+			timeout_cnt = 0;
+		} else {
+			timeout_cnt = 0;
 		}
 	}
 
 	if (print_log) {
-		#if defined(VENDOR_EDIT) && !defined(OPPO_RELEASE_FLAG)
-		/*Bin.Li@BSP.Kernel.Debug, 2019/04/26, Modify for limiting kernel log*/
 		pr_info("Power/swap op_cond = 0x%x\n", op_cond);
-		#endif
 		wr = __spm_output_wake_reason(
 			wakesta, false, mtk_idle_name(idle_type));
 		if (idle_flag & MTK_IDLE_LOG_RESOURCE_USAGE)
 			spm_resource_req_dump();
+	}
+
+	if (timeout_log) {
+		pr_info("R12_AP2AP_PEER_WAKEUP_EVENT too much,r12 = 0x%x\n",
+			 wakesta->r12);
+		dpmaif_dump_reg();
+		timeout_cnt = 0;
+		timeout_log = false;
 	}
 
 	return wr;

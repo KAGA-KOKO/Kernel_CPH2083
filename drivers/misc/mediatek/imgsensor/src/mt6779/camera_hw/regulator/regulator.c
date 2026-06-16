@@ -49,8 +49,6 @@ struct REGULATOR_CTRL regulator_control[REGULATOR_TYPE_MAX_NUM] = {
 static struct REGULATOR reg_instance;
 
 #ifdef VENDOR_EDIT
-/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-static struct regulator *gVCamIO;
 /*Henry.Chang@Camera.Driver add for P80_18151 AF_Lens 20181120*/
 struct regulator *regulator_get_regVCAMAF(void)
 {
@@ -76,10 +74,7 @@ static enum IMGSENSOR_RETURN regulator_init(
 					i, pregulator_ctrl->pregulator_type);
 		atomic_set(&preg->enable_cnt[i], 0);
 	}
-	#ifdef VENDOR_EDIT
-	/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-	gVCamIO = regulator_get(&pcommon->pplatform_device->dev, "vcamio");
-	#endif
+
 	return IMGSENSOR_RETURN_SUCCESS;
 }
 
@@ -202,39 +197,6 @@ static struct IMGSENSOR_HW_DEVICE device = {
 	.release   = regulator_release,
 	.dump      = regulator_dump
 };
-
-#ifdef VENDOR_EDIT
-/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-int kdVIOPowerOn(int On)
-{
-	/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-	if (On) {
-		if (regulator_set_voltage(gVCamIO,
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800- IMGSENSOR_HW_PIN_STATE_LEVEL_0],
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800- IMGSENSOR_HW_PIN_STATE_LEVEL_0])) {
-			PK_PR_ERR("[regulator]fail to regulator_set_voltage, powerId:%d\n",
-				regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800 - IMGSENSOR_HW_PIN_STATE_LEVEL_0]);
-		}
-		if (regulator_enable(gVCamIO)) {
-			PK_PR_ERR("[regulator]fail to regulator_enable\n");
-			return IMGSENSOR_RETURN_ERROR;
-		}
-	} else {
-		if (regulator_set_voltage(gVCamIO,
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0],
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0])) {
-			PK_PR_ERR("[regulator]fail to regulator_set_voltage, powerId:%d\n",
-				regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0]);
-		}
-		if (regulator_disable(gVCamIO)) {
-			PK_DBG("[regulator]fail to regulator_disable gVCamIO\n");
-			return IMGSENSOR_RETURN_ERROR;
-		}
-	}
-
-	return IMGSENSOR_RETURN_SUCCESS;
-}
-#endif
 
 enum IMGSENSOR_RETURN imgsensor_hw_regulator_open(
 	struct IMGSENSOR_HW_DEVICE **pdevice)

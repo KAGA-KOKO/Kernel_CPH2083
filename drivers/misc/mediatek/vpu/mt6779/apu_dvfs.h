@@ -91,12 +91,6 @@ enum vmdla_opp {
 	VMDLA_OPP_NUM,
 	VMDLA_OPP_UNREQ = PM_QOS_VMDLA_OPP_DEFAULT_VALUE,
 };
-enum APU_SEGMENT {
-	SEGMENT_90M = 0,
-	SEGMENT_90,
-	SEGMENT_95,
-	SEGMENT_NUM,
-};
 
 
 
@@ -133,9 +127,6 @@ void enable_apu_latency(unsigned int core);
 int apu_dvfs_dump_info(void);
 int vpu_get_hw_vvpu_opp(int core);
 int mdla_get_hw_vmdla_opp(int core);
-extern unsigned int mt_get_ckgen_freq(unsigned int ID);
-extern void check_vpu_clk_sts(void);
-void apu_get_power_info(void);
 
 
 

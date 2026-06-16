@@ -21,11 +21,6 @@ config OPPO_STANDARD_BATTERY_CHECK_ADC
 	help
 	  Say Y here to support Official Standard Battery check by ADC
 
-config OPPO_SHORT_IC_CHECK
-	bool "OPPO short ic"
-	help
-	  Say Y here to declare OPPO batt short
-
 config OPPO_SHORT_HW_CHECK
 	bool "OPPO batt HW SHORT "
 	help
@@ -33,11 +28,6 @@ config OPPO_SHORT_HW_CHECK
 
 config OPPO_SHORT_USERSPACE
 	bool "OPPO batt userspace"
-	help
-	  Say Y to include support
-
-config OPPO_CHIP_SOC_NODE
-	bool "OPPO chip soc node"
 	help
 	  Say Y to include support
 endif #OPPO_CHARGER

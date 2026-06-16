@@ -110,11 +110,6 @@ static ssize_t power_supply_show_property(struct device *dev,
 		return sprintf(buf, "%s\n", type_text[value.intval]);
 	else if (off == POWER_SUPPLY_PROP_SCOPE)
 		return sprintf(buf, "%s\n", scope_text[value.intval]);
-/* WT000695@ODM_WT.BSP.Charger.kernel.20191218, Add Battery MMI hardware info in KERNEL */
-#ifdef ODM_WT_EDIT
-	else if (off == POWER_SUPPLY_PROP_REAL_TYPE)
-		return sprintf(buf, "%s\n", type_text[value.intval]);
-#endif
 	else if (off >= POWER_SUPPLY_PROP_MODEL_NAME)
 		return sprintf(buf, "%s\n", value.strval);
 
@@ -151,8 +146,6 @@ static ssize_t power_supply_store_property(struct device *dev,
 static struct device_attribute power_supply_attrs[] = {
 	/* Properties of type `int' */
 	POWER_SUPPLY_ATTR(status),
-	POWER_SUPPLY_ATTR(otg_switch),
-	POWER_SUPPLY_ATTR(otg_online),
 	POWER_SUPPLY_ATTR(charge_type),
 	POWER_SUPPLY_ATTR(health),
 	POWER_SUPPLY_ATTR(present),
@@ -216,37 +209,28 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(calibrate),
 	/* Local extensions */
 	POWER_SUPPLY_ATTR(usb_hc),
-	POWER_SUPPLY_ATTR(usb_otg),
+	POWER_SUPPLY_ATTR(otg_online),
 	POWER_SUPPLY_ATTR(charge_enabled),
 #ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add bq check_charging_enable function*/
+/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2018.12.04 add battery power supply file node*/
 	POWER_SUPPLY_ATTR(batt_id),
-	POWER_SUPPLY_ATTR(batt_rm),
-	POWER_SUPPLY_ATTR(batt_cc),
-	POWER_SUPPLY_ATTR(batt_fcc),
-	POWER_SUPPLY_ATTR(authenticate),
-	POWER_SUPPLY_ATTR(notify_code),
-	POWER_SUPPLY_ATTR(mmi_charging_enable),
-	POWER_SUPPLY_ATTR(stop_charging_enable),
-	POWER_SUPPLY_ATTR(charge_timeout),
-#endif /*ODM_HQ_EDIT*/
-/* WT000695@ODM_WT.BSP.Charger.kernel.20191218, Add Battery MMI hardware info in KERNEL */
-#ifdef ODM_WT_EDIT
-	POWER_SUPPLY_ATTR(resistance_id),
-	POWER_SUPPLY_ATTR(real_type),
-#endif
-#ifdef CONFIG_OPPO_CHIP_SOC_NODE
-	POWER_SUPPLY_ATTR(chip_soc),
-#endif /*CONFIG_OPPO_CHIP_SOC_NODE*/
-#ifdef CONFIG_OPPO_CALL_MODE_SUPPORT
-	POWER_SUPPLY_ATTR(call_mode),
-#endif /* CONFIG_OPPO_CALL_MODE_SUPPORT */
-#ifdef CONFIG_OPPO_SHIP_MODE_SUPPORT
 	POWER_SUPPLY_ATTR(ship_mode),
-#endif /*CONFIG_OPPO_SHIP_MODE_SUPPORT*/
+	POWER_SUPPLY_ATTR(authenticate),
+	POWER_SUPPLY_ATTR(batt_fcc),
+	POWER_SUPPLY_ATTR(batt_cc),
+	POWER_SUPPLY_ATTR(battery_charging_enabled),
+	POWER_SUPPLY_ATTR(call_mode),
+	POWER_SUPPLY_ATTR(charge_timeout),
+	POWER_SUPPLY_ATTR(chargerid_volt),
+	POWER_SUPPLY_ATTR(mmi_charging_enable),
+	POWER_SUPPLY_ATTR(recharge_soc),
+	POWER_SUPPLY_ATTR(input_current_limited),
+	POWER_SUPPLY_ATTR(otg_switch),
+	POWER_SUPPLY_ATTR(notify_code),
+	POWER_SUPPLY_ATTR(batt_rm),
+#endif /*ODM_HQ_EDIT*/
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_ATTR(charge_counter_ext),
-	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
 	POWER_SUPPLY_ATTR(serial_number),

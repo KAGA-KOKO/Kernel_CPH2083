@@ -89,10 +89,10 @@ void ufs_mtk_di_init(struct ufs_hba *hba)
 		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+1] << 48) |
 		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+2] << 40) |
 		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+3] << 32) |
-		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+4] << 24) |
-		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+5] << 16) |
-		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+6] << 8) |
-		((u64)ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+7]));
+		(ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+4] << 24) |
+		(ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+5] << 16) |
+		(ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+6] << 8) |
+		(ud_buf[UNIT_DESC_PARAM_LOGICAL_BLK_COUNT+7]));
 
 	pr_info("%s: mtk ufs di need %lluMB memory for total lba %llu(0x%llx)\n",
 		__func__, logblk_cnt * sizeof(u16) * 2 / 1024 / 1024
@@ -971,18 +971,24 @@ static int ufs_mtk_init_mphy(struct ufs_hba *hba)
 	return 0;
 }
 
-static int ufs_mtk_init_crypto(struct ufs_hba *hba)
+static int ufs_mtk_reset_host(struct ufs_hba *hba)
 {
+	if (!(hba->quirks & UFSHCD_QUIRK_UFS_HCI_VENDOR_HOST_RST))
+		return 0;
+
 	/* avoid resetting host during resume flow or when link is not off */
 	if (hba->pm_op_in_progress || !ufshcd_is_link_off(hba))
 		return 0;
+
+	dev_info(hba->dev, "reset host\n");
+
+	/* do host sw reset */
+	mt_secure_call(MTK_SIP_KERNEL_HW_FDE_UFS_CTL, (1 << 6), 0, 0, 0);
 
 #ifdef CONFIG_MTK_HW_FDE
 
 	/* restore HW FDE related settings by re-using resume operation */
 	mt_secure_call(MTK_SIP_KERNEL_HW_FDE_UFS_CTL, (1 << 2), 0, 0, 0);
-
-	dev_info(hba->dev, "crypto cfg initialized\n");
 #endif
 
 	return 0;
@@ -1016,9 +1022,9 @@ static int ufs_mtk_hce_enable_notify(struct ufs_hba *hba,
 
 	switch (stage) {
 	case PRE_CHANGE:
+		ret = ufs_mtk_reset_host(hba);
 		break;
 	case POST_CHANGE:
-		ret = ufs_mtk_init_crypto(hba);
 		/*
 		 * After HCE enable, need disable xoufs_req_s in ufshci
 		 * when xoufs hw solution is not ready.
@@ -1082,6 +1088,11 @@ static int ufs_mtk_post_link(struct ufs_hba *hba)
 		ret = 0;	/* skip error */
 	}
 
+#ifdef CONFIG_MTK_HW_FDE
+	/* init HW FDE feature inlined in HCI */
+	mt_secure_call(MTK_SIP_KERNEL_HW_FDE_UFS_CTL, (1 << 0), 0, 0, 0);
+#endif
+
 #ifdef CONFIG_HIE
 	/* init ufs crypto IP for HIE */
 	mt_secure_call(MTK_SIP_KERNEL_CRYPTO_HIE_INIT, 0, 0, 0, 0);
@@ -1136,7 +1147,8 @@ static int ufs_mtk_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 #endif
 
 #ifdef CONFIG_HIE
-		kh_suspend(ufs_mtk_get_kh());
+		/* hie suspend handling: reset key hint */
+		kh_reset(ufs_mtk_get_kh());
 #endif
 	}
 
@@ -1188,28 +1200,8 @@ static int ufs_mtk_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 		 */
 		ret = ufshcd_dme_set(hba,
 			UIC_ARG_MIB_SEL(VENDOR_UNIPROPOWERDOWNCONTROL, 0), 0);
-		/*
-		 * If UniProp cannot power up, resume fail, and IO hang.
-		 * Try to sw reset UFS IP and UniProp power up again.
-		 */
-		if (ret) {
-			ufs_mtk_pltfrm_gpio_trigger_and_debugInfo_dump(hba);
-			ret = ufshcd_host_reset_and_restore(hba);
-			if (ret) {
-				dev_err(hba->dev, "%s: Host reset and restore failed %d\n",
-					__func__, ret);
-			}
-
-			ret = ufshcd_dme_set(hba,
-			  UIC_ARG_MIB_SEL(VENDOR_UNIPROPOWERDOWNCONTROL, 0), 0);
-			if (ret) {
-				dev_err(hba->dev,
-					"%s: UniProPowerDownControl fail ret:%d",
-					__func__, ret);
-				/* Something wrong, stop here or IO hang */
-				BUG();
-			}
-		}
+		if (ret)
+			return ret;
 
 		/*
 		 * Leave hibern8 state
@@ -1981,6 +1973,18 @@ static void ufs_mtk_auto_hibern8(struct ufs_hba *hba, bool enable)
 		return;
 
 	if (enable) {
+		/*
+		 * For UFSHCI 2.0 (in Elbrus), ensure hibernate enter/exit
+		 * interrupts are disabled during
+		 * auto hibern8.
+		 *
+		 * For UFSHCI 2.1 (in future projects), keep these 2
+		 * interrupts for auto-hibern8
+		 * error handling.
+		 */
+		ufshcd_disable_intr(hba, (UIC_HIBERNATE_ENTER |
+			UIC_HIBERNATE_EXIT));
+
 		/* set timer scale as "ms" and timer */
 		ufshcd_writel(hba, (0x03 << 10 | ufs_mtk_auto_hibern8_timer_ms),
 			REG_AHIT);
@@ -1989,6 +1993,13 @@ static void ufs_mtk_auto_hibern8(struct ufs_hba *hba, bool enable)
 	} else {
 		/* disable auto-hibern8 */
 		ufshcd_writel(hba, 0, REG_AHIT);
+
+		/*
+		 * ensure hibernate enter/exit interrupts
+		 * are enabled for future manual-hibern8
+		 */
+		ufshcd_enable_intr(hba, (UIC_HIBERNATE_ENTER |
+			UIC_HIBERNATE_EXIT));
 
 		ufs_mtk_auto_hibern8_enabled = false;
 	}

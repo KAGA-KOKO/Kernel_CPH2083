@@ -16,6 +16,8 @@
 #include <linux/types.h>
 #include <linux/errno.h>
 
+#include <linux/slab.h>         /* needed by kmalloc */
+
 #include <linux/kthread.h>
 #include <linux/wait.h>
 #include <linux/spinlock.h>

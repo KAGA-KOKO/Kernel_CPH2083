@@ -88,63 +88,6 @@ void IMGSENSOR_PROFILE(struct timeval *ptv, char *tag)
 }
 #endif
 
-#ifdef VENDOR_EDIT
-/* Add by LiuBin for register device info at 20160616 */
-#include <soc/oppo/device_info.h>
-#define DEVICE_MANUFACUTRE_NA		    "None"
-#define DEVICE_MANUFACUTRE_SUNNY        "Sunny"
-#define DEVICE_MANUFACUTRE_TRULY        "Truly"
-#define DEVICE_MANUFACUTRE_SEMCO        "Semco"
-#define DEVICE_MANUFACUTRE_LITEON       "Liteon"
-#define DEVICE_MANUFACUTRE_QTECH        "Qtech"
-#define DEVICE_MANUFACUTRE_OFILM        "Ofilm"
-#define DEVICE_MANUFACUTRE_SHINE        "Shine"
-
-#define IMGSENSOR_MODULE_ID_SUNNY       0x01
-#define IMGSENSOR_MODULE_ID_TRULY       0x02
-#define IMGSENSOR_MODULE_ID_SEMCO       0x03
-#define IMGSENSOR_MODULE_ID_LITEON      0x04
-#define IMGSENSOR_MODULE_ID_QTECH       0x05
-#define IMGSENSOR_MODULE_ID_OFILM       0x06
-#define IMGSENSOR_MODULE_ID_SHINE       0x07
-void register_imgsensor_deviceinfo(char *name, char *version, u8 module_id)
-{
-    char *manufacture;
-    if (name == NULL || version == NULL)
-    {
-        PK_PR_ERR("name or version is NULL");
-        return;
-    }
-    switch (module_id)
-    {
-        case IMGSENSOR_MODULE_ID_SUNNY:  /* Sunny */
-            manufacture = DEVICE_MANUFACUTRE_SUNNY;
-            break;
-        case IMGSENSOR_MODULE_ID_TRULY:  /* Truly */
-            manufacture = DEVICE_MANUFACUTRE_TRULY;
-            break;
-        case IMGSENSOR_MODULE_ID_SEMCO:  /* Semco */
-            manufacture = DEVICE_MANUFACUTRE_SEMCO;
-            break;
-        case IMGSENSOR_MODULE_ID_LITEON:  /* Lite-ON */
-            manufacture = DEVICE_MANUFACUTRE_LITEON;
-            break;
-        case IMGSENSOR_MODULE_ID_QTECH:  /* Q-Tech */
-            manufacture = DEVICE_MANUFACUTRE_QTECH;
-            break;
-        case IMGSENSOR_MODULE_ID_OFILM:  /* O-Film */
-            manufacture = DEVICE_MANUFACUTRE_OFILM;
-            break;
-        case IMGSENSOR_MODULE_ID_SHINE:  /* Shine */
-            manufacture = DEVICE_MANUFACUTRE_SHINE;
-            break;
-        default:
-            manufacture = DEVICE_MANUFACUTRE_NA;
-    }
-    register_device_proc(name, version, manufacture);
-}
-#endif
-
 /******************************************************************************
  * sensor function adapter
  ******************************************************************************/
@@ -531,20 +474,8 @@ int imgsensor_set_driver(struct IMGSENSOR_SENSOR *psensor)
 	struct IMGSENSOR_SENSOR_INST *psensor_inst = &psensor->inst;
 
 	imgsensor_mutex_init(psensor_inst);
-	#ifdef VENDOR_EDIT
-	/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-	if (is_project(OPPO_19011) || is_project(OPPO_19301)) {
-		imgsensor_i2c_init(&psensor_inst->i2c_cfg,
-			imgsensor_custom_config_19301[psensor_inst->sensor_idx].i2c_dev);
-	} else {
-		imgsensor_i2c_init(&psensor_inst->i2c_cfg,
-			imgsensor_custom_config[psensor_inst->sensor_idx].i2c_dev);
-	}
-	#else
 	imgsensor_i2c_init(&psensor_inst->i2c_cfg,
 		imgsensor_custom_config[psensor_inst->sensor_idx].i2c_dev);
-	#endif
-
 	imgsensor_i2c_filter_msg(&psensor_inst->i2c_cfg, true);
 
 
@@ -906,30 +837,6 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 
 	/*in case that some structure are passed from user sapce by ptr */
 	switch (pFeatureCtrl->FeatureId) {
-	#ifdef VENDOR_EDIT
-	/*Henry.Chang@Camera.Driver add for 18073 ModuleInfo 20190530*/
-	case SENSOR_FEATURE_GET_MODULE_INFO:
-	case SENSOR_FEATURE_GET_MODULE_SN:
-	{
-		ret = imgsensor_sensor_feature_control(psensor,
-				   pFeatureCtrl->FeatureId,
-				   (unsigned char *)pFeaturePara,
-				   (unsigned int *)&FeatureParaLen);
-		break;
-	}
-	/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
-	case SENSOR_FEATURE_SET_SENSOR_OTP:
-	{
-		ret = imgsensor_sensor_feature_control(psensor,
-				  SENSOR_FEATURE_SET_SENSOR_OTP,
-				  (unsigned char *)pFeaturePara,
-				  (unsigned int *)&FeatureParaLen);
-		PK_INFO("SET_SENSOR_OTP return ret: %d\n", ret);
-		if (ret != 0)
-			return -EFAULT;
-		break;
-	}
-	#endif
 	case SENSOR_FEATURE_SET_MCLK_DRIVE_CURRENT:
 	{
 		MUINT32 __current = (*(MUINT32 *)pFeaturePara);

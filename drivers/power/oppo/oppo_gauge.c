@@ -19,11 +19,11 @@ static struct oppo_gauge_chip *g_gauge_chip = NULL;
 
 int oppo_gauge_get_batt_mvolts(void)
 {
-	if (!g_gauge_chip) {
-		return 3800;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_mvolts();
-	}
+        if (!g_gauge_chip) {
+                return 3800;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_mvolts();
+        }
 }
 
 int oppo_gauge_get_batt_mvolts_2cell_max(void)
@@ -44,121 +44,113 @@ int oppo_gauge_get_batt_mvolts_2cell_min(void)
 
 int oppo_gauge_get_batt_temperature(void)
 {
-	int batt_temp = 0;
-	if (!g_gauge_chip) {
-		return 250;
-	} else {
-		batt_temp = g_gauge_chip->gauge_ops->get_battery_temperature();
-#ifdef CONFIG_HIGH_TEMP_VERSION
-		printk(KERN_ERR "[OPPO_CHG]CONFIG_HIGH_TEMP_VERSION enable here,\
-				disable high tbat shutdown \n");
-		if (batt_temp > 690)
-			batt_temp = 690;
-#endif
-		return batt_temp;
-	}
+        if (!g_gauge_chip) {
+                return 250;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_temperature();
+        }
 }
 
 int oppo_gauge_get_batt_soc(void)
 {
-	if (!g_gauge_chip) {
-		return -1;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_soc();
-	}
+        if (!g_gauge_chip) {
+                return 50;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_soc();
+        }
 }
 
 int oppo_gauge_get_batt_current(void)
 {
-	if (!g_gauge_chip) {
-		return 100;
-	} else {
-		return g_gauge_chip->gauge_ops->get_average_current();
-	}
+        if (!g_gauge_chip) {
+                return 100;
+        } else {
+                return g_gauge_chip->gauge_ops->get_average_current();
+        }
 }
 
 int oppo_gauge_get_remaining_capacity(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->gauge_ops->get_batt_remaining_capacity();
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->gauge_ops->get_batt_remaining_capacity();
+        }
 }
 
 int oppo_gauge_get_device_type(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->device_type;
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->device_type;
+        }
 }
 
 int oppo_gauge_get_device_type_for_vooc(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->device_type_for_vooc;
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->device_type_for_vooc;
+        }
 }
 
 int oppo_gauge_get_batt_fcc(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_fcc();
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_fcc();
+        }
 }
 
 int oppo_gauge_get_batt_cc(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_cc();
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_cc();
+        }
 }
 
 int oppo_gauge_get_batt_soh(void)
 {
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_soh();
-	}
+        if (!g_gauge_chip) {
+                return 0;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_soh();
+        }
 }
 
 bool oppo_gauge_get_batt_authenticate(void)
 {
-	if (!g_gauge_chip) {
-		return false;
-	} else {
-		return g_gauge_chip->gauge_ops->get_battery_authenticate();
-	}
+        if (!g_gauge_chip) {
+                return false;
+        } else {
+                return g_gauge_chip->gauge_ops->get_battery_authenticate();
+        }
 }
 
 void oppo_gauge_set_batt_full(bool full)
 {
-	if (g_gauge_chip) {
-		g_gauge_chip->gauge_ops->set_battery_full(full);
-	}
+        if (g_gauge_chip) {
+                g_gauge_chip->gauge_ops->set_battery_full(full);
+        }
 }
 
 bool oppo_gauge_check_chip_is_null(void)
 {
-	if (!g_gauge_chip) {
-		return true;
-	} else {
-		return false;
-	}
+        if (!g_gauge_chip) {
+                return true;
+        } else {
+                return false;
+        }
 }
 
 void oppo_gauge_init(struct oppo_gauge_chip *chip)
 {
-	g_gauge_chip = chip;
+        g_gauge_chip = chip;
 }
 
 int oppo_gauge_get_prev_batt_mvolts(void)
@@ -187,19 +179,10 @@ int oppo_gauge_get_prev_batt_mvolts_2cell_min(void)
 
 int oppo_gauge_get_prev_batt_temperature(void)
 {
-	int batt_temp = 0;
 	if (!g_gauge_chip)
 		return 250;
-	else {
-		batt_temp = g_gauge_chip->gauge_ops->get_prev_battery_temperature();
-#ifdef CONFIG_HIGH_TEMP_VERSION
-	printk(KERN_ERR "[OPPO_CHG]CONFIG_HIGH_TEMP_VERSION enable here,\
-			disable high tbat shutdown \n");
-	if (batt_temp > 690)
-		batt_temp = 690;
-#endif
-		return batt_temp;
-	}
+	else
+		return g_gauge_chip->gauge_ops->get_prev_battery_temperature();
 }
 
 int oppo_gauge_get_prev_batt_soc(void)
@@ -218,16 +201,6 @@ int oppo_gauge_get_prev_batt_current(void)
 		return g_gauge_chip->gauge_ops->get_prev_average_current();
 }
 
-int oppo_gauge_get_prev_remaining_capacity(void)
-{
-	if (!g_gauge_chip) {
-		return 0;
-	} else {
-		return g_gauge_chip->gauge_ops->get_prev_batt_remaining_capacity();
-	}
-}
-
-
 int oppo_gauge_update_battery_dod0(void)
 {
 	if (!g_gauge_chip)
@@ -244,14 +217,3 @@ int oppo_gauge_update_soc_smooth_parameter(void)
 	else
 		return g_gauge_chip->gauge_ops->update_soc_smooth_parameter();
 }
-
-#ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add bq check_charging_enable function*/
-int oppo_gauge_get_batt_id(void) {
-       if (!g_gauge_chip)
-               return 0;
-       else
-               return g_gauge_chip->gauge_ops->get_battery_id();
-}
-#endif /*ODM_HQ_EDIT*/
-

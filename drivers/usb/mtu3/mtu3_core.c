@@ -758,10 +758,8 @@ static irqreturn_t mtu3_u3_ltssm_isr(struct mtu3 *mtu)
 		mtu3_printk(K_INFO, "LTSSM: SS_INACTIVE_INTR\n");
 	if (ltssm & RECOVERY_INTR)
 		mtu3_printk(K_INFO, "LTSSM: RECOVERY_INTR\n");
-	if (ltssm & U3_RESUME_INTR) {
-		mtu3_setbits(mtu->mac_base, U3D_LINK_POWER_CONTROL, UX_EXIT);
+	if (ltssm & U3_RESUME_INTR)
 		mtu3_printk(K_INFO, "LTSSM: U3_RESUME_INTR\n");
-	}
 	if (ltssm & ENTER_U2_INTR)
 		mtu3_printk(K_INFO, "LTSSM: ENTER_U2_INTR\n");
 	if (ltssm & ENTER_U1_INTR)

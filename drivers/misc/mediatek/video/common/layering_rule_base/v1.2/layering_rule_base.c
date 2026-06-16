@@ -1783,11 +1783,11 @@ static int _copy_layer_info_from_disp(struct disp_layer_info *disp_info_user,
 	int ret = 0, layer_num = 0;
 
 	if (l_info->layer_num[disp_idx] <= 0)
-		return 0;
+		return -EFAULT;
 
 	layer_num = l_info->layer_num[disp_idx];
 	layer_size = sizeof(struct layer_config) * layer_num;
-	l_info->input_config[disp_idx] = vzalloc(layer_size);
+	l_info->input_config[disp_idx] = kzalloc(layer_size, GFP_KERNEL);
 
 	if (l_info->input_config[disp_idx] == NULL)
 		return -ENOMEM;
@@ -1801,8 +1801,7 @@ static int _copy_layer_info_from_disp(struct disp_layer_info *disp_info_user,
 				   layer_size)) {
 			pr_info("[DISP][FB]: copy_to_user failed! line:%d\n",
 				__LINE__);
-
-			return 0;
+			return -EFAULT;
 		}
 	}
 
@@ -1811,22 +1810,12 @@ static int _copy_layer_info_from_disp(struct disp_layer_info *disp_info_user,
 
 int set_disp_info(struct disp_layer_info *disp_info_user, int debug_mode)
 {
-	int ret;
-
 	memcpy(&layering_info, disp_info_user, sizeof(struct disp_layer_info));
 
-	ret = _copy_layer_info_from_disp(disp_info_user, debug_mode, 0);
-	if (ret)
-		return ret;
-
-	ret = _copy_layer_info_from_disp(disp_info_user, debug_mode, 1);
-	if (ret) {
-		vfree(layering_info.input_config[0]);
-		return ret;
-	}
+	_copy_layer_info_from_disp(disp_info_user, debug_mode, 0);
+	_copy_layer_info_from_disp(disp_info_user, debug_mode, 1);
 
 	l_rule_info->disp_path = HRT_PATH_UNKNOWN;
-
 	return 0;
 }
 
@@ -1856,7 +1845,7 @@ static int _copy_layer_info_by_disp(struct disp_layer_info *disp_info_user,
 				__LINE__);
 			ret = -EFAULT;
 		}
-		vfree(l_info->input_config[disp_idx]);
+		kfree(l_info->input_config[disp_idx]);
 	}
 
 	return ret;
@@ -1914,39 +1903,6 @@ void register_layering_rule_ops(struct layering_rule_ops *ops,
 	l_rule_info = info;
 }
 
-static void handle_for_set_disp_info_fail(struct disp_layer_info *info)
-{
-	int i, j;
-
-	for (i = 0; i <= 1; i++) {
-		struct layer_config tmp;
-		int l_num = info->layer_num[i];
-
-		if (l_num <= 0)
-			continue;
-
-		rollback_all_to_GPU(info, i);
-
-		for (j = 0; j < l_num; j++) {
-			if (copy_from_user(&tmp, &info->input_config[i][j],
-				sizeof(struct layer_config)))
-				DISP_PR_ERR("%s: copy_from_user fail\n",
-					__func__);
-
-			tmp.ovl_id = 0;
-
-			if (copy_to_user(&info->input_config[i][j], &tmp,
-				sizeof(struct layer_config)))
-				DISP_PR_ERR("%s: copy_to_user fail\n",
-					__func__);
-		}
-	}
-
-	info->hrt_weight = 4; /* force overlap = 2 layer */
-	info->hrt_num = 0;
-	info->hrt_idx = HRT_LEVEL_LEVEL0;
-}
-
 int layering_rule_start(struct disp_layer_info *disp_info_user, int debug_mode)
 {
 	int ret;
@@ -1963,20 +1919,8 @@ int layering_rule_start(struct disp_layer_info *disp_info_user, int debug_mode)
 		DISP_PR_ERR("check_disp_info fail\n");
 		return -EFAULT;
 	}
-
-	/* set_disp_info return error code, do error handing:
-	 * 1. Rollback all layers to GPU
-	 * 2. Do not return error code in IOCTL, HWC did not handle this...
-	 */
-	ret = set_disp_info(disp_info_user, debug_mode);
-	if (ret) {
-		DISP_PR_ERR("%s: set_disp_info fail, ret=%d\n",
-			__func__, ret);
-
-		handle_for_set_disp_info_fail(disp_info_user);
-
+	if (set_disp_info(disp_info_user, debug_mode))
 		return -EFAULT;
-	}
 
 	print_disp_info_to_log_buffer(&layering_info);
 #ifdef HRT_DEBUG_LEVEL1
@@ -2283,8 +2227,8 @@ static int load_hrt_test_data(struct disp_layer_info *disp_info)
 			layering_rule_start(disp_info, 1);
 			is_test_pass = true;
 		} else if (strncmp(line_buf, "[test_end]", 10) == 0) {
-			vfree(disp_info->input_config[0]);
-			vfree(disp_info->input_config[1]);
+			kfree(disp_info->input_config[0]);
+			kfree(disp_info->input_config[1]);
 			memset(disp_info, 0x0, sizeof(struct disp_layer_info));
 			is_end = true;
 		} else if (strncmp(line_buf,

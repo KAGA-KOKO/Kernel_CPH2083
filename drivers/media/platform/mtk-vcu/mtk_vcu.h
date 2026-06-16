@@ -248,15 +248,11 @@ void *vcu_mapping_dm_addr(struct platform_device *pdev,
  *
  * @task:       VCUD task
  * @f:          VCUD task file
- * @reset:      flag to reset task and file
  *
  * Get VCUD task information from mtk_vcu driver.
  *
  **/
-void vcu_get_task(struct task_struct **task, struct files_struct **f,
-		int reset);
-void vcu_get_file_lock(void);
-void vcu_put_file_lock(void);
+void vcu_get_task(struct task_struct **task, struct files_struct **f);
 extern void smp_inner_dcache_flush_all(void);
 int vcu_set_codec_ctx(struct platform_device *pdev,
 		 void *codec_ctx, unsigned long type);

@@ -488,7 +488,10 @@ int mtk_power_misc_psy_event(
 				bm_err(
 					"battery temperature >= %d,shutdown",
 					tmp);
-				kernel_power_off();
+#ifdef ODM_HQ_EDIT
+/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.02.12 remove kernel power off in hig temp*/
+				//kernel_power_off();
+#endif /*ODM_HQ_EDIT*/
 			}
 		}
 	}
@@ -502,10 +505,10 @@ void mtk_power_misc_init(struct platform_device *pdev)
 	gtimer_init(&sdc.kthread_fgtimer, &pdev->dev, "power_misc");
 	sdc.kthread_fgtimer.callback = power_misc_kthread_fgtimer_func;
 	init_waitqueue_head(&sdc.wait_que);
-#ifndef VENDOR_EDIT
+
 	sdc.psy_nb.notifier_call = mtk_power_misc_psy_event;
 	power_supply_reg_notifier(&sdc.psy_nb);
-#endif /*VENDOR_EDIT*/
+
 	kthread_run(power_misc_routine_thread, &sdc, "power_misc_thread");
 }
 

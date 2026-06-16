@@ -238,8 +238,8 @@ shmem_param_run_length_encoding(int numOfPA, int *runLeng_arySize,
 
 #ifdef DBG_KREE_SHM
 	for (idx = 0; idx <= xx; idx++)
-		KREE_DEBUG("[%s]runLengAry[%d]. h=0x%x,l=0x%x, sz=0x%x\n",
-			__func__, idx, runLengAry[idx].high,
+		KREE_DEBUG("[%s]runLengAry[%d]. high = 0x%x, low=0x%x,
+			size = 0x%x\n", __func__, idx, runLengAry[idx].high,
 			runLengAry[idx].low, runLengAry[idx].size);
 #endif
 	KREE_DEBUG("[%s]==> end of run length encoding\n", __func__);
@@ -1206,7 +1206,6 @@ TZ_RESULT _kree_ION_AllocChunkmem_body(KREE_SESSION_HANDLE session,
 				uint32_t alignment, uint32_t size, int isZalloc)
 {
 	TZ_RESULT ret;
-
 	ret = _allocIONchmFunc(session, chm_handle, IONHandle,
 						alignment, size, isZalloc);
 

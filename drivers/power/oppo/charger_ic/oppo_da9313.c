@@ -297,13 +297,16 @@ static ssize_t proc_work_mode_write(struct file *file, const char __user *buf, s
         chg_err("%s: da9313 driver is not ready\n", __func__);
         return 0;
     }
-
     if (atomic_read(&divider_ic->suspended) == 1) {
         return 0;
     }
 
     if (count != 1) {
         return count;
+    }
+
+    if (oppo_vooc_get_allow_reading() == false) {
+        return 0;
     }
 
     if (copy_from_user(buffer, buf, 1)) {
@@ -318,19 +321,11 @@ static ssize_t proc_work_mode_write(struct file *file, const char __user *buf, s
     }
 
     if (work_mode != 0) {
-        divider_ic->fixed_mode_set_by_dev_file = false;
-    } else {
-        divider_ic->fixed_mode_set_by_dev_file = true;
-    }
-
-    if (oppo_vooc_get_allow_reading() == false) {
-        return 0;
-    }
-
-    if (work_mode != 0) {
         da9313_config_interface(REG04_DA9313_ADDRESS, REG04_DA9313_PVC_MODE_AUTO, REG04_DA9313_PVC_MODE_MASK);
+        divider_ic->fixed_mode_set_by_dev_file = false; 
     } else {
         da9313_config_interface(REG04_DA9313_ADDRESS, REG04_DA9313_PVC_MODE_FIXED, REG04_DA9313_PVC_MODE_MASK);
+        divider_ic->fixed_mode_set_by_dev_file = true;
     }
 
     return count;
@@ -441,24 +436,6 @@ static int da9313_driver_remove(struct i2c_client *client)
     return 0;
 }
 
-static void da9313_shutdown(struct i2c_client *client)
-{
-    int rc = 0;
-    struct chip_da9313 *divider_ic = the_chip;
-
-    if(divider_ic == NULL) {
-        chg_err("%s: da9313 driver is not ready\n", __func__);
-        return ;
-    }
-    if (atomic_read(&divider_ic->suspended) == 1) {
-        return ;
-    }
-
-    rc = da9313_config_interface(REG04_DA9313_ADDRESS, REG04_DA9313_PVC_MODE_AUTO, REG04_DA9313_PVC_MODE_MASK);
-
-    return ;
-}
-
 
 /**********************************************************
   *
@@ -494,7 +471,6 @@ static struct i2c_driver da9313_i2c_driver = {
     .resume         = da9313_resume,
     .suspend        = da9313_suspend,
 #endif
-	.shutdown	= da9313_shutdown,
 };
 
 

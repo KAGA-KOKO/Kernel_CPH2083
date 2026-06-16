@@ -1078,10 +1078,7 @@ int dlpt_notify_handler(void *unused)
 	unsigned long dlpt_notify_interval;
 	int pre_ui_soc = 0;
 	int cur_ui_soc = 0;
-#if defined(VENDOR_EDIT) && !defined(OPPO_RELEASE_FLAG)
-/*xing.xiong@BSP.Kernel.Debug, 2019/1/12, Modify for limiting kernel log*/
 	int diff_ui_soc = 1;
-#endif
 	unsigned short power_off_cnt = 0;
 
 	pre_ui_soc = battery_get_uisoc();
@@ -1133,12 +1130,10 @@ int dlpt_notify_handler(void *unused)
 				g_imix_val = IMAX_MAX_VALUE;
 			exec_dlpt_callback(g_imix_val);
 			pre_ui_soc = cur_ui_soc;
-#if defined(VENDOR_EDIT) && !defined(OPPO_RELEASE_FLAG)
-/*xing.xiong@BSP.Kernel.Debug, 2019/1/12, Modify for limiting kernel log*/
+
 			pr_info("[DLPT_final] %d,%d,%d,%d,%d\n",
 				g_imix_val, pre_ui_soc, cur_ui_soc,
 				diff_ui_soc, IMAX_MAX_VALUE);
-#endif
 		}
 
 		dlpt_notify_flag = false;
@@ -1153,12 +1148,10 @@ int dlpt_notify_handler(void *unused)
 				power_off_cnt++;
 				pr_info("[DLPT_POWER_OFF_EN] notify SOC=0 to power off, power_off_cnt=%d\n"
 					, power_off_cnt);
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2018/10/16, sjc Delete for remove dlpt shutdown */
+
 				if (power_off_cnt >= 4)
 					kernel_restart(
 						"DLPT reboot system");
-#endif /* VENDOR_EDIT */
 			} else
 				power_off_cnt = 0;
 		}

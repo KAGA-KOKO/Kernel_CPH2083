@@ -285,7 +285,7 @@ static int mtk_pcm_I2S0dl1_close(struct snd_pcm_substream *substream)
 {
 #ifdef VENDOR_EDIT
 #ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2018/10/30,
+	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/09,
 	 * add for KTV */
 	unsigned long flags;
 #endif /* CONFIG_OPPO_KTV_DEV */
@@ -293,7 +293,7 @@ static int mtk_pcm_I2S0dl1_close(struct snd_pcm_substream *substream)
 	pr_debug("%s\n", __func__);
 #ifdef VENDOR_EDIT
 #ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2018/10/30,
+	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/09,
 	 * add for KTV */
 	spin_lock_irqsave(&ktv_dl_ctrl_lock, flags);
 	write_access = 0;
@@ -366,7 +366,7 @@ static int mtk_pcm_I2S0dl1_prepare(struct snd_pcm_substream *substream)
 	unsigned int u32AudioI2S = 0;
 	bool mI2SWLen;
 #ifdef VENDOR_EDIT
-/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2018/10/30,
+/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/09,
  * add for KTV */
 #ifdef CONFIG_OPPO_KTV_DEV
 	unsigned long flags;
@@ -479,14 +479,13 @@ static int mtk_pcm_I2S0dl1_prepare(struct snd_pcm_substream *substream)
 	}
 #ifdef VENDOR_EDIT
 #ifdef CONFIG_OPPO_KTV_DEV
-	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2018/10/30,
+	/* Yongzhi.Zhang.zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/09,
 	 * add for KTV */
 	spin_lock_irqsave(&ktv_dl_ctrl_lock, flags);
 	write_access = 1;
 	spin_unlock_irqrestore(&ktv_dl_ctrl_lock, flags);
 #endif /* CONFIG_OPPO_KTV_DEV */
 #endif /* VENDOR_EDIT */
-
 	return 0;
 }
 

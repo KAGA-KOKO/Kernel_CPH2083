@@ -83,7 +83,7 @@ signed int battery_get_bat_current(void)
 	bool is_charging;
 
 	is_charging = gauge_get_current(&curr_val);
-	if (is_charging == true)
+	if (is_charging == false)
 		curr_val = 0 - curr_val;
 	return curr_val;
 }

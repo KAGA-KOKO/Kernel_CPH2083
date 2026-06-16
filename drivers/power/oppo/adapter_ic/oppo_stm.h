@@ -25,28 +25,28 @@
 #define FW_EXIST_LOW				16
 #define FW_EXIST_HIGH				17
 
-#define Tx_Read_Addr_Line			0x01
-#define Tx_Write_Addr_Line			0x02
-#define Tx_Erase_Addr_Line			0x03
-#define Tx_Read_All					0x04
-#define Tx_Erase_All				0x05
-#define Tx_Boot_Over				0x06
+#define Tx_Read_Addr_Line       	0x01  
+#define Tx_Write_Addr_Line     	 	0x02 
+#define Tx_Erase_Addr_Line      	0x03
+#define Tx_Read_All            		0x04
+#define Tx_Erase_All            	0x05
+#define Tx_Boot_Over            	0x06
 #define Tx_Cmd_Invalid				0xff
 
-#define Rx_Read_Addr_Line			0x01
-#define Rx_Write_Addr_Line			0x02
-#define Rx_Erase_Addr_Line			0x03
-#define Rx_Read_All					0x04
-#define Rx_Erase_All				0x05
-#define Rx_Boot_Over				0x06
+#define Rx_Read_Addr_Line       	0x01  
+#define Rx_Write_Addr_Line     	 	0x02 
+#define Rx_Erase_Addr_Line      	0x03
+#define Rx_Read_All            		0x04
+#define Rx_Erase_All            	0x05
+#define Rx_Boot_Over            	0x06
 #define Rx_Cmd_Invalid				0xff
 
-#define Read_Addr_Line_Cmd			0xF501
-#define Write_Addr_Line_Cmd			0xF502
-#define Erase_Addr_Line_Cmd			0xF503
-#define Read_All_Cmd				0xF504
-#define Erase_All_Cmd				0xF505
-#define Boot_Over_Cmd				0xF506
+#define Read_Addr_Line_Cmd        	0xF501  
+#define Write_Addr_Line_Cmd       	0xF502 
+#define Erase_Addr_Line_Cmd       	0xF503
+#define Read_All_Cmd              	0xF504
+#define Erase_All_Cmd             	0xF505
+#define Boot_Over_Cmd             	0xF506
 #define Last_Line_Addr				0x9FF0
 
 #define Read_Addr_Line_Cmd_Count	2000		//physical test: 27
@@ -59,17 +59,17 @@
 
 
 struct chip_stm {
-	struct i2c_client *client;
-	struct device *dev;
-	int timer_delay;
-	bool tx_byte_over;
-	bool rx_byte_over;
-	bool rx_timeout;
-	unsigned long uart_tx_gpio;
-	unsigned long uart_rx_gpio;
-	char *adapter_firmware_data;
-	unsigned int adapter_fw_data_count;
-	bool adapter_update_ing;
+        struct i2c_client           *client;
+        struct device               *dev;
+		int 						timer_delay;
+	 	bool		 				tx_byte_over;
+	 	bool		 				rx_byte_over;
+		bool		 				rx_timeout;
+		unsigned long 				uart_tx_gpio;
+		unsigned long 				uart_rx_gpio;
+		char		 				*adapter_firmware_data;
+		unsigned int	 			adapter_fw_data_count;
+		bool		 				adapter_update_ing;
 };
 
 //fw_ver must be 0x0b/0x0c/0x0d/0x0e/0x0f because of pic1508/stm8s

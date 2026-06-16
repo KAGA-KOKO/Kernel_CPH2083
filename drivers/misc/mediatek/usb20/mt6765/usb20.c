@@ -495,7 +495,7 @@ static enum charger_type musb_hal_get_charger_type(void)
 }
 static bool musb_hal_is_vbus_exist(void)
 {
-	bool vbus_exist = 0;
+	bool vbus_exist;
 
 #ifdef BYPASS_PMIC_LINKAGE
 	DBG(0, "force on");
@@ -512,10 +512,6 @@ static bool musb_hal_is_vbus_exist(void)
 }
 
 DEFINE_MUTEX(cable_connected_lock);
-#ifdef ODM_HQ_EDIT
-/*Jiangrunran@ODM.BSP.TP 2019/10/17 TP changer adapt*/
-extern void __attribute__((weak)) switch_usb_state(int usb_state);
-#endif
 /* be aware this could not be used in non-sleep context */
 bool usb_cable_connected(void)
 {
@@ -543,10 +539,6 @@ bool usb_cable_connected(void)
 
 	DBG(0, "connected=%d vbus_exist=%d type=%d\n",
 		connected, vbus_exist, chg_type);
-#ifdef ODM_HQ_EDIT
-	/*Jiangrunran@ODM.BSP.TP 2019/10/17 TP changer adapt*/
-	switch_usb_state(vbus_exist);
-#endif
 
 	mutex_unlock(&cable_connected_lock);
 	return connected;

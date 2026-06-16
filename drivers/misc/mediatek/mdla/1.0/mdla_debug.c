@@ -259,8 +259,6 @@ void mdla_debugfs_init(void)
 {
 	int ret;
 
-	mdla_klog = 0x40; /* print timeout info by default */
-
 	mdla_droot = debugfs_create_dir("mdla", NULL);
 
 	ret = IS_ERR_OR_NULL(mdla_droot);
@@ -431,12 +429,6 @@ void dump_timeout_debug_info(void)
 	mdla_timeout_debug("0x19020070: %08X\n",
 			ioread32(apu_conn_top + 0x20070));
 
-	for (i = 0x0000; i < 0x1000; i += 4)
-		mdla_timeout_debug("0x1900%04X: %08X\n",
-		 i, ioread32(apu_conn_top + i));
-	for (i = 0x0000; i < 0x1000; i += 4)
-		mdla_timeout_debug("0x1902%04X: %08X\n",
-		i, ioread32(apu_conn_top + i + 0x20000));
 	for (i = 0x0000; i < 0x1000; i += 4)
 		mdla_timeout_debug("0x1938%04X: %08X\n", i, mdla_cfg_read(i));
 	for (i = 0x0000; i < 0x1000; i += 4)

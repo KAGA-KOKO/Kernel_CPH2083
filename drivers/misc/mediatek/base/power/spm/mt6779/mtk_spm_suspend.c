@@ -79,11 +79,7 @@ static u32 suspend_pcm_flags = {
 
 static u32 suspend_pcm_flags1 = {
 	SPM_FLAG1_ENABLE_BIG_BUCK_OFF |
-	SPM_FLAG1_ENABLE_BIG_BUCK_ON |
-	SPM_FLAG1_FORCE_CPU_BUCK_OFF |
-	SPM_FLAG1_DISABLE_VS1_VOTER |
-	SPM_FLAG1_DISABLE_VS2_VOTER,
-
+	SPM_FLAG1_ENABLE_BIG_BUCK_ON
 };
 
 static inline void spm_suspend_footprint(enum spm_suspend_step step)

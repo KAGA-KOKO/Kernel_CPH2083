@@ -700,7 +700,6 @@ static int m4u_debug_set(void *data, u64 val)
 		break;
 	case 28:
 	{
-		m4u_dump_reg_for_vpu_hang_issue();
 #if 0
 		unsigned char *pSrc;
 		unsigned char *pDst;

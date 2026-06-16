@@ -29,7 +29,7 @@ static struct ppm_policy_data sysboost_policy = {
 	.name			= __stringify(PPM_POLICY_SYS_BOOST),
 	.lock			= __MUTEX_INITIALIZER(sysboost_policy.lock),
 	.policy			= PPM_POLICY_SYS_BOOST,
-	.priority		= PPM_POLICY_PRIO_USER_SPECIFY_BASE,
+	.priority		= PPM_POLICY_PRIO_PERFORMANCE_BASE,
 	.update_limit_cb	= ppm_sysboost_update_limit_cb,
 	.status_change_cb	= ppm_sysboost_status_change_cb,
 };
@@ -247,17 +247,8 @@ void mt_ppm_sysboost_set_freq_limit(enum ppm_sysboost_user user,
 		return;
 	}
 
-	#ifdef VENDOR_EDIT
-	/* ChaoYing.Chen@BSP.Power.Basic, 2018/02/22,
-	** Modify for disable ppm log in release version */
-	#ifndef OPPO_RELEASE_FLAG
 	ppm_info("sys boost by %s: cluster %d min/max freq = %d/%d\n",
 		sysboost_data[user].user_name, cluster, min_freq, max_freq);
-	#endif /* OPPO_RELEASE_FLAG */
-	#else /* VENDOR_EDIT */
-	ppm_info("sys boost by %s: cluster %d min/max freq = %d/%d\n",
-		sysboost_data[user].user_name, cluster, min_freq, max_freq);
-	#endif /* VENDOR_EDIT */
 
 	if (min_freq > max_freq && max_freq != -1)
 		min_freq = max_freq;
@@ -582,12 +573,7 @@ static int __init ppm_sysboost_policy_init(void)
 	ppm_info("@%s: register %s done!\n", __func__, sysboost_policy.name);
 
 out:
-#ifdef VENDOR_EDIT
-//cuixiaogang@SRC.hypnus. enable systboost policy by default
-	sysboost_policy.is_enabled = true;
-#else
 	sysboost_policy.is_enabled = false;
-#endif /* VENDOR_EDIT */
 	FUNC_EXIT(FUNC_LV_POLICY);
 
 	return ret;

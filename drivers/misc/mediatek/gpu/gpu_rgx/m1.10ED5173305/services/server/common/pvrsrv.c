@@ -2050,7 +2050,6 @@ Exit:
 		PVR_DPF((PVR_DBG_ERROR,
 				 "%s: Services failed to finalise the device (%s)",
 				 __func__, PVRSRVGetErrorStringKM(eError)));
-		BUG_ON(1);
 	}
 
 #if defined(SUPPORT_RGX)

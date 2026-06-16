@@ -86,8 +86,6 @@ enum DISP_HELPER_OPT {
 	/* OVL SBCH */
 	DISP_OPT_OVL_SBCH,
 	DISP_OPT_MMPATH,
-	DISP_OPT_LCM_HBM,
-	DISP_OPT_TUI_MODE, /* 0: single-window; 1: multi-window */
 	DISP_OPT_NUM
 };
 

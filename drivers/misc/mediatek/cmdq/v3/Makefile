@@ -12,12 +12,6 @@
 #
 
 # common driver code for CMDQ
-#ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2019/2/21,  for enable KASAN, use GCC complile tool, add flag format
-ifeq ($(CONFIG_KASAN),y)
-subdir-ccflags-y += -Wno-format
-endif
-#endif /*VENDOR_EDIT*/
 
 ifeq ($(CONFIG_MACH_MT6761),y)
 MTK_PLATFORM := mt6765
@@ -28,7 +22,6 @@ endif
 ifeq ($(CONFIG_MACH_MT6779),y)
 ccflags-y += -DPMQOS_VERSION2
 ccflags-y += -DMDP_MMPATH
-ccflags-y += -DCMDQ_MDP_ENABLE_SPR
 endif
 
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/smi/ \

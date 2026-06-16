@@ -49,10 +49,6 @@ typedef enum
 extern OPPO_BOOTMODE oppo_boot_mode;
 #endif /* VENDOR_EDIT */
 
-#ifdef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24, Add for silence mode and sau */
-extern OPPO_BOOTMODE oppo_boot_mode;
-#endif /* VENDOR_EDIT */
 
 /* for boot type usage */
 #define BOOTDEV_NAND            (0)

@@ -918,10 +918,6 @@ static inline bool policy_has_boost_freq(struct cpufreq_policy *policy)
 }
 #endif
 
-#ifdef VENDOR_EDIT
-struct list_head *get_cpufreq_policy_list(void);
-#endif /* VENDOR_EDIT */
-
 /* the following are really really optional */
 extern struct freq_attr cpufreq_freq_attr_scaling_available_freqs;
 extern struct freq_attr cpufreq_freq_attr_scaling_boost_freqs;

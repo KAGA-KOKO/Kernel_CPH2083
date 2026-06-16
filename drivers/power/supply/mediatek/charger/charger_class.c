@@ -147,37 +147,6 @@ int charger_dev_enable_ship(struct charger_device *chg_dev)
 }
 EXPORT_SYMBOL(charger_dev_enable_ship);
 
-int charger_dev_check_charging_enable(struct charger_device *chg_dev, bool *en)
-{
-	if (chg_dev != NULL && chg_dev->ops != NULL &&
-	    chg_dev->ops->check_charging_enable)
-		return chg_dev->ops->check_charging_enable(chg_dev, en);
-
-	return -ENOTSUPP;
-}
-EXPORT_SYMBOL(charger_dev_check_charging_enable);
-
-int charger_dev_enter_hiz_mode(struct charger_device *chg_dev)
-{
-	if (chg_dev != NULL && chg_dev->ops != NULL &&
-	    chg_dev->ops->charger_suspend)
-		return chg_dev->ops->charger_suspend(chg_dev);
-
-	return -ENOTSUPP;
-}
-EXPORT_SYMBOL(charger_dev_enter_hiz_mode);
-
-int charger_dev_exit_hiz_mode(struct charger_device *chg_dev)
-{
-	if (chg_dev != NULL && chg_dev->ops != NULL &&
-	    chg_dev->ops->charger_unsuspend)
-		return chg_dev->ops->charger_unsuspend(chg_dev);
-	return -ENOTSUPP;
-}
-EXPORT_SYMBOL(charger_dev_exit_hiz_mode);
-#endif
-
-#ifndef ODM_HQ_EDIT
 /*duanhanxing@ODM.HQ.BSP.Basic 2018.12.06 add get charger type API*/
 int charger_dev_get_charger_type(struct charger_device *chg_dev, u32 *charger_type)
 {
@@ -306,12 +275,7 @@ int charger_dev_set_eoc_current(struct charger_device *chg_dev, u32 uA)
 {
 	if (chg_dev != NULL && chg_dev->ops != NULL &&
 	    chg_dev->ops->set_eoc_current)
-#ifdef ODM_HQ_EDIT
-/* Yi.Zhou@ODM.HQ.BSP.CHG.Basic 2019.11.18 fix the obvious error */
-		return chg_dev->ops->set_eoc_current(chg_dev, uA);
-#else
 		chg_dev->ops->set_eoc_current(chg_dev, uA);
-#endif
 
 	return -ENOTSUPP;
 }
@@ -564,14 +528,14 @@ int charger_dev_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 EXPORT_SYMBOL(charger_dev_enable_chg_type_det);
 
 #ifdef ODM_HQ_EDIT
-/*yi.zhou@ODM.BSP.Charger 2019.09.23 add for OTG status file node*/
+/*duanhanxing@ODM.HQ.BSP.Charger 2018.11.29 add for OTG status file node*/
 bool otg_online = false;
 #endif /*ODM_HQ_EDIT*/
 int charger_dev_enable_otg(struct charger_device *chg_dev, bool en)
 {
 
 #ifdef ODM_HQ_EDIT
-/*yi.zhou@ODM.BSP.Charger 2019.09.23 add for OTG status file node*/
+/*duanhanxing@ODM.HQ.BSP.Charger 2018.11.29 add for OTG status file node*/
 	otg_online = en;
 #endif /*ODM_HQ_EDIT*/
 

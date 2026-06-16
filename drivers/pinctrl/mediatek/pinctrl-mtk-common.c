@@ -48,14 +48,6 @@ struct mtk_pinctrl *pctl;
 #define GPIO_MODE_BITS        3
 #define GPIO_MODE_PREFIX "GPIO"
 
-#ifdef VENDOR_EDIT
-/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-#define EINT_PMIC_NUMBER  144
-#define LOG_BUF_SIZE    256
-extern	unsigned int g_eint_pmic_num;
-extern	char wakeup_source_buf[LOG_BUF_SIZE];
-extern  int pmic_int_check(char * wakeup_name);
-#endif /* VENDOR_EDIT */
 
 static const char * const mtk_gpio_functions[] = {
 	"func0", "func1", "func2", "func3",
@@ -1183,14 +1175,8 @@ static int mtk_pinctrl_irq_request_resources(struct irq_data *d)
 			irqd_to_hwirq(d));
 		return ret;
 	}
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/04/12,
-	* remove for aging test
-	*/
 	pr_debug("%s eint %d, mode%d\n", __func__,
 		pin->eint.eintnum, pin->eint.eintmux);
-	#endif
 
 	/* set mux to INT mode */
 	mtk_pmx_set_mode(pctl->pctl_dev,
@@ -1378,15 +1364,8 @@ static int mtk_gpio_set_debounce(struct gpio_chip *chip, unsigned int offset,
 
 	set_offset = (eint_num / 4) * 4 + pctl->devdata->eint_offsets.dbnc_set;
 	clr_offset = (eint_num / 4) * 4 + pctl->devdata->eint_offsets.dbnc_clr;
-
-//#ifdef VENDOR_EDIT
-//Anhui.Sun@PSW.NW.RF, 2018/12/19, Add for SWTP - RF cable detection, reference from ODM_WT
-	//if (!mtk_eint_can_en_debounce(pctl, eint_num))
-	//	return -EINVAL;
-
-	mtk_eint_can_en_debounce(pctl, eint_num);
-	printk("mtk_gpio_set_debounce eintnum[%d]\n",eint_num);
-//#endif  /*VENDOR_EDIT*/
+	if (!mtk_eint_can_en_debounce(pctl, eint_num))
+		return -EINVAL;
 
 	if (pctl->devdata->spec_debounce_select)
 		dbnc = pctl->devdata->spec_debounce_select(debounce);
@@ -2378,57 +2357,6 @@ mtk_eint_debounce_process(struct mtk_pinctrl *pctl, int index)
 	}
 }
 
-#ifdef VENDOR_EDIT
-/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-#define EINT_WIDTH  		32
-#define EINT_REG_NUMBER  	18
-u64 eint_wakesrc_x_count[EINT_REG_NUMBER][EINT_WIDTH] = {
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-	 { 0 },
-};
-
-/*
- * mt_eint_print_status: clear the wakeup src count.
- */
-void mt_eint_clear_wakesrc_count(void)
-{
-	int i = 0;
-	int j = 0;
-
-	for (i = 0; i < EINT_REG_NUMBER; i++) {
-		for (j = 0; j < EINT_WIDTH; j++) {
-			eint_wakesrc_x_count[i][j] = 0;
-		}
-	}
-}
-
-const char * mt_eint_get_name(int index)
-{
-	struct irq_desc *desc = NULL;
-	int virq = 0;
-
-	virq = irq_find_mapping(pctl->domain, index);
-	desc = irq_to_desc(virq);
-	return desc->action->name;
-}
-EXPORT_SYMBOL(mt_eint_get_name);
-#endif /* VENDOR_EDIT */
 /*
  * mt_eint_print_status: Print the EINT status register.
  */
@@ -2442,11 +2370,6 @@ void mt_eint_print_status(void)
 		 mtk_eint_get_offset(pctl, 0, eint_offsets->stat);
 	unsigned int triggered_eint;
 
-	#ifdef VENDOR_EDIT
-	/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-	struct irq_desc *desc = NULL;
-	int virq = 0;
-	#endif /* VENDOR_EDIT */
 	pr_notice("EINT_STA:");
 	for (eint_num = 0; eint_num < pctl->devdata->ap_num;
 		reg_base += 4, eint_num += 32) {
@@ -2463,20 +2386,6 @@ void mt_eint_print_status(void)
 			triggered_eint = eint_num + offset;
 			pr_notice("EINT %d is pending\n", triggered_eint);
 			status &= ~BIT(offset);
-
-			#ifdef VENDOR_EDIT
-			/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-			virq = irq_find_mapping(pctl->domain, triggered_eint);
-			desc = irq_to_desc(virq);
-			memset(wakeup_source_buf, 0, sizeof(wakeup_source_buf));
-			if (desc->action != NULL) {
-					strcpy(wakeup_source_buf, desc->action->name);
-			} else {
-					pr_err("desc->action == NULL\n");
-			}
-			if (EINT_PMIC_NUMBER == triggered_eint)
-					pmic_int_check(wakeup_source_buf);
-			#endif /* VENDOR_EDIT */
 		}
 	}
 	pr_notice("\n");
@@ -2630,14 +2539,12 @@ static void mtk_pinctrl_test(struct mtk_pinctrl *pctl)
 }
 #endif
 #endif
-
 #ifdef ODM_HQ_EDIT
-/*liujia@ODM.BSP.gpio 2019/10/2 gpio*/
+/*Duwenchao@ODM.BSP.sar 2018/12/21 sar*/
 int mtk_get_gpio_value(int gpio){
 	return mtk_gpio_get_in(pctl->chip, gpio);
 }
 #endif
-
 int mtk_pctrl_init(struct platform_device *pdev,
 		const struct mtk_pinctrl_devdata *data,
 		struct regmap *regmap)

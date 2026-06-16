@@ -202,8 +202,6 @@ struct mmc_cmdq_req {
 	unsigned int		dev_pend_tasks;
 	bool			resp_err;
 	bool			skip_err_handling;
-	bool			skip_dump; /* for skip dump info */
-	bool			skip_reset; /* for skip autok */
 	int			tag; /* used for command queuing */
 	u8			ctx_id;
 };
@@ -452,11 +450,6 @@ struct mmc_host {
 	struct task_struct	*sdio_irq_thread;
 	bool			sdio_irq_pending;
 	atomic_t		sdio_irq_thread_abort;
-
-#ifdef VENDOR_EDIT
-//yh@bsp, 2015-10-21 Add for special card compatible
-	bool            card_stuck_in_programing_status;
-#endif /* VENDOR_EDIT */
 
 	mmc_pm_flag_t		pm_flags;	/* requested pm features */
 

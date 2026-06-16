@@ -50,12 +50,6 @@ enum mt_phy_version {
 	MT_PHY_V2,
 };
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/08/28, sjc Add to reduce USB internal R
-  * and increase chirp K voltage, USB drive current change from 18mA to 22mA */
-extern bool mt_usb_is_device(void);
-#endif
-
 static bool usb_enable_clock(struct mtk_phy_drv *u3phy, bool enable)
 {
 	static int count;
@@ -123,25 +117,6 @@ static void phy_efuse_settings(struct mtk_phy_instance *instance)
 {
 	u32 evalue;
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/08/28, sjc Modify to reduce USB internal R
-  * and increase chirp K voltage, USB drive current change from 18mA to 22mA */
-	//change RG_USB20_INTR_CAL from 0x14 to 0x1E
-	if (mt_usb_is_device()) {
-		phy_printk(K_INFO, "%s- RG_USB20_INTR_CAL=0x1E in device mode\n", __func__);
-		u3phywrite32(U3D_USBPHYACR1,
-			RG_USB20_INTR_CAL_OFST,
-			RG_USB20_INTR_CAL, 0x1E);
-	} else {
-		evalue = (get_devinfo_with_index(108) & (0x1f<<0)) >> 0;
-		if (evalue) {
-			phy_printk(K_INFO, "RG_USB20_INTR_CAL=0x%x\n", evalue);
-			u3phywrite32(U3D_USBPHYACR1,
-				RG_USB20_INTR_CAL_OFST,
-				RG_USB20_INTR_CAL, evalue);
-		}
-	}
-#else /*VENDOR_EDIT*/
 	evalue = (get_devinfo_with_index(108) & (0x1f<<0)) >> 0;
 	if (evalue) {
 		phy_printk(K_INFO, "RG_USB20_INTR_CAL=0x%x\n",
@@ -150,8 +125,6 @@ static void phy_efuse_settings(struct mtk_phy_instance *instance)
 			RG_USB20_INTR_CAL_OFST,
 			RG_USB20_INTR_CAL, evalue);
 	}
-#endif /*VENDOR_EDIT*/
-
 	evalue = (get_devinfo_with_index(107) & (0x3f << 16)) >> 16;
 	if (evalue) {
 		phy_printk(K_INFO, "RG_SSUSB_IEXT_INTR_CTRL=0x%x\n",
@@ -525,12 +498,7 @@ static void phy_recover(struct mtk_phy_instance *instance)
 	phy_efuse_settings(instance);
 
 	u3phywrite32(U3D_USBPHYACR6, RG_USB20_DISCTH_OFST,
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/25, sjc Modify for host, disconnect threshold */
 		RG_USB20_DISCTH, 0x7);
-#else
-		RG_USB20_DISCTH, 0xC);
-#endif
 
 	usb_phy_tuning(instance);
 	phy_advance_settings(instance);

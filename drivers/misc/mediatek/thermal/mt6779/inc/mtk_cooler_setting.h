@@ -46,10 +46,5 @@
 #define FEATURE_MUTT_INTERFACE_VER	(2)
 
 
-/*for AINR mdla/vpu throttle*/
-#define ENALBE_AINR_LIMIT
-
-extern unsigned int cl_get_ainr_status(void);
-extern void cl_set_ainr_status(int vv);
 
 #endif				/* _MTK_COOLER_SETTING_H */

@@ -16,7 +16,7 @@ static enum EEPROM_I2C_DEV_IDX gi2c_dev_sel[CAM_CAL_SENSOR_IDX_MAX] = {
 	I2C_DEV_IDX_1, /* main */
 	I2C_DEV_IDX_2, /* sub */
 	I2C_DEV_IDX_3, /* main2 */
-	I2C_DEV_IDX_3, /* sub2 */
+	I2C_DEV_IDX_1, /* sub2 */
 	I2C_DEV_IDX_3, /* main3 */
 };
 

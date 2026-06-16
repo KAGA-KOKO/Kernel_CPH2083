@@ -179,7 +179,7 @@ obj-$(CONFIG_FPGA)		+= fpga/
 obj-$(CONFIG_TEE)		+= tee/
 obj-$(CONFIG_TRUSTY)	+= trusty/
 
-
-
-#xuyechen@ODM_HQ.Multimedia.audio, 2019/09/24, add for switch class driver
+#ifdef ODM_HQ_EDIT
+#chenxinjiang@ODM_HQ.Multimedia.audio, 2018/11/28, add for switch class driver
 obj-$(CONFIG_SWITCH)            += switch/
+#endif #ODM_HQ_EDIT

@@ -635,7 +635,6 @@ void do_coredump(const siginfo_t *siginfo)
 	//Zhibin.Wu@PSW.AD.Stability.Crash.1656573, 2018/11/27, Add for critical svc coredump
 	//you can check current->thread_leader->comm , current_uid and more.
 	//demo only allow system_server, surfaceflinger, com.oppo.camera,com.coloros.video and other system process in user build.
-        //tangjh@PSW.BSP.Sensor , 2019/07/31 ,add for RTC 2167518 libakm.so crash on stack
 #ifdef CONFIG_OPPO_SPECIAL_BUILD
 //Deliang.Peng@PSW.MM.Stability.Log, 2018/12/05, Add for app coredump
 #ifndef CONFIG_MT_ENG_BUILD
@@ -643,7 +642,6 @@ void do_coredump(const siginfo_t *siginfo)
 		strncmp(current->group_leader->comm, "surfaceflinger", 16) &&
 		strncmp(current->group_leader->comm, "com.oppo.camera", 17) &&
 		strncmp(current->group_leader->comm, "com.coloros.video", 19) &&
-		strncmp(current->group_leader->comm, "android.hardware.sensors@1.0-service-mediatek", 45) &&
 		(from_kuid_munged(current_user_ns(), current_uid()) >= 10000) ) {
 		goto fail;
 	}

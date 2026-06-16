@@ -58,7 +58,7 @@ void long_press_reboot_function_setting(void)
 		kpd_info("Normal Boot long press reboot selection\n");
 
 #if !defined(VENDOR_EDIT) && defined(CONFIG_KPD_PMIC_LPRST_TD)
-/*xing.xiong@BSP.Kernel.Debug, 2018/11/09, Modify for disable long press reset in normal mode*/
+/*xing.xiong@BSP.Kernel.Debug, 2018/11/09, Modify for disable long press reset*/
 		kpd_info("Enable normal mode LPRST\n");
 #ifdef CONFIG_ONEKEY_REBOOT_NORMAL_MODE
 		/*POWERKEY*/
@@ -77,8 +77,7 @@ void long_press_reboot_function_setting(void)
 	} else {
 		kpd_info("Other Boot Mode long press reboot selection\n");
 
-#if !defined(VENDOR_EDIT) && defined(CONFIG_KPD_PMIC_LPRST_TD)
-/*xing.xiong@BSP.Kernel.Debug, 2018/11/09, Modify for disable long press reset in recovery mode*/
+#ifdef CONFIG_KPD_PMIC_LPRST_TD
 		kpd_info("Enable other mode LPRST\n");
 
 #ifdef CONFIG_ONEKEY_REBOOT_NORMAL_MODE

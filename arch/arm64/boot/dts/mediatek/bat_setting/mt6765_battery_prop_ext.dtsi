@@ -25,7 +25,8 @@ bat_gm30: battery{
 	PMIC_SHUTDOWN_CURRENT = <(20)>;	/*	System shutdown current.*/
 	FG_METER_RESISTANCE = <(75)>;	/*	The resistance of PCB*/
 	/*	Tune value for current measurement.*/
-	CAR_TUNE_VALUE = <(100)>;
+/*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2018.12.20 modify car_tune_value 100 to 98*/
+	CAR_TUNE_VALUE = <(98)>;
 	PMIC_MIN_VOL = <(33500)>;
 	/*	vboot voltage for gauge 0%.*/
 	POWERON_SYSTEM_IBOOT = <(500)>;
@@ -38,20 +39,17 @@ bat_gm30: battery{
 	TEMPERATURE_T3 = <(0)>;	/*	Battery temperature T3*/
 	TEMPERATURE_T4 = <(-10)>;	/*	Battery temperature T4*/
 	g_FG_PSEUDO100_T0 = <(100)>;	/*	Pseudo 100% percentage at T0.*/
-	g_FG_PSEUDO100_T1 = <(95)>;	/*	Pseudo 100% percentage at T1.*/
-	g_FG_PSEUDO100_T2 = <(92)>;	/*	Pseudo 100% percentage at T2.*/
-	g_FG_PSEUDO100_T3 = <(92)>;	/*	Pseudo 100% percentage at T3.*/
-	g_FG_PSEUDO100_T4 = <(90)>;	/*	Pseudo 100% percentage at T4.*/
-	ACTIVE_TABLE = <(0)>;
-	MULTI_BATTERY = <(0)>;
+	g_FG_PSEUDO100_T1 = <(100)>;	/*	Pseudo 100% percentage at T1.*/
+	g_FG_PSEUDO100_T2 = <(100)>;	/*	Pseudo 100% percentage at T2.*/
+	g_FG_PSEUDO100_T3 = <(100)>;	/*	Pseudo 100% percentage at T3.*/
+	g_FG_PSEUDO100_T4 = <(100)>;	/*	Pseudo 100% percentage at T4.*/
 	/*	System shut down voltage.*/
-	Q_MAX_SYS_VOLTAGE_BAT0 = <(3350)>;
+	Q_MAX_SYS_VOLTAGE_BAT0 = <(3400)>;
 	/*	System shut down voltage.*/
-	Q_MAX_SYS_VOLTAGE_BAT1 = <(3350)>;
+	Q_MAX_SYS_VOLTAGE_BAT1 = <(3400)>;
 	/*	System shut down voltage.*/
-	Q_MAX_SYS_VOLTAGE_BAT2 = <(3350)>;
+	Q_MAX_SYS_VOLTAGE_BAT2 = <(3400)>;
 	/*	System shut down voltage.*/
-	Q_MAX_SYS_VOLTAGE_BAT3 = <(3350)>;
-#include "mt6765_battery_table_ext_atl.dtsi"
-#include "mt6765_battery_table_ext_sdi.dtsi"
+	Q_MAX_SYS_VOLTAGE_BAT3 = <(3400)>;
+#include "mt6765_battery_table_ext.dtsi"
 };

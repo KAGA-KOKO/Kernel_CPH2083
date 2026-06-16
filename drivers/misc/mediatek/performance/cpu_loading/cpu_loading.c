@@ -693,10 +693,6 @@ static int init_cpu_loading_kobj(void)
 	/* dev init */
 
 	cpu_loading_object->mdev.name = "cpu_loading";
-#if defined(VENDOR_EDIT)
-//wangtao@Swdp.shanghai, 2019/02/11, fix misc device minor number error
-	cpu_loading_object->mdev.minor = MISC_DYNAMIC_MINOR;
-#endif
 	ret = misc_register(&cpu_loading_object->mdev);
 	if (ret) {
 		pr_debug(TAG"misc_register error:%d\n", ret);

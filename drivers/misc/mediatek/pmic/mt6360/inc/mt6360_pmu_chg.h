@@ -98,12 +98,6 @@ struct mt6360_chg_platform_data {
 #define MT6360_MASK_USBCHGEN	BIT(7)
 #define MT6360_SHFT_USBCHGEN	(7)
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/01/30, sjc Add for charging */
-#define MT6360_MASK_DCD_TIMEOUT		(0x30)
-#define MT6360_SHIFT_DCD_TIMEOUT	4
-#endif
-
 /* MT6360_PMU_USB_STATUS1 : 0x27 */
 #define MT6360_MASK_USB_STATUS	(0x70)
 #define MT6360_SHFT_USB_STATUS	(4)

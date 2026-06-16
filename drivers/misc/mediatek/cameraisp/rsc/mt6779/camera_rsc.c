@@ -1816,7 +1816,7 @@ static long RSC_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 						IrqInfo.UserKey = 0;
 				}
 
-				LOG_DBG(
+				LOG_INF(
 				"IRQ clear(%d), type(%d), userKey(%d), timeout(%d), status(%d)\n",
 					IrqInfo.Clear, IrqInfo.Type,
 					IrqInfo.UserKey, IrqInfo.Timeout,
@@ -3418,7 +3418,8 @@ int32_t RSC_DumpCallback(uint64_t engineFlag, int level)
 
 int32_t RSC_ResetCallback(uint64_t engineFlag)
 {
-	LOG_INF("%s: RSC_RST_REG = 0x%x\n", __func__, RSC_RD32(RSC_RST_REG));
+	LOG_DBG("%s", __func__);
+	RSC_Reset();
 
 	return 0;
 }

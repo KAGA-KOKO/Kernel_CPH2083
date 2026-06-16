@@ -99,11 +99,6 @@ extern int get_vpu_dspcore_opp(int core);
 extern int get_vpu_platform_floor_opp(void);
 extern int get_vpu_ceiling_opp(int core);
 extern int get_vpu_opp_to_freq(uint8_t step);
-#ifdef VENDOR_EDIT
-/*zhen.zeng@Camera, 2019/6/26, Add for AIScene VPU*/
-extern void clear_vpu_opp_keep_flag(void);
-#endif /* VENDOR_EDIT */
-
 void vpu_enable_mtcmos(void);
 void vpu_disable_mtcmos(void);
 int get_vpu_init_done(void);

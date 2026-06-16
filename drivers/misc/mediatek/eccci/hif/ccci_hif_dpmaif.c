@@ -62,15 +62,6 @@
 #define UIDMASK 0x80000000
 #define TAG "dpmaif"
 
-#ifdef VENDOR_EDIT
-//Asiga@PSW.NW.DATA.2039328, 2019/05/21, Add for data wake up source in P90
-#define MODEM_WAKEUP_SRC_NUM 10
-#define DATA_WAKEUP_0 0
-#define DATA_WAKEUP_1 1
-extern int modem_wakeup_src_count[MODEM_WAKEUP_SRC_NUM];
-extern char modem_wakeup_src_string[MODEM_WAKEUP_SRC_NUM][20];
-#endif /* VENDOR_EDIT */
-
 struct hif_dpmaif_ctrl *dpmaif_ctrl;
 
 /* =======================================================
@@ -651,20 +642,11 @@ static inline void dpmaif_rx_msg_pit(struct dpmaif_rx_queue *rxq,
 		rxq->index, rxq->cur_chn_idx, rxq->check_sum);
 #endif
 	/* check wakeup source */
-	if (atomic_cmpxchg(&dpmaif_ctrl->wakeup_src, 1, 0) == 1){
+	if (atomic_cmpxchg(&dpmaif_ctrl->wakeup_src, 1, 0) == 1)
 		CCCI_NOTICE_LOG(dpmaif_ctrl->md_id, TAG,
 			"DPMA_MD wakeup source:(%d/%d/%x)\n",
 			rxq->index, msg_pit->channel_id,
 			msg_pit->network_type);
-		#ifdef VENDOR_EDIT
-		//Asiga@PSW.NW.DATA.2039328, 2019/05/21, Add for data wake up source in P90
-		switch(msg_pit->channel_id){
-			case DATA_WAKEUP_0:
-			case DATA_WAKEUP_1:
-				modem_wakeup_src_count[3]++;
-		}
-		#endif /* VENDOR_EDIT */
-	}
 }
 
 #ifdef HW_FRG_FEATURE_ENABLE
@@ -1654,21 +1636,12 @@ static unsigned short dpmaif_relase_tx_buffer(unsigned char q_num,
 					TX_IRQ, OUT, txq->index);
 		}
 		/* check wakeup source */
-		if (atomic_cmpxchg(&dpmaif_ctrl->wakeup_src, 1, 0) == 1){
+		if (atomic_cmpxchg(&dpmaif_ctrl->wakeup_src, 1, 0) == 1)
 			CCCI_NOTICE_LOG(dpmaif_ctrl->md_id, TAG,
 				"DPMA_MD wakeup source:(%d/%d%s)\n",
 				txq->index, txq->last_ch_id,
 				(cur_drb->dtyp == DES_DTYP_MSG) ?
 					"" : "/data 1st received");
-			#ifdef VENDOR_EDIT
-			//Asiga@PSW.NW.DATA.2039328, 2019/05/21, Add for data wake up source in P90
-			switch(txq->last_ch_id){
-				case DATA_WAKEUP_0:
-				case DATA_WAKEUP_1:
-					modem_wakeup_src_count[3]++;
-			}
-			#endif /* VENDOR_EDIT */
-		}
 	}
 	if (cur_drb->c_bit != 0)
 		CCCI_DEBUG_LOG(dpmaif_ctrl->md_id, TAG,

@@ -56,9 +56,6 @@
 #include "../mrdump/mrdump_private.h"
 #include <mrdump.h>
 
-/* mtk71029 add for debug display hang*/
-#include "../../video/mt6779/videox/aee_primary_display.h"
-
 static DEFINE_SPINLOCK(pwk_hang_lock);
 static int wdt_kick_status;
 static int hwt_kick_times;
@@ -1756,11 +1753,6 @@ static int hang_detect_thread(void *arg)
 				hang_aee_warn = 0;
 			}
 
-			/* mtk71029 add for debug display hang*/
-			if (hang_detect_counter == 1){
-				//dump_display_primary_path_context_status();
-			}
-
 			if (hang_detect_counter <= 0) {
 				Log2HangInfo(
 					"[Hang_detect]Dump the %d time process bt.\n",
@@ -1783,8 +1775,6 @@ static int hang_detect_thread(void *arg)
 					wake_up_dump();
 
 				if (Hang_Detect_first == true) {
-					/* mtk71029 add for debug display hang*/
-					//dump_display_primary_path_context_status();
 					pr_notice(
 						"[Hang_Detect] aee mode is %d, we should triger KE...\n",
 						aee_mode);

@@ -133,10 +133,8 @@ u16 rtc_spare_reg[RTC_SPAR_NUM][3] = {
 	,
 	{RTC_SPAR0, 0x1, 12}
 	,
-	{RTC_SPAR0, 0x1, 13},
-/*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
-	{RTC_SPAR0, 0x01, 15},
-#endif /* VENDOR_EDIT */
+	{RTC_SPAR0, 0x1, 13}
+#endif
 };
 
 static int rtc_eosc_cali_td = 8;

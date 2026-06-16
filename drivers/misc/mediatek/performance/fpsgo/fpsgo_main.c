@@ -176,6 +176,9 @@ static void fpsgo_notifier_wq_cb_bqid(int pid, unsigned long long bufID,
 		"[FPSGO_CB] bqid: pid %d, bufID %llu, queue_SF %d, id %llu, create %d\n",
 		pid, bufID, queue_SF, id, create);
 
+	if (!fpsgo_is_enable())
+		return;
+
 	fpsgo_ctrl2comp_bqid(pid, bufID, queue_SF, id, create);
 }
 

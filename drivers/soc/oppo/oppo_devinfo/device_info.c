@@ -26,12 +26,7 @@
 #include <asm/uaccess.h>
 #include <linux/delay.h>
 
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-#define DEVINFO_NAME "oppo_devinfo"
-#else
 #define DEVINFO_NAME "devinfo"
-#endif
 #define INFO_BUF_LEN 64
 /**for definfo log**/
 #define log_fmt(fmt) "[line:%d][module:%s][%s] " fmt
@@ -142,20 +137,11 @@ int register_device_proc(char *name, char *version, char *manufacture)
 	struct manufacture_info *info;
 
 	if(!parent) {
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-		parent =  proc_mkdir ("oppo_devinfo", NULL);
-		if(!parent) {
-			pr_err("can't create oppo_devinfo proc\n");
-			return -ENOENT;
-		}
-#else
 		parent =  proc_mkdir ("devinfo", NULL);
 		if(!parent) {
 			pr_err("can't create devinfo proc\n");
 			return -ENOENT;
 		}
-#endif
 	}
 
 	info = kzalloc(sizeof *info, GFP_KERNEL);
@@ -174,20 +160,11 @@ int register_devinfo(char *name, struct manufacture_info *info)
 {
 	struct proc_dir_entry *d_entry;
 	if(!parent) {
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-	parent =  proc_mkdir ("oppo_devinfo", NULL);
-	if(!parent) {
-			pr_err("can't create oppo_devinfo proc\n");
-			return -ENOENT;
-		}
-#else
 	parent =  proc_mkdir ("devinfo", NULL);
 	if(!parent) {
 			pr_err("can't create devinfo proc\n");
 			return -ENOENT;
 		}
-#endif
 	}
 
 	d_entry = proc_create_data (name, S_IRUGO, parent, &device_node_fops, info);
@@ -364,26 +341,7 @@ static int subboard_verify(struct devinfo_data *const devinfo_data)
 				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-unmatch");
 			}
 			break;
-		case OPPO_18073:
-		case OPPO_18593:
-			if ((id1 == 1) && (id2 == 1) && (operator == OPERATOR_18073_MOBILE || operator == OPERATOR_18073_All_BAND)) {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-match");
-			} else if ((id1 == 1) && (id2 == 0) && (operator == OPERATOR_18593_CARRIER)) {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-match");
-			}else {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-unmatch");
-			}
-			break;
-		case OPPO_19011:
-		case OPPO_19301:
-			if ((id1 == 1) && (id2 == 1) && (operator == OPERATOR_19011_All_BAND || operator == OPERATOR_19011_MOBILE)) {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-match");
-			} else if ((id1 == 0) && (id2 == 1) && (operator == OPERATOR_19301_CARRIER || operator == OPERATOR_19305_CARRIER)) {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-match");
-			}else {
-				snprintf(devinfo_data->sub_mainboard_info.manufacture, INFO_BUF_LEN, "rf-unmatch");
-			}
-			break;
+
 		default:
 			DEVINFO_ERR("illegal project\n");
 			break;
@@ -443,20 +401,11 @@ static int devinfo_probe(struct platform_device *pdev)
 	dev_info = devinfo_data;
 
 	if(!parent) {
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-		parent =  proc_mkdir ("oppo_devinfo", NULL);
-		if(!parent) {
-			DEVINFO_ERR("can't create oppo_devinfo proc\n");
-			ret = -ENOENT;
-		}
-#else
 		parent =  proc_mkdir ("devinfo", NULL);
 		if(!parent) {
 			DEVINFO_ERR("can't create devinfo proc\n");
 			ret = -ENOENT;
 		}
-#endif
 	}
 
 	ret = subboard_init(devinfo_data);

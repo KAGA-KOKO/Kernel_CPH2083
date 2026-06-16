@@ -16,8 +16,6 @@
 #include <linux/io.h>
 #include <linux/genalloc.h>
 
-#include <linux/vmalloc.h>
-
 #include <linux/delay.h>
 #include <linux/uaccess.h>      /* needed by copy_to_user */
 
@@ -201,12 +199,13 @@ inline uint8_t *dma_vir_base(void)
 		if (p_region && description) { \
 			LOG_F("%s, offset: 0x%x, size: 0x%x" \
 			      ", read_idx: 0x%x, write_idx: 0x%x" \
-			      ", count: %u", \
+			      ", region_data_count: 0x%x, count: %u", \
 			      description, \
 			      (p_region)->offset, \
 			      (p_region)->size, \
 			      (p_region)->read_idx, \
 			      (p_region)->write_idx, \
+			      audio_region_data_count(p_region), \
 			      count); \
 		} else { \
 			pr_notice("%uL, %p %p", \

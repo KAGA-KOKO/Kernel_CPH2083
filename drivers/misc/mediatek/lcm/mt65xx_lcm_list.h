@@ -23,10 +23,6 @@ extern struct LCM_DRIVER oppo18531_tm_himax83112a_2_1080p_dsi_vdo_lcm_drv;
 extern struct LCM_DRIVER oppo18151_dsjm_jdi_td4330_1080p_dsi_cmd_lcm_drv;
 /* YongPeng.Yi@PSW.MM.Display.LCD.Machine 2018/10/25, Add for lcm ic dpt jdi td4330*/
 extern struct LCM_DRIVER oppo18151_dpt_jdi_td4330_1080p_dsi_cmd_lcm_drv;
-/* Ling.Guo@PSW.MM.Display.LCD.Machine 2019/01/08, Add for lcm ic samsung*/
-extern struct LCM_DRIVER oppo18073_samsung_ams641rw01_1080p_dsi_cmd_lcm_drv;
-/* Ling.Guo@PSW.MM.Display.LCD.Machine 2019/01/08, Add for lcm ic samsung*/
-extern struct LCM_DRIVER oppo19011_samsung_ams641rw01_1080p_dsi_cmd_lcm_drv;
 #endif /* VENDOR_EDIT */
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_60hz_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_lcm_drv;
@@ -311,25 +307,12 @@ extern struct LCM_DRIVER hx83112b_fhdp_dsi_cmd_auo_rt4801_lcm_drv;
 extern struct LCM_DRIVER hx83112b_fhdp_dsi_cmd_fhd_auo_rt4801_lcm_drv;
 extern struct LCM_DRIVER hx83112b_fhdp_dsi_vdo_auo_rt4801_lcm_drv;
 extern struct LCM_DRIVER sofeg01_fhdplus_dsi_cmd_samsung_lcm_drv;
-
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/21 add for LCD bring up */
-extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_inx_al2350_lcm_drv;
-extern struct LCM_DRIVER nt36525b_hdp_dsi_vdo_hlt_al2350_lcm_drv;
-extern struct LCM_DRIVER nt36525b_hdp_dsi_vdo_boe_al2350_lcm_drv;
-extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_txd_al2350_lcm_drv;
-extern struct LCM_DRIVER nt36525b_hdp_dsi_vdo_djn_al2350_lcm_drv;
+/* Wangxianfei@ODM.Multimedia.LCD  2018/11/29 add for LCD bring up */
+extern struct LCM_DRIVER ili9881c_hd_dsi_vdo_txd_boe_zal1890_lcm_drv;
+extern struct LCM_DRIVER ili9881c_hd_dsi_vdo_ls_inx_zal1890_lcm_drv;
+extern struct LCM_DRIVER hx8394f_hd_dsi_vdo_hlt_hsd_zal1890_lcm_drv;
 #endif
-
-#ifdef ODM_WT_EDIT
-extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_txd_lcm_drv;
-extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_hlt_lcm_drv;
-extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_txd_boe_lcm_drv;
-extern struct LCM_DRIVER hx83102d_hdp_dsi_vdo_hlt_lcm_drv;
-extern struct LCM_DRIVER nt36525b_huaxian_hdp_dsi_vdo_lcm_drv;
-extern struct LCM_DRIVER virtual_dsi_vdo_default;
-#endif
-
 #ifdef BUILD_LK
 extern void mdelay(unsigned long msec);
 #endif

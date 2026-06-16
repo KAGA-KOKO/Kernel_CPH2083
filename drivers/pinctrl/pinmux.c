@@ -515,7 +515,7 @@ void pinmux_disable_setting(struct pinctrl_setting const *setting)
 			gname = pctlops->get_group_name(pctldev,
 						setting->data.mux.group);
 #ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2017/05/22, sjc Modify for printk rate */
+/* Yichun.Chen  PSW.BSP.CHG  2018-12-24  checklist for printk rate*/
 			dev_warn(pctldev->dev,
 				 "not freeing pin %d (%s) as part of "
 				 "deactivating group %s - it is already "

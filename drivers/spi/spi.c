@@ -498,10 +498,6 @@ static int spi_dev_check(struct device *dev, void *data)
  *
  * Return: 0 on success; negative errno on failure
  */
-#ifdef ODM_HQ_EDIT
-extern char* saved_command_line;
-#endif
-
 int spi_add_device(struct spi_device *spi)
 {
 	static DEFINE_MUTEX(spi_add_lock);
@@ -509,15 +505,6 @@ int spi_add_device(struct spi_device *spi)
 	struct device *dev = master->dev.parent;
 	int status;
 
-	/*chip_select for tp*/
-#ifdef ODM_HQ_EDIT
-	if(strcmp(spi->modalias,"nf_nt36525b")==0){
-		if(strstr(saved_command_line,"ili9881h_hdp_dsi_vdo_inx_al2350")||strstr(saved_command_line,"ili9881h_hdp_dsi_vdo_txd_al2350")){
-			dev_err(dev, "spi->modalias = %s\n",spi->modalias);
-		return -EINVAL;
-		}
-	}
-#endif
 	/* Chipselects are numbered 0..max; validate. */
 	if (spi->chip_select >= master->num_chipselect) {
 		dev_err(dev, "cs%d >= max %d\n",

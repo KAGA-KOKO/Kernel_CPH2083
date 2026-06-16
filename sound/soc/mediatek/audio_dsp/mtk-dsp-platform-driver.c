@@ -487,12 +487,6 @@ static snd_pcm_uframes_t mtk_dsphw_pcm_pointer
 static void mtk_dsp_dl_handler(struct mtk_base_dsp *dsp,
 			       struct ipi_msg_t *ipi_msg, int id)
 {
-
-	if (dsp->dsp_mem[id].substream == NULL) {
-		pr_info("%s = substream == NULL\n", __func__);
-		goto DSP_IRQ_HANDLER_ERR;
-	}
-
 	if (dsp->dsp_mem[id].substream->runtime->status->state
 	    != SNDRV_PCM_STATE_RUNNING) {
 		pr_info("%s = state[%d]\n", __func__,
@@ -967,9 +961,9 @@ static int mtk_dsp_pcm_copy_ul(struct snd_pcm_substream *substream,
 			&dsp_mem->adsp_buf.aud_buffer.buf_bridge);
 
 	spin_lock_irqsave(&dsp_ringbuf_lock, flags);
-	availsize = RingBuf_getDataCount(ringbuf);
+	availsize = RingBuf_getFreeSpace(ringbuf);
 
-	if (availsize < copy_size) {
+	if (availsize <= copy_size) {
 		pr_info("%s fail copy_size = %d availsize = %d\n", __func__,
 			copy_size, RingBuf_getFreeSpace(ringbuf));
 		spin_unlock_irqrestore(&dsp_ringbuf_lock, flags);

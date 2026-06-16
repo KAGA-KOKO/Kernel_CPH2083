@@ -43,7 +43,6 @@ static struct mm_qos_request wdma0_request;
 
 static struct pm_qos_request ddr_opp_request;
 static struct pm_qos_request mm_freq_request;
-static u64 g_freq_steps[MAX_FREQ_STEP];
 
 static struct plist_head hrt_request_list;
 static struct mm_qos_request ovl0_hrt_request;
@@ -54,8 +53,6 @@ static struct mm_qos_request hrt_bw_request;
 #endif
 
 cmdqBackupSlotHandle dispsys_slot;
-
-static unsigned int has_hrt_bw;
 
 
 static enum ddr_opp __remap_to_opp(enum HRT_LEVEL hrt)
@@ -116,7 +113,6 @@ static int __get_cmdq_slots(cmdqBackupSlotHandle Slot,
 void disp_pm_qos_init(void)
 {
 	unsigned long long bandwidth;
-	u32 step_size;
 
 	/* initialize display slot */
 	__init_cmdq_slots(&(dispsys_slot), DISP_SLOT_NUM, 0);
@@ -141,8 +137,6 @@ void disp_pm_qos_init(void)
 			   PM_QOS_DDR_OPP_DEFAULT_VALUE);
 	pm_qos_add_request(&mm_freq_request, PM_QOS_DISP_FREQ,
 			   PM_QOS_MM_FREQ_DEFAULT_VALUE);
-	/* 0: 60611; 1:45011; 2: 31511*/
-	mmdvfs_qos_get_freq_steps(PM_QOS_DISP_FREQ, g_freq_steps, &step_size);
 
 	plist_head_init(&hrt_request_list);
 
@@ -311,10 +305,6 @@ int disp_pm_qos_update_hrt(unsigned long long bandwidth)
 	return 0;
 }
 
-unsigned int get_has_hrt_bw(void)
-{
-	return has_hrt_bw;
-}
 
 int prim_disp_request_hrt_bw(int overlap_num,
 			enum DDP_SCENARIO_ENUM scenario, const char *caller)
@@ -326,11 +316,8 @@ int prim_disp_request_hrt_bw(int overlap_num,
 	/* overlap_num in PAN_DISP ioctl or Assert layer is 0 */
 	if (overlap_num == HRT_BW_BYPASS)
 		return 0;
-	else if (overlap_num == HRT_BW_UNREQ) {
+	else if (overlap_num == HRT_BW_UNREQ)
 		overlap_num = 0;
-		has_hrt_bw = 0;
-	} else
-		has_hrt_bw = 1;
 
 	bw_base = layering_get_frame_bw();
 	bw_base /= 2;
@@ -542,10 +529,3 @@ int disp_pm_qos_set_rdma_bw(unsigned long long out_fps,
 	return ret;
 }
 
-void disp_pm_qos_set_mmclk(int level)
-{
-	if (level < 0 || level > 2)
-		pm_qos_update_request(&mm_freq_request, 0);
-	else
-		pm_qos_update_request(&mm_freq_request, g_freq_steps[level]);
-}

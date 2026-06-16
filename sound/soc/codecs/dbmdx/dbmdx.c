@@ -56,8 +56,6 @@
 /* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2018/11/14, add dbmdx */
 extern unsigned int mt6359_upmu_set_rg_rtc32k_1v8_1_pdn(unsigned int val);
 extern void set_vaud18_enable(bool enable);
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-struct dbmdx_private *g_dbmdx_pdata;
 #endif /* VENDOR_EDIT */
 
 /* Size must be power of 2 */
@@ -81,7 +79,7 @@ struct dbmdx_private *g_dbmdx_pdata;
 #define MAX_RETRIES_TO_WRITE_TOBUF		200
 #define MAX_AMODEL_SIZE				(148 * 1024)
 
-#define DRIVER_VERSION				"4.037.0"
+#define DRIVER_VERSION				"4.036.2"
 
 #define DBMDX_AUDIO_MODE_PCM			0
 #define DBMDX_AUDIO_MODE_MU_LAW			1
@@ -4861,159 +4859,6 @@ static ssize_t dbmdx_reboot_store(struct device *dev,
 	return size;
 }
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-static ssize_t dbmdx_dev_reboot_store(struct file *fp, const char __user *data, size_t size, loff_t *offset)
-{
-	int va = 0;
-	int vqe = 0;
-	int non_overlay = 0;
-	int shutdown = 0;
-	int va_resume = 0;
-	int va_debug = 0;
-	int ret = 0;
-
-	struct dbmdx_private *p = g_dbmdx_pdata;
-	char *buf = NULL;
-	char *data_w_ptr = (char *)data;
-
-	if (p == NULL) {
-		pr_err("%s: g_dbmdx_pdata is NULL, return\n", __func__);
-		return -1;
-	}
-
-	buf = kmalloc(256, GFP_KERNEL);
-	if (!buf) {
-		pr_err("%s: kmalloc buf error, return\n", __func__);
-		return -ENOMEM;
-	}
-
-	if (copy_from_user(buf, data_w_ptr, size)) {
-		pr_err("%s: copy_from_user error, return\n", __func__);
-		kfree(buf);
-		buf = NULL;
-		return -EFAULT;
-	}
-
-	if  (!strncmp(buf, "shutdown", min_t(int, size, 8)))
-		shutdown = 1;
-	else if  (!strncmp(buf, "va_resume", min_t(int, size, 8))) {
-		va = 1;
-		va_resume = 1;
-	} else if  (!strncmp(buf, "va_debug", min_t(int, size, 7))) {
-		va = 1;
-		va_debug = 1;
-	} else if (!strncmp(buf, "va", min_t(int, size, 2)))
-		va = 1;
-	else if (!strncmp(buf, "vqe", min_t(int, size, 3)))
-		vqe = 1;
-	else if (!strncmp(buf, "help", min_t(int, size, 4))) {
-		dev_info(p->dev,
-			"%s: Commands: shutdown | va | va_resume | va_debug | vqe | help\n",
-			__func__);
-		kfree(buf);
-		buf = NULL;
-		return size;
-	}
-
-	if (shutdown) {
-		dev_info(p->dev, "%s: Shutting down DBMDX...\n", __func__);
-		ret = dbmdx_shutdown(p);
-		if (ret != 0) {
-			dev_err(p->dev, "%s: Error shutting down DBMDX\n",
-				__func__);
-			kfree(buf);
-			buf = NULL;
-			return -EIO;
-		}
-		kfree(buf);
-		buf = NULL;
-		dev_info(p->dev, "%s: DBMDX was shut down\n", __func__);
-		return size;
-	}
-
-	if (!va && !vqe) {
-		dev_warn(p->dev, "%s: not valid mode requested: %s\n",
-			__func__, buf);
-		kfree(buf);
-		buf = NULL;
-		return size;
-	}
-
-	if (va && !p->pdata->feature_va) {
-		dev_dbg(p->dev, "%s: VA feature not enabled\n", __func__);
-		va = 0;
-	}
-
-	if (vqe && !p->pdata->feature_vqe) {
-		dev_dbg(p->dev, "%s: VQE feature not enabled\n", __func__);
-		vqe = 0;
-	}
-
-	if (va_resume) {
-		if (p->active_fw == DBMDX_FW_POWER_OFF_VA) {
-			dev_info(p->dev, "%s: DBMDX Resume Start\n", __func__);
-			ret = dbmdx_perform_recovery(p);
-			if (ret) {
-				dev_err(p->dev, "%s: DBMDX resume failed\n",
-					__func__);
-				kfree(buf);
-				buf = NULL;
-				return -EIO;
-			}
-			dev_info(p->dev, "%s: Resume Done\n", __func__);
-			kfree(buf);
-			buf = NULL;
-			return size;
-		}
-	}
-
-	dev_info(p->dev, "%s: Reboot Start\n", __func__);
-
-	/*
-	 * if VQE needs to be loaded and not VA but both features are enabled
-	 * the VA firmware needs to be loaded first in order to load the non
-	 * overlay part
-	 */
-	if (!va && vqe &&
-	    (p->pdata->feature_va && p->pdata->feature_vqe &&
-	    p->pdata->feature_fw_overlay)) {
-		va = 1;
-		non_overlay = 1;
-	}
-
-	if (va && !vqe &&
-	    (p->pdata->feature_va && p->pdata->feature_vqe &&
-	    p->pdata->feature_fw_overlay))
-		non_overlay = 1;
-
-	/* flush pending buffering work if any */
-	p->va_flags.buffering = 0;
-	flush_work(&p->sv_work);
-	p->va_flags.pcm_worker_active = 0;
-	flush_work(&p->pcm_streaming_work);
-
-	p->wakeup_release(p);
-
-	if (va_debug)
-		p->va_debug_mode = 1;
-	else
-		p->va_debug_mode = 0;
-
-	ret = dbmdx_request_and_load_fw(p, va, vqe, non_overlay);
-	if (ret != 0) {
-		kfree(buf);
-		buf = NULL;
-		return -EIO;
-	}
-
-	kfree(buf);
-	buf = NULL;
-	return size;
-}
-#endif /* VENDOR_EDIT */
-
-
 static ssize_t dbmdx_va_debug_store(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t size)
@@ -7416,7 +7261,6 @@ static int dbmdx_va_amodel_update(struct dbmdx_private *p, int val)
 	unsigned int  model_select_mask = 0;
 	unsigned int  model_options_mask = 0;
 	unsigned int  model_custom_params = 0;
-	unsigned int  model_submodel_sel_mask = 0;
 	bool do_not_reload_model = false;
 	bool do_not_set_detection_mode = false;
 	bool load_model_from_memory = false;
@@ -7443,8 +7287,6 @@ static int dbmdx_va_amodel_update(struct dbmdx_private *p, int val)
 
 	model_custom_params = (((unsigned int)val & 0xf000) >> 12);
 
-	model_submodel_sel_mask = (((unsigned int)val & 0xf0000) >> 16);
-
 	if (model_options_mask &  DBMDX_LOAD_MODEL_NO_DETECTION)
 		do_not_set_detection_mode = true;
 
@@ -7458,10 +7300,9 @@ static int dbmdx_va_amodel_update(struct dbmdx_private *p, int val)
 		model_custom_params = DBMDX_NO_EXT_DETECTION_MODE_PARAMS;
 
 	dev_dbg(p->dev,
-		"%s:Det.mode: %d\tSelected: 0x%x\tSubModelMask: 0x%x\tOptions: 0x%x\tParams 0x%x\n",
+		"%s:Det.mode: %d\tSelected: 0x%x\tOptions: 0x%x\tParams 0x%x\n",
 		__func__, detection_mode, model_select_mask,
-		model_submodel_sel_mask, model_options_mask,
-		model_custom_params);
+		model_options_mask, model_custom_params);
 
 	if (model_select_mask == DBMDX_NO_MODEL_SELECTED) {
 		if (p->sv_a_model_support)
@@ -7817,44 +7658,6 @@ static int dbmdx_va_amodel_update(struct dbmdx_private *p, int val)
 		return -EINVAL;
 	}
 
-	if (sv_model_selected && model_submodel_sel_mask &&
-		(p->pdata->amodel_options & DBMDX_AMODEL_SUPPORTS_MTW)) {
-
-		u16 cur_val = 0;
-
-		do_not_reload_model = false;
-
-		dbmdx_set_power_mode(p, DBMDX_PM_ACTIVE);
-
-		ret = dbmdx_send_cmd(p, DBMDX_VA_SUBMODEL_MASK |
-					(u16)model_submodel_sel_mask, &cur_val);
-		if (ret < 0) {
-			dev_err(p->dev, "%s: failed to read sub model mask\n",
-				__func__);
-			p->unlock(p);
-			return -EIO;
-		}
-		if (cur_val != model_submodel_sel_mask) {
-			dev_info(p->dev,
-			"%s: Sub Model Mask has been updated: 0x%x ==> 0x%x",
-				__func__, p->va_submodel_sel_mask,
-				model_submodel_sel_mask);
-
-			p->va_submodel_sel_mask = model_submodel_sel_mask;
-
-			ret = dbmdx_send_cmd(p, DBMDX_VA_SUBMODEL_MASK |
-						(u16)model_submodel_sel_mask,
-						NULL);
-			if (ret < 0) {
-				dev_err(p->dev,
-					"%s: failed to set sub model mask\n",
-					__func__);
-				p->unlock(p);
-				return -EIO;
-			}
-		}
-	}
-
 	if (p->va_detection_mode == DETECTION_MODE_DUAL) {
 		if (!p->sv_a_model_support) {
 			dev_err(p->dev,
@@ -8078,98 +7881,6 @@ static ssize_t dbmdx_va_acoustic_model_store(struct device *dev,
 out:
 	return ret < 0 ? ret : size;
 }
-
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-static ssize_t dbmdx_dev_va_acoustic_model_store(struct file *fp, const char __user *data, size_t size, loff_t *offset)
-{
-	int ret;
-
-	int val = 0;
-
-	struct dbmdx_private *p = g_dbmdx_pdata;
-	char *buf = NULL;
-	char *data_w_ptr = (char *)data;
-
-	if (!p) {
-		pr_err("%s: g_dbmdx_pdata is NULL, return\n", __func__);
-		return -1;
-	}
-
-	if (!p->device_ready) {
-		dev_err(p->dev, "%s: device not ready\n", __func__);
-		return -EAGAIN;
-	}
-
-	buf = kmalloc(256, GFP_KERNEL);
-	if (!buf) {
-		pr_err("%s: kmalloc buf error, return\n", __func__);
-		return -ENOMEM;
-	}
-
-	if (copy_from_user(buf, data_w_ptr, size)) {
-		pr_err("%s: copy_from_user error, return\n", __func__);
-		kfree(buf);
-		buf = NULL;
-		return -EFAULT;
-	}
-
-	val = dbmdx_buf_to_int(buf);
-
-	ret = dbmdx_va_amodel_update(p, val);
-
-	if (ret < 0 && ret != -EINVAL && ret != -ENOENT &&
-					!p->pdata->va_recovery_disabled) {
-		int recovery_res;
-
-		if (p->device_ready && (dbmdx_va_alive_with_lock(p) == 0)) {
-			dev_err(p->dev,
-				"%s: DBMDX response has been verified\n",
-				__func__);
-			goto out;
-		}
-
-		dev_err(p->dev, "%s: Performing recovery #1\n", __func__);
-
-		recovery_res = dbmdx_perform_recovery(p);
-
-		if (recovery_res) {
-			dev_err(p->dev, "%s: recovery failed\n", __func__);
-			goto out;
-		}
-
-		ret = dbmdx_va_amodel_update(p, val);
-
-		if (ret == 0) {
-			dev_err(p->dev,
-				"%s: Amodel was loaded after succesfull recovery\n",
-				__func__);
-			goto out;
-		}
-
-		if (p->device_ready && (dbmdx_va_alive_with_lock(p) == 0)) {
-			dev_err(p->dev,
-				"%s: DBMDX response has been verified\n",
-				__func__);
-			goto out;
-		}
-
-		dev_err(p->dev, "%s: Performing recovery #2\n", __func__);
-
-		recovery_res = dbmdx_perform_recovery(p);
-
-		if (recovery_res) {
-			dev_err(p->dev, "%s: recovery failed\n", __func__);
-			goto out;
-		}
-
-	}
-out:
-	kfree(buf);
-	buf = NULL;
-	return ret < 0 ? ret : size;
-}
-#endif /* VENDOR_EDIT */
 
 static ssize_t dbmdx_va_max_sample_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
@@ -8490,119 +8201,6 @@ static ssize_t dbmdx_va_backlog_size_store(struct device *dev,
 {
 	return dbmdx_reg_store(dev, DBMDX_VA_AUDIO_HISTORY, attr, buf,
 			      size, DBMDX_FW_VA);
-}
-
-static ssize_t dbmdx_va_passphrase_margins_size_show(struct device *dev,
-				      struct device_attribute *attr,
-				      char *buf)
-{
-	struct dbmdx_private *p = dev_get_drvdata(dev);
-	ssize_t off = 0;
-
-	if (!p)
-		return -EAGAIN;
-
-	if (!p->device_ready) {
-		dev_err(p->dev, "%s: device not ready\n", __func__);
-		return -EAGAIN;
-	}
-
-	off += snprintf(buf + off, PAGE_SIZE - off,
-			"Passphrase margins: 0x%x\n",
-			p->pdata->va_passphrase_margins);
-
-	off += snprintf(buf + off, PAGE_SIZE - off,
-			"Buffer (from d.p.) to attach to audio buffer: %u ms\n",
-			p->pre_backlog_time_ms);
-
-	off += snprintf(buf + off, PAGE_SIZE - off,
-		"Buffer (from d.p.) to attach to passphrase buffer: %u ms\n",
-			p->post_backlog_time_ms);
-
-	off += snprintf(buf + off, PAGE_SIZE - off,
-			"Spit Audio and Passphrase is %s\n",
-			(p->pdata->va_advanced_options &
-				DBMDX_AVD_OPT_SPLIT_PASSPHRASE_BUFFER) ?
-								"ON" : "OFF");
-	return off;
-}
-
-static ssize_t dbmdx_va_passphrase_margins_size_store(struct device *dev,
-				       struct device_attribute *attr,
-				       const char *buf,
-				       size_t size)
-{
-	struct dbmdx_private *p = dev_get_drvdata(dev);
-	unsigned long val;
-	int ret;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret)
-		return -EINVAL;
-
-	if (!p)
-		return -EAGAIN;
-
-	p->pdata->va_passphrase_margins = val;
-	p->pre_backlog_time_ms = (p->pdata->va_passphrase_margins & 0xFFFF);
-	p->post_backlog_time_ms = ((p->pdata->va_passphrase_margins >> 16) &
-									0xFFFF);
-
-
-	dev_info(p->dev, "%s: Passphrase margins was set to: 0x%x\n",
-				__func__, p->pdata->va_passphrase_margins);
-
-	dev_info(p->dev,
-		"%s: Buffer (from d.p.) to attach to audio buffer: %u ms\n",
-			__func__, p->pre_backlog_time_ms);
-
-	dev_info(p->dev,
-	"%s: Buffer (from d.p.) to attach to passphrase buffer: %u ms\n",
-			__func__, p->post_backlog_time_ms);
-
-	dev_info(p->dev,
-			"%s: Split Audio and Passphrase is %s\n",
-			__func__, (p->pdata->va_advanced_options &
-				DBMDX_AVD_OPT_SPLIT_PASSPHRASE_BUFFER) ?
-								"ON" : "OFF");
-
-	return size;
-}
-
-
-static ssize_t dbmdx_va_advanced_options_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	struct dbmdx_private *p = dev_get_drvdata(dev);
-	unsigned long val;
-	int ret;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret)
-		return -EINVAL;
-
-	if (!p)
-		return -EAGAIN;
-
-	 p->pdata->va_advanced_options = val;
-
-	return size;
-}
-
-static ssize_t dbmdx_va_advanced_options_show(struct device *dev,
-				    struct device_attribute *attr, char *buf)
-{
-	struct dbmdx_private *p = dev_get_drvdata(dev);
-	int ret;
-
-	if (!p)
-		return -EAGAIN;
-
-	ret = snprintf(buf, PAGE_SIZE, "va_advanced_options: 0x%x\n",
-		p->pdata->va_advanced_options);
-
-	return ret;
 }
 
 static ssize_t dbmdx_reset_store(struct device *dev,
@@ -10426,13 +10024,6 @@ static DEVICE_ATTR(va_boot_options, 0644,
 static DEVICE_ATTR(va_amodel_options, 0644,
 		   dbmdx_va_amodel_options_show,
 		   dbmdx_va_amodel_options_store);
-static DEVICE_ATTR(va_passphrase_margins , 0644,
-		   dbmdx_va_passphrase_margins_size_show,
-		   dbmdx_va_passphrase_margins_size_store);
-static DEVICE_ATTR(va_advanced_options  , 0644,
-		   dbmdx_va_advanced_options_show,
-		   dbmdx_va_advanced_options_store);
-
 
 static struct attribute *dbmdx_va_attributes[] = {
 	&dev_attr_io_addr.attr,
@@ -10474,8 +10065,6 @@ static struct attribute *dbmdx_va_attributes[] = {
 #ifdef DMBDX_OKG_AMODEL_SUPPORT
 	&dev_attr_va_okg_amodel_enable.attr,
 #endif
-	&dev_attr_va_passphrase_margins.attr,
-	&dev_attr_va_advanced_options.attr,
 	NULL,
 };
 
@@ -10648,9 +10237,6 @@ static int dbmdx_perform_recovery(struct dbmdx_private *p)
 			unsigned int  model_options_mask = 0;
 			unsigned int  model_custom_params =
 				p->va_detection_mode_custom_params;
-			unsigned int  model_submodel_sel_mask =
-				p->va_submodel_sel_mask;
-
 			p->unlock(p);
 
 			p->va_flags.auto_detection_disabled = true;
@@ -10696,9 +10282,6 @@ static int dbmdx_perform_recovery(struct dbmdx_private *p)
 				amodel_mode |=
 					((model_custom_params << 12) & 0xf000);
 
-				amodel_mode |=
-				((model_submodel_sel_mask << 16) & 0xf0000);
-
 				ret = dbmdx_va_amodel_update(p, amodel_mode);
 			}
 #else
@@ -10714,8 +10297,6 @@ static int dbmdx_perform_recovery(struct dbmdx_private *p)
 			amodel_mode |=	((model_options_mask << 8) & 0xf00);
 
 			amodel_mode |=	((model_custom_params << 12) & 0xf000);
-			amodel_mode |=	((model_submodel_sel_mask << 16) &
-								0xf0000);
 
 			ret = dbmdx_va_amodel_update(p, amodel_mode);
 #endif
@@ -10754,9 +10335,6 @@ static int dbmdx_perform_recovery(struct dbmdx_private *p)
 
 				amodel_mode |=
 					((model_custom_params << 12) & 0xf000);
-
-				amodel_mode |=
-				((model_submodel_sel_mask << 16) & 0xf0000);
 
 				p->unlock(p);
 
@@ -12101,7 +11679,7 @@ static int dbmdx_amodel_load_set(struct snd_kcontrol *kcontrol,
 #else
 	struct dbmdx_private *p = dbmdx_data;
 #endif
-	unsigned int value = ucontrol->value.integer.value[0];
+	unsigned short value = ucontrol->value.integer.value[0];
 	int ret;
 
 	if (!p)
@@ -12930,6 +12508,7 @@ static int dbmdx_process_detection_irq(struct dbmdx_private *p,
 				goto out_unlock;
 			}
 #endif
+
 			ret = dbmdx_send_cmd(p, DBMDX_VA_SENS_ALTWORDID,
 								&event_id);
 
@@ -12947,6 +12526,13 @@ static int dbmdx_process_detection_irq(struct dbmdx_private *p,
 
 			event_id = (event_id & 0xff);
 
+			if (event_id == 3) {
+				/* as per SV Algo implementer's recommendation
+				 * --> it 1
+				 */
+				dev_dbg(p->dev, "%s: fixing to 1\n", __func__);
+				event_id = 1;
+			}
 			p->va_cur_backlog_length =
 					p->pdata->va_backlog_length;
 
@@ -13555,32 +13141,14 @@ static void dbmdx_sv_work(struct work_struct *work)
 			usleep_range(DBMDX_USLEEP_NO_SAMPLES,
 				DBMDX_USLEEP_NO_SAMPLES + 1000);
 			retries++;
-			if (retries > p->pdata->buffering_timeout) {
-				dev_dbg(p->dev,
-					"%s: No samples during last %d iterations, stop buffering...\n",
-					__func__, retries);
-
+			if (retries > p->pdata->buffering_timeout)
 				break;
-			}
 		}
 
 	} while (p->va_flags.buffering);
 
-	dev_info(p->dev, "%s: Buffering done. (stop reason: %s)\n",
-		__func__, p->va_flags.buffering ? "internal" : "external");
-
 	dev_info(p->dev, "%s: audio buffer read, total of %u bytes\n",
 		__func__, total);
-
-	if (split_passphrase_and_audio && p->va_flags.det_uevent_in_sv_work) {
-
-		dev_dbg(p->dev,
-			"%s Send Detection Event (a.b.e.):\tMP.Start: %zu\tMp.End: %zu,\tTotal %u bytes\n",
-			__func__,  mp_buf_start_point_in_bytes,
-			mp_buf_end_point_in_bytes, total);
-		dbmdx_send_uevent(p, p->uevent_buf);
-		p->va_flags.det_uevent_in_sv_work = false;
-	}
 
 out:
 	p->lock(p);
@@ -14472,7 +14040,7 @@ static int dbmdx_parse_va_advanced_options(struct dbmdx_private *p)
 		p->post_backlog_time_ms =
 			((p->pdata->va_passphrase_margins >> 16) & 0xFFFF);
 
-		p->chdev_options = (/*DBMDX_CHDEV_OPT_DEV0_BLOCKING |*/
+		p->chdev_options = (DBMDX_CHDEV_OPT_DEV0_BLOCKING |
 				DBMDX_CHDEV_OPT_DEV0_MP |
 				DBMDX_CHDEV_OPT_CONT_BUFFERING_ON_DEV0_RELEASE);
 		p->buffering_options = DBMDX_BUFFERING_OPT_SPLIT_PASSPHRASE;
@@ -15628,11 +15196,6 @@ static int dbmdx_get_devtree_pdata(struct device *dev,
 	int i = 0;
 
 	np = dev->of_node;
-
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-	g_dbmdx_pdata = p;
-#endif /* VENDOR_EDIT */
 
 	/* check for features */
 	if (of_find_property(np, "feature-va", NULL)) {
@@ -16839,31 +16402,6 @@ static int dbmdx_interface_probe(struct dbmdx_private *p)
 }
 #endif
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-static const struct file_operations oppo_debug_dbmdx_reboot_fops = {
-	.owner   = THIS_MODULE,
-	.write   = dbmdx_dev_reboot_store,
-};
-
-static struct miscdevice oppo_debug_dbmdx_reboot_device = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "dbmdx_reboot_dev",
-	.fops = &oppo_debug_dbmdx_reboot_fops,
-};
-
-static const struct file_operations oppo_debug_dbmdx_va_load_amodel_fops = {
-	.owner   = THIS_MODULE,
-	.write   = dbmdx_dev_va_acoustic_model_store,
-};
-
-static struct miscdevice oppo_debug_dbmdx_va_load_amodel_device = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "dbmdx_valoadamodel_dev",
-	.fops = &oppo_debug_dbmdx_va_load_amodel_fops,
-};
-#endif /* VENDOR_EDIT */
-
 static int dbmdx_platform_probe(struct platform_device *pdev)
 {
 	struct dbmdx_platform_data *pdata;
@@ -17023,21 +16561,6 @@ static int dbmdx_platform_probe(struct platform_device *pdev)
 	if (remote_codec && p->remote_codec_in_use == 0)
 		dbmdx_remote_add_codec_controls(remote_codec);
 #endif
-
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.FTM, 2018/12/07, add dbmdx MMI test */
-	ret = misc_register(&oppo_debug_dbmdx_reboot_device);
-	if (ret) {
-		pr_err("%s: dbmdx reboot misc_register Fail:%d\n", __func__, ret);
-		goto out_err_destroy_workqueue;
-	}
-
-	ret = misc_register(&oppo_debug_dbmdx_va_load_amodel_device);
-	if (ret) {
-		pr_err("%s: dbmdx va_load_amodel misc_register Fail:%d\n", __func__, ret);
-		goto out_err_destroy_workqueue;
-	}
-#endif /* VENDOR_EDIT */
 
 	dev_info(p->dev, "%s: successfully probed\n", __func__);
 	return 0;

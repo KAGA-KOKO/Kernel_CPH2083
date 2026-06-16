@@ -319,7 +319,6 @@ struct chip_bq25890h {
 	int				hw_aicl_point;
 	int				sw_aicl_point;
 	atomic_t			charger_suspended;
-	int				irq_gpio;
 };
 
 void bq25890h_dump_registers(void);

@@ -41,17 +41,11 @@
 #ifdef VENDOR_EDIT
 /* xiang.fei@MM.AudioDriver.Codec, 2018/03/12, add for codec */
 #include <linux/proc_fs.h>
-#include <soc/oppo/oppo_project.h>
+//#include <soc/oppo/oppo_project.h>
 
+struct tfa98xx *tfa98xx_whole_v6;
 extern int main_hwid6_val;
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/06,
-* add for dual spk calibration */
-extern bool g_speaker_resistance_fail_1;
-extern bool g_speaker_resistance_fail_2;
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 extern bool g_speaker_resistance_fail;
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 #endif /* VENDOR_EDIT */
 
 #ifndef CONFIG_DEBUG_FS
@@ -95,22 +89,14 @@ static int tfa98xx_ftrace_regs = 0;
 
 #ifdef VENDOR_EDIT
 /* xiang.fei@MM.AudioDriver.Codec, 2018/03/12, Add for tfa9890 and tfa9894 config */
-struct pinctrl *pinctrltfa_v6, *pinctrltfa_v6_2;
-struct pinctrl_state *tfarstdefaul_v6, *tfarsthigh_v6, *tfarstlow_v6, *tfarsthigh_v6_2, *tfarstlow_v6_2;
+struct pinctrl *pinctrltfa_v6;
+struct pinctrl_state *tfarstdefaul_v6t, *tfarsthigh_v6, *tfarstlow_v6;
 #define FW_LOADING_RETRY_TIMES 5
 int fwload_cnt_v6 = 0;
 int fwload_comm_cnt_v6 = 0;
 static char fw_name[100] = {0};
 static char fw_comm_name[100] = {0};
 static char *fw_name_orig = "tfa98xx.cnt";
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/03,
- * add for reducing time for dual spk start process */
-static int tfa_dual_start_cnt = 0;
-static int tfa_wait_start_cnt = 0;
-static bool tfa_spk_1_start_done = false;
-static bool tfa_spk_2_start_done = false;
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 module_param(fw_name_orig, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(fw_name_orig, "TFA98xx DSP firmware (container file) name.");
 #else /* VENDOR_EDIT */
@@ -182,43 +168,27 @@ static void tfa98xx_set_volume_work(struct work_struct *work)
 {
 	struct tfa98xx *tfa98xx = container_of(work, struct tfa98xx, volume_work.work);
 	int err = 0;
-	int waitcnt = 30;
+	int waitcnt = 500;
 
-	pr_info("%s: volume: %d\n", __func__, tfa98xx_vol_value);
+	printk("%s: volume: %d\n", __func__, tfa98xx_vol_value);
 
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/01/16,
-	 * add for dual spk volume */
-	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
-		if (tfa98xx->flags & TFA98XX_FLAG_CHIP_SELECTED) {
-			pr_info("%s: set volume, addr = 0x%x\n", __func__, tfa98xx->i2c->addr);
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
-
-	while ((tfa98xx->dsp_init != TFA98XX_DSP_INIT_DONE) && (--waitcnt)) {
-		msleep(10);
+	while((tfa98xx->dsp_init != TFA98XX_DSP_INIT_DONE) && (--waitcnt)
+		&& (tfa98xx_vol_value != 0)) {
+		msleep(1);
 	}
 
-	pr_info("%s: wait end\n", __func__);
-
-	if (tfa98xx->dsp_init == TFA98XX_DSP_INIT_DONE) {
+	if ((tfa98xx->dsp_init == TFA98XX_DSP_INIT_DONE) || (tfa98xx_vol_value == 0)) {
 		mutex_lock(&tfa98xx->dsp_lock);
 		err = tfa98xx_set_volume_level_v6(tfa98xx->tfa, tfa98xx_vol_value);
 		if (err) {
-			pr_info("%s: set volume error, code:%d\n", __func__, err);
+			printk("%s: set volume error, code:%d\n", __func__, err);
 		} else {
-			pr_info("%s: set volume ok\n", __func__);
+			printk("%s: set volume ok\n", __func__);
 		}
 		mutex_unlock(&tfa98xx->dsp_lock);
 	} else {
-		pr_info("%s: tfa98xx dsp status error\n", __func__);
+		printk("%s: tfa98xx dsp status error\n", __func__);
 	}
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/01/16,
-		* add for dual spk volume */
-		}
-	}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 }
 
 static int tfa98xx_volume_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
@@ -827,41 +797,6 @@ r_c_err:
 	return ret;
 }
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
- * add for applying calibration range and result to APP */
-static ssize_t tfa98xx_dbgfs_range_read(struct file *file,
-				     char __user *user_buf, size_t count,
-				     loff_t *ppos)
-{
-	struct i2c_client *i2c = file->private_data;
-	struct tfa98xx *tfa98xx = i2c_get_clientdata(i2c);
-	int min_mohms = 0;
-	int max_mohms = 0;
-	char *str;
-	int ret;
-
-	str = kmalloc(PAGE_SIZE, GFP_KERNEL);
-	if (!str) {
-		ret = -ENOMEM;
-		pr_err("[0x%x] memory allocation failed\n", tfa98xx->i2c->addr);
-		goto range_err;
-	}
-
-	tfa_getBoundary_v6(tfa98xx->tfa->slave_address, &min_mohms, &max_mohms);
-
-	ret = snprintf(str, PAGE_SIZE, " Min:%d mOhms, Max:%d mOhms\n",
-					min_mohms, max_mohms);
-
-	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
-
-	kfree(str);
-
-range_err:
-	return ret;
-}
-#endif /* VENDOR_EDIT */
-
 static ssize_t tfa98xx_dbgfs_version_read(struct file *file,
 				     char __user *user_buf, size_t count,
 				     loff_t *ppos)
@@ -1147,16 +1082,6 @@ static const struct file_operations tfa98xx_dbgfs_r_fops = {
 	.llseek = default_llseek,
 };
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
- * add for applying calibration range and result to APP */
-static const struct file_operations tfa98xx_dbgfs_range_fops = {
-	.open = simple_open,
-	.read = tfa98xx_dbgfs_range_read,
-	.llseek = default_llseek,
-};
-#endif /* VENDOR_EDIT */
-
 static const struct file_operations tfa98xx_dbgfs_version_fops = {
 	.open = simple_open,
 	.read = tfa98xx_dbgfs_version_read,
@@ -1199,12 +1124,6 @@ static void tfa98xx_debug_init(struct tfa98xx *tfa98xx, struct i2c_client *i2c)
 						i2c, &tfa98xx_dbgfs_calib_start_fops);
 	debugfs_create_file("R", S_IRUGO, tfa98xx->dbg_dir,
 						i2c, &tfa98xx_dbgfs_r_fops);
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/07/26,
-	 * add for applying calibration range and result to APP */
-	debugfs_create_file("range", S_IRUGO, tfa98xx->dbg_dir,
-						i2c, &tfa98xx_dbgfs_range_fops);
-#endif /* VENDOR_EDIT */
 	debugfs_create_file("version", S_IRUGO, tfa98xx->dbg_dir,
 						i2c, &tfa98xx_dbgfs_version_fops);
 	debugfs_create_file("dsp-state", S_IRUGO|S_IWUGO, tfa98xx->dbg_dir,
@@ -1726,91 +1645,6 @@ static int tfa98xx_get_cal_ctl(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-#define CHIP_SELECTOR_STEREO	(0)
-#define CHIP_SELECTOR_LEFT	(1)
-#define CHIP_SELECTOR_RIGHT	(2)
-#define CHIP_SELECTOR_RCV	(3)
-#define CHIP_LEFT_ADDR		(0x34)
-#define CHIP_RIGHT_ADDR	(0x35)
-#define CHIP_RCV_ADDR		(0x34)
-
-static int tfa98xx_info_stereo_ctl(struct snd_kcontrol *kcontrol,
-                                struct snd_ctl_elem_info *uinfo)
-{
-        uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
-        uinfo->count = 1;
-        uinfo->value.integer.min = 0;
-        uinfo->value.integer.max = 3;
-        return 0;
-}
-
-static int tfa98xx_set_stereo_ctl(struct snd_kcontrol *kcontrol,
-                               struct snd_ctl_elem_value *ucontrol)
-{
-	struct tfa98xx *tfa98xx;
-	int selector;
-
-	selector = ucontrol->value.integer.value[0];
-
-	pr_info("%s: selector = %d\n", __func__, selector);
-
-	mutex_lock(&tfa98xx_mutex);
-	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
-		if (selector == CHIP_SELECTOR_LEFT) {
-			if (tfa98xx->i2c->addr == CHIP_LEFT_ADDR)
-				tfa98xx->flags |= TFA98XX_FLAG_CHIP_SELECTED;
-			else
-				tfa98xx->flags &= ~TFA98XX_FLAG_CHIP_SELECTED;
-		}
-		else if (selector == CHIP_SELECTOR_RIGHT) {
-			if (tfa98xx->i2c->addr == CHIP_RIGHT_ADDR)
-				tfa98xx->flags |= TFA98XX_FLAG_CHIP_SELECTED;
-			else
-				tfa98xx->flags &= ~TFA98XX_FLAG_CHIP_SELECTED;
-		}
-		else if (selector == CHIP_SELECTOR_RCV) {
-			if (tfa98xx->i2c->addr == CHIP_RCV_ADDR) {
-				tfa98xx->flags |= TFA98XX_FLAG_CHIP_SELECTED;
-			}
-			else
-				tfa98xx->flags &= ~TFA98XX_FLAG_CHIP_SELECTED;
-		} else {
-			tfa98xx->flags |= TFA98XX_FLAG_CHIP_SELECTED;
-		}
-	}
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/03,
-	 * add for reducing time for dual spk start process */
-	if (selector == CHIP_SELECTOR_STEREO) {
-		tfa_dual_start_cnt = 0;
-	} else {
-		tfa_dual_start_cnt = 99;
-	}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
-
-	mutex_unlock(&tfa98xx_mutex);
-
-	return 1;
-}
-
-static int tfa98xx_get_stereo_ctl(struct snd_kcontrol *kcontrol,
-                               struct snd_ctl_elem_value *ucontrol)
-{
-	struct tfa98xx *tfa98xx;
-
-	mutex_lock(&tfa98xx_mutex);
-	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
-		ucontrol->value.integer.value[0] = tfa98xx->flags;
-	}
-	mutex_unlock(&tfa98xx_mutex);
-
-	return 0;
-}
-
-#endif
-
 static int tfa98xx_create_controls(struct tfa98xx *tfa98xx)
 {
 	int prof, nprof, mix_index = 0;
@@ -1825,10 +1659,6 @@ static int tfa98xx_create_controls(struct tfa98xx *tfa98xx)
 	 */
 
 	nr_controls = 2; /* Profile and stop control */
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	nr_controls += 1;
-#endif
 
 	if (tfa98xx->flags & TFA98XX_FLAG_CALIBRATION_CTL)
 		nr_controls += 1; /* calibration */
@@ -1943,15 +1773,6 @@ static int tfa98xx_create_controls(struct tfa98xx *tfa98xx)
 		tfa98xx_controls[mix_index].put = tfa98xx_set_cal_ctl;
 		mix_index++;
 	}
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	tfa98xx_controls[mix_index].name = "TFA_CHIP_SELECTOR";
-	tfa98xx_controls[mix_index].iface = SNDRV_CTL_ELEM_IFACE_MIXER;
-	tfa98xx_controls[mix_index].info = tfa98xx_info_stereo_ctl;
-	tfa98xx_controls[mix_index].get = tfa98xx_get_stereo_ctl;
-	tfa98xx_controls[mix_index].put = tfa98xx_set_stereo_ctl;
-	mix_index++;
-#endif
 
 	return snd_soc_add_codec_controls(tfa98xx->codec,
 		tfa98xx_controls, mix_index);
@@ -2610,10 +2431,17 @@ retry:
 		}
 	}
 
-	if(reg == 0x94) {/* tfa9894 */
-		sprintf(fw_name,"tfa/oppo6771_%d/tfa9894/tfa98xx.cnt", get_project());
-		sprintf(fw_comm_name,"tfa/common/tfa98xx.cnt");
-	}
+//	if ((get_project() == 17197) || (get_project() == 18311) || (get_project() == 18011) || (get_project() == 18531)) {
+		if(reg == 0x94) {/* tfa9894 */
+			sprintf(fw_name,"tfa/oppo6771_18151/tfa9894/tfa98xx.cnt");
+		} else {/* tfa9890 */
+			sprintf(fw_name,"tfa/oppo6771_18151/tfa98xx.cnt");
+			sprintf(fw_comm_name,"tfa/common/tfa98xx.cnt");
+		}
+//	} else {/* tfa9890 */
+//			sprintf(fw_name,"tfa/oppo6771_%d/tfa98xx.cnt", get_project());
+//			sprintf(fw_comm_name,"tfa/common/tfa98xx.cnt");
+//	}
 
 	pr_info("%s: ID revision 0x%04x, fw_name is %s, fw_comm_name is %s\n", __func__, reg, fw_name, fw_comm_name);
 #endif /* VENDOR_EDIT */
@@ -2761,15 +2589,6 @@ static void tfa98xx_dsp_init(struct tfa98xx *tfa98xx)
 			cancel_delayed_work(&tfa98xx->init_work);
 			tfa98xx->init_count = 0;
 		}
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/03,
-		 * add for reducing time for dual spk start process */
-		if (tfa98xx->i2c->addr == CHIP_LEFT_ADDR) {
-			tfa_spk_1_start_done = true;
-		} else if (tfa98xx->i2c->addr == CHIP_RIGHT_ADDR) {
-			tfa_spk_2_start_done = true;
-		}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 	} else {
 		/* exceeded max number ot start tentatives, cancel start */
 		dev_err(&tfa98xx->i2c->dev,
@@ -2812,25 +2631,9 @@ static void tfa98xx_dsp_init(struct tfa98xx *tfa98xx)
 				/*xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, Modify for calibrate*/
 				tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE);
 				#else
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-				/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/06,
-				* add for dual spk calibration */
-				if (((tfa98xx->i2c->addr == CHIP_LEFT_ADDR) && (!g_speaker_resistance_fail_1))
-					||  ((tfa98xx->i2c->addr == CHIP_RIGHT_ADDR) && (!g_speaker_resistance_fail_2))) {
-					tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE);
-				} else {
-					pr_err("tfa addr = 0x%x, set mute state for resistance out of range!\n",
-						tfa98xx->i2c->addr);
-					tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE);
-				}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 				if (!g_speaker_resistance_fail) {
 					tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_UNMUTE);
-				} else {
-					pr_err("set mute state for resistance out of range!\n");
-					tfa_dev_set_state(tfa98xx->tfa, TFA_STATE_MUTE);
 				}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 				#endif /* VENDOR_EDIT */
 
 				/*
@@ -3113,15 +2916,6 @@ static int tfa98xx_mute(struct snd_soc_dai *dai, int mute, int stream)
 		else
 			tfa98xx->cstream = 1;
 
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/03,
-		 * add for reducing time for dual spk start process */
-		pr_info("%s: addr = 0x%x, tfa_dual_start_cnt = %d\n", __func__, tfa98xx->i2c->addr, tfa_dual_start_cnt);
-		if (tfa_dual_start_cnt < 2) {
-			tfa_dual_start_cnt++;
-		}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
-
 		/* Start DSP */
 		if (tfa98xx->dsp_init != TFA98XX_DSP_INIT_PENDING)
 			#ifndef VENDOR_EDIT
@@ -3130,35 +2924,7 @@ static int tfa98xx_mute(struct snd_soc_dai *dai, int mute, int stream)
 			                   &tfa98xx->init_work, 0);
 
 			#else /* VENDOR_EDIT */
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.SmartPA, 2019/05/03,
-		 * add for reducing time for dual spk start process */
-		{
-			pr_info("%s: addr = 0x%x, tfa98xx->flags = 0x%x\n", __func__, tfa98xx->i2c->addr, tfa98xx->flags);
-			if (tfa98xx->flags & TFA98XX_FLAG_CHIP_SELECTED) {
-				queue_delayed_work(tfa98xx->tfa98xx_wq,
-								   &tfa98xx->init_work, 0);
-			}
-		}
-		if (tfa_dual_start_cnt == 2) {
-			tfa_wait_start_cnt = 40;
-			while (tfa_wait_start_cnt > 0) {
-				tfa_wait_start_cnt--;
-				mutex_lock(&tfa98xx->dsp_lock);
-				if ((tfa_spk_1_start_done == true) && (tfa_spk_2_start_done == true)) {
-					mutex_unlock(&tfa98xx->dsp_lock);
-					break;
-				}
-				mutex_unlock(&tfa98xx->dsp_lock);
-				msleep(5);
-			}
-			tfa_spk_1_start_done = false;
-			tfa_spk_2_start_done = false;
-			pr_info("%s: tfa wait 2 spk start done\n", __func__);
-		}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 			tfa98xx_dsp_init(tfa98xx);
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 			#endif /* VENDOR_EDIT */
 	}
 
@@ -3212,6 +2978,10 @@ static int tfa98xx_probe(struct snd_soc_codec *codec)
 
 	pr_info("%s\n", __func__);
 
+	#ifdef VENDOR_EDIT
+	/* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, add for codec */
+    tfa98xx_whole_v6 = tfa98xx;
+	#endif /* VENDOR_EDIT */
 	/* setup work queue, will be used to initial DSP on first boot up */
 	tfa98xx->tfa98xx_wq = create_singlethread_workqueue("tfa98xx");
 	if (!tfa98xx->tfa98xx_wq)
@@ -3229,8 +2999,8 @@ static int tfa98xx_probe(struct snd_soc_codec *codec)
 
 	tfa98xx->codec = codec;
 
-	#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec.1872569, 2019/03/05, recover for MTK P90 normal request_firmware process */
+	#ifndef VENDOR_EDIT
+	/* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, remove for MTK request_firmware process */
 	ret = tfa98xx_load_container(tfa98xx);
 	pr_info("Container loading requested: %d\n", ret);
 	#endif /* VENDOR_EDIT */
@@ -3331,26 +3101,22 @@ static const struct regmap_config tfa98xx_regmap = {
 	.cache_type = REGCACHE_NONE,
 };
 
-#ifndef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec.1872569, 2019/03/05, recover for MTK P90 normal request_firmware process */
+#ifdef VENDOR_EDIT
+/* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, add for load config */
 static int tfa98xx_late_fw_load(void)
 {
-	struct tfa98xx *tfa98xx;
     int ret = 0;
 
-    pr_info("%s: \n", __func__);
+    printk("%s: asdf\n", __func__);
+	ret = tfa98xx_load_container(tfa98xx_whole_v6);
 
-	list_for_each_entry(tfa98xx, &tfa98xx_device_list, list) {
-		pr_info("%s: addr = 0x%x\n", __func__, tfa98xx->i2c->addr);
-		ret = tfa98xx_load_container(tfa98xx);
-		pr_info("Container loading requested: %d\n", ret);
-		if (ret){
-		    pr_err("error load cnt\n");
-			return ret;
-		}
+	printk("Container loading requested: %d\n", ret);
+
+	if (ret){
+	    printk("error load cnt\n");
+		return ret;
 	}
-
-	return 0;
+    return 0;
 }
 
 static ssize_t tfa98xx_fw_store(struct file *file, const char __user *buf, size_t size, loff_t *lo)
@@ -3413,97 +3179,6 @@ static irqreturn_t tfa98xx_irq(int irq, void *data)
 #endif
 static int tfa98xx_ext_reset(struct tfa98xx *tfa98xx)
 {
-#ifdef VENDOR_EDIT
-	int ret = 0;
-	pr_info("tfa9890 rst addr = 0x%x\n", tfa98xx->i2c->addr);
-
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	if (tfa98xx->i2c->addr == CHIP_RIGHT_ADDR) {
-		if (IS_ERR(pinctrltfa_v6)) {
-			ret = PTR_ERR(pinctrltfa_v6);
-			pr_err("Cannot find pinctrlaud!\n");
-			return ret;
-		}
-		if (IS_ERR(tfarsthigh_v6)) {
-			ret = PTR_ERR(tfarsthigh_v6);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_high fail %d\n", __func__, ret);
-			return ret;
-		}
-		if (IS_ERR(tfarstlow_v6)) {
-			ret = PTR_ERR(tfarstlow_v6);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_low fail %d\n", __func__, ret);
-			return ret;
-		}
-
-		ret = pinctrl_select_state(pinctrltfa_v6, tfarsthigh_v6);
-		if (ret) {
-			pr_err("%s: could not set tfa98xx rst pin high\n", __func__);
-		}
-		mdelay(5);
-		ret = pinctrl_select_state(pinctrltfa_v6, tfarstlow_v6);
-		if (ret) {
-			pr_err("%s: could not set tfa98xx rst pin low\n", __func__);
-		}
-	} else if (tfa98xx->i2c->addr == CHIP_LEFT_ADDR) {
-		if (IS_ERR(pinctrltfa_v6_2)) {
-			ret = PTR_ERR(pinctrltfa_v6_2);
-			pr_err("Cannot find pinctrlaud 2!\n");
-			return ret;
-		}
-
-		if (IS_ERR(tfarsthigh_v6_2)) {
-			ret = PTR_ERR(tfarsthigh_v6_2);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_high_2 fail %d\n", __func__, ret);
-			return ret;
-		}
-
-		if (IS_ERR(tfarstlow_v6_2)) {
-			ret = PTR_ERR(tfarstlow_v6_2);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_low_2 fail %d\n", __func__, ret);
-			return ret;
-		}
-
-		ret = pinctrl_select_state(pinctrltfa_v6_2, tfarsthigh_v6_2);
-		if (ret) {
-			pr_err("%s: could not set tfa98xx_2 rst pin high\n", __func__);
-		}
-		mdelay(5);
-		ret = pinctrl_select_state(pinctrltfa_v6_2, tfarstlow_v6_2);
-		if (ret) {
-			pr_err("%s: could not set tfa98xx_2 rst pin low\n", __func__);
-		}
-	}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
-	/* Yongzhi.Zhang@MM.AudioDriver.SmartPA, 2017/11/22,
-	 * modify RST pin control timing for tfa9890 on MTK */
-	if (IS_ERR(pinctrltfa_v6)) {
-		ret = PTR_ERR(pinctrltfa_v6);
-		pr_err("Cannot find pinctrlaud!\n");
-		return ret;
-	}
-	if (IS_ERR(tfarsthigh_v6)) {
-		ret = PTR_ERR(tfarsthigh_v6);
-		pr_err("%s pinctrl_lookup_state tfa98xx_reset_high fail %d\n", __func__, ret);
-		return ret;
-	}
-	if (IS_ERR(tfarstlow_v6)) {
-		ret = PTR_ERR(tfarstlow_v6);
-		pr_err("%s pinctrl_lookup_state tfa98xx_reset_low fail %d\n", __func__, ret);
-		return ret;
-	}
-
-	ret = pinctrl_select_state(pinctrltfa_v6, tfarsthigh_v6);
-	if (ret) {
-		pr_err("%s: could not set tfa98xx rst pin high\n", __func__);
-	}
-	mdelay(5);
-	ret = pinctrl_select_state(pinctrltfa_v6, tfarstlow_v6);
-	if (ret) {
-		pr_err("%s: could not set tfa98xx rst pin low\n", __func__);
-	}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
-	return ret;
-#else
 	if (tfa98xx && gpio_is_valid(tfa98xx->reset_gpio)) {
 		gpio_set_value_cansleep(tfa98xx->reset_gpio, 1);
 		mdelay(1);
@@ -3511,7 +3186,6 @@ static int tfa98xx_ext_reset(struct tfa98xx *tfa98xx)
 		mdelay(1);
 	}
 	return 0;
-#endif
 }
 #if 0
 static int tfa98xx_parse_dt(struct device *dev, struct tfa98xx *tfa98xx,
@@ -3653,8 +3327,8 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 	#endif /* VENDOR_EDIT */
 
 	#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec.1872569, 2019/03/05, remove for MTK P90 normal request_firmware process */
-	//struct proc_dir_entry *prEntry_temp = NULL;
+	/* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, add for load config */
+	struct proc_dir_entry *prEntry_temp = NULL;
 	struct proc_dir_entry *prEntry_tfa9890 = NULL;
 	prEntry_tfa9890 = proc_mkdir("tfa98xx", NULL);
 	#endif /* VENDOR_EDIT */
@@ -3723,43 +3397,6 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 	}
 
 #ifdef VENDOR_EDIT
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	if (tfa98xx->i2c->addr == CHIP_RIGHT_ADDR) {
-		pinctrltfa_v6 = devm_pinctrl_get(&i2c->dev);
-		if (IS_ERR(pinctrltfa_v6)) {
-			ret = PTR_ERR(pinctrltfa_v6);
-			pr_err("Cannot find pinctrlaud!\n");
-			return ret;
-		}
-		tfarsthigh_v6 = pinctrl_lookup_state(pinctrltfa_v6, "tfa98xx_reset_high");
-		if (IS_ERR(tfarsthigh_v6)) {
-			ret = PTR_ERR(tfarsthigh_v6);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_high fail %d\n", __func__, ret);
-		}
-		tfarstlow_v6 = pinctrl_lookup_state(pinctrltfa_v6, "tfa98xx_reset_low");
-		if (IS_ERR(tfarstlow_v6)) {
-			ret = PTR_ERR(tfarstlow_v6);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_low fail %d\n", __func__, ret);
-		}
-	} else if (tfa98xx->i2c->addr == CHIP_LEFT_ADDR) {
-		pinctrltfa_v6_2 = devm_pinctrl_get(&i2c->dev);
-		if (IS_ERR(pinctrltfa_v6_2)) {
-			ret = PTR_ERR(pinctrltfa_v6_2);
-			pr_err("Cannot find pinctrlaud 2!\n");
-			return ret;
-		}
-		tfarsthigh_v6_2 = pinctrl_lookup_state(pinctrltfa_v6_2, "tfa98xx_reset_high_2");
-		if (IS_ERR(tfarsthigh_v6_2)) {
-			ret = PTR_ERR(tfarsthigh_v6_2);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_high_2 fail %d\n", __func__, ret);
-		}
-		tfarstlow_v6_2 = pinctrl_lookup_state(pinctrltfa_v6_2, "tfa98xx_reset_low_2");
-		if (IS_ERR(tfarstlow_v6_2)) {
-			ret = PTR_ERR(tfarstlow_v6_2);
-			pr_err("%s pinctrl_lookup_state tfa98xx_reset_low_2 fail %d\n", __func__, ret);
-		}
-	}
-#else /* CONFIG_TFA9874_NONDSP_STEREO */
 /* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, Add for reset gpio */
 	pinctrltfa_v6 = devm_pinctrl_get(&i2c->dev);
 	if (IS_ERR(pinctrltfa_v6)) {
@@ -3777,7 +3414,6 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 		ret = PTR_ERR(tfarstlow_v6);
 		pr_err("%s pinctrl_lookup_state tfa98xx_reset_low fail %d\n", __func__, ret);
 	}
-#endif /* CONFIG_TFA9874_NONDSP_STEREO */
 #endif /* VENDOR_EDIT */
 
 	/* Power up! */
@@ -3865,10 +3501,6 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 		}
 	}
 
-#ifdef CONFIG_TFA9874_NONDSP_STEREO
-	tfa98xx->flags |= TFA98XX_FLAG_CHIP_SELECTED;
-#endif
-
 	tfa98xx->tfa = devm_kzalloc(&i2c->dev, sizeof(struct tfa_device), GFP_KERNEL);
 	if (tfa98xx->tfa == NULL)
 		return -ENOMEM;
@@ -3923,8 +3555,8 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 	}
 #endif
 
-	#ifndef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec.1872569, 2019/03/05, remove for MTK P90 normal request_firmware process */
+	#ifdef VENDOR_EDIT
+	/* xiang.fei@PSW.MM.AudioDriver.Codec, 2018/03/12, add for load config */
 	prEntry_temp = proc_create("oppo_tfa98xx_fw_update", 0644, prEntry_tfa9890,&proc_firmware_update);
 	#endif /* VENDOR_EDIT */
 

@@ -142,34 +142,9 @@ void ipanic_recursive_ke(struct pt_regs *regs, struct pt_regs *excp_regs,
 }
 EXPORT_SYMBOL(ipanic_recursive_ke);
 
-#ifdef VENDOR_EDIT
-#ifdef HANG_OPPO_ALL
-//Kun.Hu@PSW.TECH.RELIABILTY, 2019/03/03, Add for project phoenix
-extern void deal_fatal_err(void);
-extern int kernel_panic_happened;
-extern int hwt_happened;
-#endif /* HANG_OPPO_ALL */
-#endif /* VENDOR_EDIT */
-
 int mrdump_common_die(int fiq_step, int reboot_reason, const char *msg,
 		      struct pt_regs *regs)
 {
-#ifdef VENDOR_EDIT
-#ifdef HANG_OPPO_ALL
-	//Kun.Hu@PSW.TECH.RELIABILTY, 2019/03/03, Add for project phoenix
-	if((AEE_REBOOT_MODE_KERNEL_OOPS == reboot_reason || AEE_REBOOT_MODE_KERNEL_PANIC == reboot_reason)
-		&& !kernel_panic_happened)
-	{
-		kernel_panic_happened = 1;
-		deal_fatal_err();
-	}
-	else if (AEE_REBOOT_MODE_WDT == reboot_reason && !hwt_happened)
-	{
-		hwt_happened = 1;
-		deal_fatal_err();
-	}
-#endif /* HANG_OPPO_ALL */
-#endif /* VENDOR_EDIT */
 	bust_spinlocks(1);
 	aee_disable_api();
 

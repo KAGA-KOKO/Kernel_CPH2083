@@ -453,14 +453,8 @@ static int tcpc_device_irq_enable(struct tcpc_device *tcpc)
 	if (tcpc->ops->init_alert_mask)
 		tcpci_init_alert_mask(tcpc);
 
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/04/12, sjc Modify for charging */
 	schedule_delayed_work(
 		&tcpc->event_init_work, msecs_to_jiffies(10*1000));
-#else
-	schedule_delayed_work(
-		&tcpc->event_init_work, msecs_to_jiffies(62*100));
-#endif /*VENDOR_EDIT*/
 
 	pr_info("%s : tcpc irq enable OK!\n", __func__);
 	return 0;

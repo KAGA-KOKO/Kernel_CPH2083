@@ -110,7 +110,7 @@
 #define DBMDX_VE_AMODEL_NAME			"ve_amodel.bin"
 #endif
 
-#define MAX_REQ_SIZE				4096
+#define MAX_REQ_SIZE				8192
 
 #define UEVENT_BUF_SIZE				256
 
@@ -228,7 +228,6 @@
 #define DBMDX_AMODEL_SINGLE_FILE_NO_HEADER	0x0004
 #define DBMDX_LOAD_AMODEL_FOR_VE		0x0008
 #define DBMDX_VE_SEND_DUMMY_AMODEL_4B		0x0010
-#define DBMDX_AMODEL_SUPPORTS_MTW		0x0020
 
 #define DBMDX_AMODEL_TYPE_PRIMARY		0x0001
 #define DBMDX_AMODEL_TYPE_SECONDARY		0x0002
@@ -510,7 +509,6 @@ struct dbmdx_private {
 	u32				va_active_mic_config;
 	u32				va_detection_mode;
 	u16				va_detection_mode_custom_params;
-	u16				va_submodel_sel_mask;
 	u32				va_cur_backlog_length;
 	u32				va_last_word_id;
 	bool				va_capture_on_detect;

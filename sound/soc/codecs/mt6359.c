@@ -287,7 +287,7 @@ struct mt6359_priv {
 /* static function declaration */
 static int dc_trim_thread(void *arg);
 
-#ifdef CONFIG_SND_SOC_DBMDX
+#ifdef VENDOR_EDIT
 /* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2018/11/14, add dbmdx */
 extern void set_vaud18_enable(bool enable);
 extern struct regmap *mt6359_ep_regmap;
@@ -315,7 +315,7 @@ void set_vaud18_enable(bool enable)
 
 	return;
 }
-#endif /* CONFIG_SND_SOC_DBMDX */
+#endif /* VENDOR_EDIT */
 
 int mt6359_set_codec_ops(struct snd_soc_component *cmpnt,
 			 struct mt6359_codec_ops *ops)
@@ -2227,17 +2227,9 @@ static int mt_mic_bias_0_event(struct snd_soc_dapm_widget *w,
 		}
 
 		/* MISBIAS0 = 1P9V */
-#ifdef CONFIG_SND_SOC_DBMDX
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/05/31,
-		 * separate micbias voltage for analog mic and digital mic */
 		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON15,
 				   RG_AUDMICBIAS0VREF_MASK_SFT,
 				   MIC_BIAS_1P9 << RG_AUDMICBIAS0VREF_SFT);
-#else /* CONFIG_SND_SOC_DBMDX */
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON15,
-				   RG_AUDMICBIAS0VREF_MASK_SFT,
-				   MIC_BIAS_2P5 << RG_AUDMICBIAS0VREF_SFT);
-#endif /* CONFIG_SND_SOC_DBMDX */
 		/* vow low power select */
 		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON15,
 				   RG_AUDMICBIAS0LOWPEN_MASK_SFT,
@@ -2273,15 +2265,8 @@ static int mt_mic_bias_1_event(struct snd_soc_dapm_widget *w,
 			regmap_write(priv->regmap,
 				     MT6359_AUDENC_ANA_CON16, 0x0160);
 		else
-#ifdef VENDOR_EDIT
-			/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/04/02,
-			 * add for setting micbias 2.8V after recording */
-			regmap_write(priv->regmap,
-				     MT6359_AUDENC_ANA_CON16, 0x3060);
-#else /* VENDOR_EDIT */
 			regmap_write(priv->regmap,
 				     MT6359_AUDENC_ANA_CON16, 0x0060);
-#endif /* VENDOR_EDIT */
 
 		/* vow low power select */
 		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON16,
@@ -2330,17 +2315,9 @@ static int mt_mic_bias_2_event(struct snd_soc_dapm_widget *w,
 		}
 
 		/* MISBIAS2 = 1P9V */
-#ifdef CONFIG_SND_SOC_DBMDX
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.Platform, 2019/05/31,
-		 * separate micbias voltage for analog mic and digital mic */
 		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON17,
 				   RG_AUDMICBIAS2VREF_MASK_SFT,
 				   MIC_BIAS_1P9 << RG_AUDMICBIAS2VREF_SFT);
-#else /* CONFIG_SND_SOC_DBMDX */
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON17,
-				   RG_AUDMICBIAS2VREF_MASK_SFT,
-				   MIC_BIAS_2P5 << RG_AUDMICBIAS2VREF_SFT);
-#endif /* CONFIG_SND_SOC_DBMDX */
 		/* vow low power select */
 		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON17,
 				   RG_AUDMICBIAS2LOWPEN_MASK_SFT,
@@ -3520,16 +3497,16 @@ static const struct snd_soc_dapm_widget mt6359_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("CLK_BUF", SUPPLY_SEQ_CLK_BUF,
 			      MT6359_DCXO_CW12,
 			      RG_XO_AUDIO_EN_M_SFT, 0, NULL, 0),
-#ifdef CONFIG_SND_SOC_DBMDX
+#ifdef VENDOR_EDIT
 	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2018/11/14, add dbmdx */
 	SND_SOC_DAPM_SUPPLY_S("LDO_VAUD18", SUPPLY_SEQ_LDO_VAUD18,
 			      SND_SOC_NOPM,
 			      0, 0, NULL, 0),
-#else /* CONFIG_SND_SOC_DBMDX */
+#else /* VENDOR_EDIT */
 	SND_SOC_DAPM_SUPPLY_S("LDO_VAUD18", SUPPLY_SEQ_LDO_VAUD18,
 			      MT6359_LDO_VAUD18_CON0,
 			      RG_LDO_VAUD18_EN_SFT, 0, NULL, 0),
-#endif /* CONFIG_SND_SOC_DBMDX */
+#endif /* VENDOR_EDIT */
 	SND_SOC_DAPM_SUPPLY_S("AUDGLB", SUPPLY_SEQ_AUD_GLB,
 			      MT6359_AUDDEC_ANA_CON13,
 			      RG_AUDGLB_PWRDN_VA32_SFT, 1, NULL, 0),
@@ -4445,12 +4422,12 @@ static void enable_trim_circuit(struct mt6359_priv *priv, bool enable)
 		regmap_update_bits(priv->regmap, MT6359_AUDDEC_ANA_CON2,
 				   RG_AUDHPTRIM_EN_VAUDP32_MASK_SFT,
 				   0 << RG_AUDHPTRIM_EN_VAUDP32_SFT);
-#ifndef CONFIG_SND_SOC_DBMDX
+#ifndef VENDOR_EDIT
 		/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2018/11/14, remove for dbmdx micbias */
 		regmap_update_bits(priv->regmap, MT6359_LDO_VAUD18_CON0,
 				   RG_LDO_VAUD18_EN_MASK_SFT,
 				   0 << RG_LDO_VAUD18_EN_SFT);
-#endif /* CONFIG_SND_SOC_DBMDX */
+#endif /* VENDOR_EDIT */
 	}
 }
 
@@ -6354,14 +6331,12 @@ static int mt6359_codec_init_reg(struct mt6359_priv *priv)
 			   RG_AUDLOLSCDISABLE_VAUDP32_MASK_SFT,
 			   0x1 << RG_AUDLOLSCDISABLE_VAUDP32_SFT);
 
-#ifdef CONFIG_SND_SOC_DBMDX
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2019/05/21, add dbmdx */
-	pr_info("%s: MT6359_LDO_VAUD18_CON0 set bit0 1\n", __func__);
+	printk("%s: MT6359_LDO_VAUD18_CON0 set bit0 1\n", __func__);
 
 	regmap_update_bits(priv->regmap, MT6359_LDO_VAUD18_CON0,
 			   RG_LDO_VAUD18_EN_MASK_SFT,
 			   1 << RG_LDO_VAUD18_EN_SFT);
-#endif
+
 
 	/* set gpio */
 	playback_gpio_reset(priv);
@@ -6783,12 +6758,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_UL_SRC_CON0_L, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_UL_SRC_CON0_L = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA6_L_SRC_CON0_H, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA6_L_SRC_CON0_H = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA6_UL_SRC_CON0_L, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA6_UL_SRC_CON0_L = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_TOP_CON0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_TOP_CON0 = 0x%x\n", value);
@@ -6819,30 +6788,9 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON6, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFUNC_AUD_CON6 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON7, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON7 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON8, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON8 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON9, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON9 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON10, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON10 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON11, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON11 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_CON12, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_CON12 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFUNC_AUD_MON0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFUNC_AUD_MON0 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFUNC_AUD_MON1, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFUNC_AUD_MON1 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AUDRC_TUNE_MON0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AUDRC_TUNE_MON0 = 0x%x\n", value);
@@ -6861,15 +6809,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_MON2, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_ADDA_MTKAIF_MON2 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA6_MTKAIF_MON3, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA6_MTKAIF_MON3 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_MON4, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA_MTKAIF_MON4 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_MON5, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA_MTKAIF_MON5 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_CFG0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_ADDA_MTKAIF_CFG0 = 0x%x\n", value);
@@ -6885,12 +6824,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_RX_CFG3, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_ADDA_MTKAIF_RX_CFG3 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_SYNCWORD_CFG0, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA_MTKAIF_SYNCWORD_CFG0 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA_MTKAIF_SYNCWORD_CFG1, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA_MTKAIF_SYNCWORD_CFG1 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_SGEN_CFG0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_SGEN_CFG0 = 0x%x\n", value);
@@ -6900,9 +6833,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_ADC_ASYNC_FIFO_CFG, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_ADC_ASYNC_FIFO_CFG = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADC_ASYNC_FIFO_CFG1, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADC_ASYNC_FIFO_CFG1 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_DCCLK_CFG0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_DCCLK_CFG0 = 0x%x\n", value);
@@ -6912,9 +6842,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AUDIO_DIG_CFG, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AUDIO_DIG_CFG = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AUDIO_DIG_CFG1, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AUDIO_DIG_CFG1 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_AUD_PAD_TOP, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_AUD_PAD_TOP = 0x%x\n", value);
@@ -6924,9 +6851,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_AUD_PAD_TOP_MON1, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_AUD_PAD_TOP_MON1 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_AUD_PAD_TOP_MON2, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_AUD_PAD_TOP_MON2 = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_DL_NLE_CFG, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_DL_NLE_CFG = 0x%x\n", value);
@@ -7065,18 +6989,6 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_AFE_VOW_HPF_CFG1, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_VOW_HPF_CFG1 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AUDIO_DIG_3RD_DSN_ID, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AUDIO_DIG_3RD_DSN_ID = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AUDIO_DIG_3RD_DSN_REV0, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AUDIO_DIG_3RD_DSN_REV0 = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AUDIO_DIG_3RD_DSN_DBI, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AUDIO_DIG_3RD_DSN_DBI = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AUDIO_DIG_3RD_DSN_DXI, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AUDIO_DIG_3RD_DSN_DXI = 0x%x\n", value);
 	regmap_read(priv->regmap, MT6359_AFE_VOW_PERIODIC_CFG0, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_AFE_VOW_PERIODIC_CFG0 = 0x%x\n", value);
@@ -7386,15 +7298,7 @@ static ssize_t mt6359_debugfs_read(struct file *file, char __user *buf,
 	regmap_read(priv->regmap, MT6359_ZCD_CON5, &value);
 	n += scnprintf(buffer + n, size - n,
 		       "MT6359_ZCD_CON5 = 0x%x\n", value);
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Log, 2019/03/12, add log for printing necessary registers */
-	regmap_read(priv->regmap, MT6359_AFE_ADDA6_L_SRC_CON0_H, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA6_L_SRC_CON0_H = 0x%x\n", value);
-	regmap_read(priv->regmap, MT6359_AFE_ADDA6_UL_SRC_CON0_L, &value);
-	n += scnprintf(buffer + n, size - n,
-		       "MT6359_AFE_ADDA6_UL_SRC_CON0_L = 0x%x\n", value);
-#endif /* VENDOR_EDIT */
+
 	ret = simple_read_from_buffer(buf, count, pos, buffer, n);
 	kfree(buffer);
 	return ret;
@@ -7608,10 +7512,7 @@ static int mt6359_platform_driver_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->regmap))
 		return PTR_ERR(priv->regmap);
 
-#ifdef CONFIG_SND_SOC_DBMDX
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Machine, 2019/05/21, add dbmdx */
 	mt6359_ep_regmap = priv->regmap;
-#endif /* CONFIG_SND_SOC_DBMDX */
 
 	/* create debugfs file */
 	priv->debugfs = debugfs_create_file("mtksocanaaudio",

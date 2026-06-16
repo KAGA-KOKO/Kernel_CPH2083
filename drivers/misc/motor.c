@@ -21,31 +21,21 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/serio.h>
-#include <soc/oppo/boot_mode.h>
 #include <soc/oppo/oppo_project.h>
 #include "oppo_motor/oppo_motor.h"
 #include "oppo_motor/oppo_motor_notifier.h"
-#include "oppo_motor/digital_hall_ic/oppo_m1120.h"
 
 /*if can not compile success, please update vendor/oppo_motor*/
 
 void oppo_parse_motor_info(struct oppo_motor_chip * chip)
 {
-
 	if (!chip)
 		return;
-	MOTOR_ERR("customize %s;%d\n",__func__,__LINE__);
 
-	chip->info.type = MOTOR_FI5;
-	chip->info.motor_ic = STSPIN220;
-	chip->dir_sign = NEGATIVE;
+	chip->motor_type = MOTOR_FI5;
+	chip->motor_ic = STSPIN220;
+	chip->dir_sign = POSITIVE;
 	chip->is_support_ffd = false;
-	MOTOR_LOG("boot_mode is %d \n",get_boot_mode());
-	if ((RECOVERY_BOOT == get_boot_mode()) || (FACTORY_BOOT == get_boot_mode()) ||
-		oppo_is_power_off_charging() || (OPPO_SAU_BOOT == get_boot_mode()))
-		chip->boot_mode = OTHER_MODE;
-	else
-		chip->boot_mode = NORMAL_MODE;
 }
 EXPORT_SYMBOL(oppo_parse_motor_info);
 

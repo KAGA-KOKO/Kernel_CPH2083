@@ -1951,7 +1951,7 @@ chunkmem_out:
 #if 0
 static int chunk_memory_test1(void)
 {
-	KREE_DEBUG("==> Run %s.\n", __func__);
+	KREE_DEBUG("==> Run chunk_memory_test1.\n");
 	_chunk_memory_test_body(NULL);
 	return TZ_RESULT_SUCCESS;
 }
@@ -1960,7 +1960,7 @@ static int chunk_memory_test2(void)
 {
 	union MTEEC_PARAM *param;
 
-	KREE_DEBUG("==> Run %s.\n", __func__);
+	KREE_DEBUG("==> Run chunk_memory_test2.\n");
 	param = kmalloc((int) max_stress_test_param *
 			sizeof(union MTEEC_PARAM), GFP_KERNEL);
 	init_test_param(param);
@@ -2141,8 +2141,8 @@ static int _register_session_info(struct file *fp, KREE_SESSION_HANDLE handle)
 	void *ptr;
 
 	KREE_DEBUG(
-		"====> [%s] %d is calling. in_handleID = %d\n",
-		__func__, __LINE__, handle);
+		"====> [%d] _register_session_info is calling. in_handleID = %d\n",
+		__LINE__, handle);
 	if (handle < 0)
 		return TZ_RESULT_ERROR_BAD_PARAMETERS;
 
@@ -2199,8 +2199,8 @@ static int _unregister_session_info(struct file *fp,
 	int i;
 
 	KREE_DEBUG(
-		"====> [%s] %d is calling. in_handleID = %d\n",
-		__func__, __LINE__, in_handleID);
+		"====> [%d] _unregister_session_info is calling. in_handleID = %d\n",
+		__LINE__, in_handleID);
 	if (in_handleID < 0)
 		return TZ_RESULT_ERROR_BAD_PARAMETERS;
 
@@ -2230,16 +2230,16 @@ static int _unregister_session_info(struct file *fp,
 
 static int gz_dev_open(struct inode *inode, struct file *filp)
 {
-	KREE_DEBUG("====>%s & _init_session_info is calling.\n", __func__);
+	KREE_DEBUG("====>gz_dev_open & _init_session_info is calling.\n");
 	_init_session_info(filp);
 	return 0;
 }
 
 static int gz_dev_release(struct inode *inode, struct file *filp)
 {
-	KREE_DEBUG("====>[before] %s is calling.\n", __func__);
+	KREE_DEBUG("====>[before] gz_dev_release is calling.\n");
 	_free_session_info(filp);
-	KREE_DEBUG("====>[after] %s is calling.\n", __func__);
+	KREE_DEBUG("====>[after] gz_dev_release is calling.\n");
 	return 0;
 }
 
@@ -3302,24 +3302,14 @@ static long _gz_ioctl(struct file *filep, unsigned int cmd, unsigned long arg,
 
 static long gz_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 {
-	long ret;
-
-	set_gz_bind_cpu(1);
-	ret = _gz_ioctl(filep, cmd, arg, 0);
-	set_gz_bind_cpu(0);
-	return ret;
+	return _gz_ioctl(filep, cmd, arg, 0);
 }
 
 #if defined(CONFIG_COMPAT)
 static long gz_compat_ioctl(struct file *filep, unsigned int cmd,
 			    unsigned long arg)
 {
-	long ret;
-
-	set_gz_bind_cpu(1);
-	ret = _gz_ioctl(filep, cmd, arg, 1);
-	set_gz_bind_cpu(0);
-	return ret;
+	return _gz_ioctl(filep, cmd, arg, 1);
 }
 #endif
 

@@ -43,20 +43,11 @@ struct MCLK_PINCTRL_NAMES mclk3_pinctrl[MCLK_STATE_MAX_NUM] = {
 	{"cam3_mclk_8mA"},
 };
 struct MCLK_PINCTRL_NAMES mclk4_pinctrl[MCLK_STATE_MAX_NUM] = {
-	#ifdef VENDOR_EDIT
-	/* Feiping.Li@Camera.Driver, 20190522, add for 19301 rear 4 sensor */
-	{"cam4_mclk_off"},
-	{"cam4_mclk_2mA"},
-	{"cam4_mclk_4mA"},
-	{"cam4_mclk_6mA"},
-	{"cam4_mclk_8mA"},
-	#else
 	{"cam3_mclk_off"},
 	{"cam3_mclk_2mA"},
 	{"cam3_mclk_4mA"},
 	{"cam3_mclk_6mA"},
 	{"cam3_mclk_8mA"},
-	#endif
 };
 
 struct MCLK_PINCTRL_NAMES*

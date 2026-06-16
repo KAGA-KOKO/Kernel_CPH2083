@@ -50,14 +50,6 @@ obj-y += irq/
 obj-y += rcu/
 obj-y += livepatch/
 
-#ChenYong@Rom.Framework,2019/01/15, add for kevent action upload,root action upload to user layer
-obj-$(CONFIG_OPPO_KEVENT_UPLOAD) += oppo_kevent_upload.o
-obj-$(CONFIG_OPPO_KEVENT_TEST) += oppo_kevent_test.o
-
-#ifdef VENDOR_EDIT
-#Liujie.Xie@TECH.Kernel.Sched, 2019/05/22, add for ui first
-obj-y += oppocfs/
-
 obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
 obj-$(CONFIG_FREEZER) += freezer.o
 obj-$(CONFIG_PROFILING) += profile.o
@@ -145,8 +137,3 @@ $(obj)/config_data.gz: $(KCONFIG_CONFIG) FORCE
 targets += config_data.h
 $(obj)/config_data.h: $(obj)/config_data.gz FORCE
 	$(call filechk,ikconfiggz)
-    
-#ifdef VENDOR_EDIT
-#Liang.Zhang@PSW.TECH.BOOTUP, 2018/11/16, Add for panic recovery
-#ifdef HANG_OPPO_ALL
-obj-$(CONFIG_HANG_OPPO_ALL) += op_panic_recovery.o

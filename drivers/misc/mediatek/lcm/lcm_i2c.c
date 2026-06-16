@@ -62,11 +62,11 @@
 #ifndef CONFIG_FPGA_EARLY_PORTING
 #ifdef CONFIG_MTK_LEGACY
 #define LCM_I2C_ADDR 0x3E
-#define LCM_I2C_BUSNUM  3 //I2C_I2C_LCD_BIAS_CHANNEL	/* for I2C channel 0 */
+#define LCM_I2C_BUSNUM  I2C_I2C_LCD_BIAS_CHANNEL	/* for I2C channel 0 */
 #define LCM_I2C_ID_NAME "tps65132"
 #else
 #define LCM_I2C_ADDR 0x3E
-#define LCM_I2C_BUSNUM  3	/* for I2C channel 0 */
+#define LCM_I2C_BUSNUM  1	/* for I2C channel 0 */
 #define LCM_I2C_ID_NAME "I2C_LCD_BIAS"
 #endif
 
@@ -279,8 +279,7 @@ MODULE_DESCRIPTION("MTK LCM I2C Driver");
 MODULE_LICENSE("GPL");
 #endif
 #endif
-
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/21 add for LCD bias iic bring up */
+/* Wangxianfei@ODM.Multimedia.LCD  2018/11/29 add for LCD bias iic bring up */
 #ifdef ODM_HQ_EDIT
 #include <linux/kernel.h>
 #include <linux/module.h>

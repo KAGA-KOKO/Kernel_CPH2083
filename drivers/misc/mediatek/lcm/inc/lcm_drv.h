@@ -723,12 +723,8 @@ struct LCM_PARAMS {
 	unsigned int min_luminance;
 	unsigned int average_luminance;
 	unsigned int max_luminance;
-
-	unsigned int hbm_en_time;
-	unsigned int hbm_dis_time;
-
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/9/21 modified for backlight remapping*/
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/21 modified for backlight remapping*/
 	int *blmap;
 	int blmap_size;
 	int brightness_max;
@@ -918,9 +914,6 @@ struct LCM_DRIVER {
 	void (*init_power)(void);
 	void (*suspend_power)(void);
 	void (*resume_power)(void);
-#ifdef ODM_WT_EDIT
-	void (*shutdown_power)(void);
-#endif
 
 	void (*update)(unsigned int x, unsigned int y, unsigned int width,
 			unsigned int height);
@@ -931,23 +924,15 @@ struct LCM_DRIVER {
 	/* /////////////////////////CABC backlight related function */
 	void (*set_backlight)(unsigned int level);
 	void (*set_backlight_cmdq)(void *handle, unsigned int level);
-	bool (*get_hbm_state)(void);
-	bool (*get_hbm_wait)(void);
-	bool (*set_hbm_wait)(bool wait);
-	bool (*set_hbm_cmdq)(bool en, void *qhandle);
-
+#ifdef ODM_HQ_EDIT
+/* Xianfei.Wang@ODM.HQ.Multimedia.LCM 2018/12/28 modified for set_cabc_mode function */
+	void (*set_cabc_mode_cmdq)(void *handle, unsigned int level);
+#endif
 	void (*set_pwm)(unsigned int divider);
 	unsigned int (*get_pwm)(unsigned int divider);
 	void (*set_backlight_mode)(unsigned int mode);
-	#ifdef ODM_WT_EDIT
-	//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-	void (*set_dimming_mode_cmdq)(void *handle, unsigned int level);
-	#endif
-	
 	/* ///////////////////////// */
 #ifdef VENDOR_EDIT
-/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
-	void (*set_cabc_mode_cmdq)(void *handle, unsigned int level);
 	/*
 	* liping-m@PSW.MM.Display.LCD.Stability, 2018/07/20,
 	* add power seq api for ulps
@@ -964,12 +949,6 @@ struct LCM_DRIVER {
 	* add for Aod feature
 	*/
 	void (*aod_doze_resume)(void);
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
-	* modify for support aod state.
-	*/
-	void (*disp_lcm_aod_from_display_on)(void);
-	void (*set_aod_brightness)(void *handle, unsigned int mode);
 #endif /* VENDOR_EDIT */
 
 	int (*adjust_fps)(void *cmdq, int fps, struct LCM_PARAMS *params);

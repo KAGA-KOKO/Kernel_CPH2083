@@ -336,10 +336,6 @@ int hw_charging_get_charger_type(void)
 	return CHR_Type_num;
 }
 
-#ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add for charger*/
-extern bool oppo_chg_wake_update_work(void);
-#endif /*ODM_HQ_EDIT*/
 void mtk_pmic_enable_chr_type_det(bool en)
 {
 #ifndef CONFIG_TCPC_CLASS
@@ -351,10 +347,7 @@ void mtk_pmic_enable_chr_type_det(bool en)
 #endif
 
 	mutex_lock(&chrdet_lock);
-#ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add for charger*/
-	oppo_chg_wake_update_work();
-#endif /*ODM_HQ_EDIT*/
+
 	if (en) {
 		if (is_meta_mode()) {
 			/* Skip charger type detection to speed up meta boot */

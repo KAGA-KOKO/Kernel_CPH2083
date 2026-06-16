@@ -27,7 +27,6 @@ struct codec_history {
 	long long submit[MAX_HISTORY];
 	long long start[MAX_HISTORY];
 	long long end[MAX_HISTORY];
-	long long sw_time[MAX_HISTORY];
 	long long submit_interval;
 	int cur_idx;
 	int cur_cnt;
@@ -41,7 +40,6 @@ struct codec_job {
 	long long submit;
 	long long start;
 	long long end;
-	int hw_kcy;
 	int mhz;
 	struct codec_job *next;
 };
@@ -64,5 +62,4 @@ u64 match_freq(int target_mhz, u64 *freq_list, u32 freq_cnt);
 
 /* Free unused/all history */
 int free_hist(struct codec_history **head, int only_unused);
-int free_hist_by_handle(void *handle, struct codec_history **head);
 #endif

@@ -1166,7 +1166,7 @@ static struct i2c_driver bq2560x_charger_driver = {
 	.probe		= bq2560x_charger_probe,
 	.remove		= bq2560x_charger_remove,
 	.shutdown	= bq2560x_charger_shutdown,
-	
+
 };
 
 module_i2c_driver(bq2560x_charger_driver);

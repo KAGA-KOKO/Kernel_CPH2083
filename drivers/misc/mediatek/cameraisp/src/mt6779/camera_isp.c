@@ -330,7 +330,6 @@ static int nr_isp_devs;
 static unsigned int m_CurrentPPB;
 static struct isp_sec_dapc_reg lock_reg;
 static unsigned int sec_on;
-static unsigned int log_on;
 
 #ifdef CONFIG_PM_WAKELOCKS
 struct wakeup_source isp_wake_lock;
@@ -629,12 +628,12 @@ struct ISP_INFO_STRUCT {
 	spinlock_t                      SpinLockRTBC;
 	spinlock_t                      SpinLockClock;
 	wait_queue_head_t               WaitQueueHead[ISP_IRQ_TYPE_AMOUNT];
-
 	wait_queue_head_t	WaitQHeadCam
-				[CAM_AMOUNT][ISP_WAITQ_HEAD_IRQ_AMOUNT];
-
+						[CAM_AMOUNT]
+						[ISP_WAITQ_HEAD_IRQ_AMOUNT];
 	wait_queue_head_t	WaitQHeadCamsv
-				[CAMSV_AMOUNT][ISP_WAITQ_HEAD_IRQ_SV_AMOUNT];
+						[CAMSV_AMOUNT]
+						[ISP_WAITQ_HEAD_IRQ_SV_AMOUNT];
 	unsigned int                         UserCount;
 	unsigned int                         DebugMask;
 	int							IrqNum;
@@ -1729,153 +1728,120 @@ static void ISP_ConfigDMAControl(void)
 	enum ISP_DEV_NODE_ENUM module = ISP_CAM_A_IDX;
 
 	for (; module < ISP_CAMSV0_IDX; (u32)module++) {
-		/* WDMA */
 		ISP_WR32(CAM_REG_IMGO_CON(module),  0x80000500);
 		ISP_WR32(CAM_REG_IMGO_CON2(module), 0x02800280);
 		ISP_WR32(CAM_REG_IMGO_CON3(module), 0x01400140);
-		ISP_WR32(CAM_REG_IMGO_DRS(module),  0x83C003C0);
 
 		ISP_WR32(CAM_REG_RRZO_CON(module),  0x80000300);
 		ISP_WR32(CAM_REG_RRZO_CON2(module), 0x01800180);
 		ISP_WR32(CAM_REG_RRZO_CON3(module), 0x00C000C0);
-		ISP_WR32(CAM_REG_RRZO_DRS(module),  0x82400240);
 
 		ISP_WR32(CAM_REG_PDO_CON(module),  0x80000180);
 		ISP_WR32(CAM_REG_PDO_CON2(module), 0x00C000C0);
 		ISP_WR32(CAM_REG_PDO_CON3(module), 0x00600060);
-		ISP_WR32(CAM_REG_PDO_DRS(module),  0x81200120);
 
 		ISP_WR32(CAM_REG_TSFSO_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_TSFSO_CON2(module), 0x00400040);
 		ISP_WR32(CAM_REG_TSFSO_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_TSFSO_DRS(module),  0x80600060);
 
 		ISP_WR32(CAM_REG_AAO_CON(module),  0x800000C0);
 		ISP_WR32(CAM_REG_AAO_CON2(module), 0x00600060);
 		ISP_WR32(CAM_REG_AAO_CON3(module), 0x00300030);
-		ISP_WR32(CAM_REG_AAO_DRS(module),  0x80900090);
 
 		ISP_WR32(CAM_REG_AFO_CON(module),  0x80000180);
 		ISP_WR32(CAM_REG_AFO_CON2(module), 0x00C000C0);
 		ISP_WR32(CAM_REG_AFO_CON3(module), 0x00600060);
-		ISP_WR32(CAM_REG_AFO_DRS(module),  0x81200120);
 
 		ISP_WR32(CAM_REG_FLKO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_FLKO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_FLKO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_FLKO_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_LTMSO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_LTMSO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_LTMSO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_LTMSO_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_LCESO_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_LCESO_CON2(module), 0x00400040);
 		ISP_WR32(CAM_REG_LCESO_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_LCESO_DRS(module),  0x80600060);
+
 
 		ISP_WR32(CAM_REG_RSSO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_RSSO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_RSSO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_RSSO_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_LMVO_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_LMVO_CON2(module), 0x00400040);
 		ISP_WR32(CAM_REG_LMVO_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_LMVO_DRS(module),  0x80600060);
+
 
 		ISP_WR32(CAM_REG_UFEO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_UFEO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_UFEO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_UFEO_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_UFGO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_UFGO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_UFGO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_UFGO_DRS(module),  0x80300030);
+
 
 		ISP_WR32(CAM_REG_YUVO_CON(module),  0x80000200);
 		ISP_WR32(CAM_REG_YUVO_CON2(module), 0x01000100);
 		ISP_WR32(CAM_REG_YUVO_CON3(module), 0x00800080);
-		ISP_WR32(CAM_REG_YUVO_DRS(module),  0x81800180);
 
 		ISP_WR32(CAM_REG_YUVBO_CON(module),  0x80000100);
 		ISP_WR32(CAM_REG_YUVBO_CON2(module), 0x00800080);
 		ISP_WR32(CAM_REG_YUVBO_CON3(module), 0x00400040);
-		ISP_WR32(CAM_REG_YUVBO_DRS(module),  0x80C000C0);
 
 		ISP_WR32(CAM_REG_YUVCO_CON(module),  0x80000100);
 		ISP_WR32(CAM_REG_YUVCO_CON2(module), 0x00800080);
 		ISP_WR32(CAM_REG_YUVCO_CON3(module), 0x00400040);
-		ISP_WR32(CAM_REG_YUVCO_DRS(module),  0x80C000C0);
 
 		ISP_WR32(CAM_REG_CRZO_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_CRZO_CON2(module), 0x00400040);
 		ISP_WR32(CAM_REG_CRZO_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_CRZO_DRS(module),  0x80600060);
 
 		ISP_WR32(CAM_REG_CRZBO_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_CRZBO_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_CRZBO_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_CRZBO_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_CRZO_R2_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_CRZO_R2_CON2(module), 0x00400040);
 		ISP_WR32(CAM_REG_CRZO_R2_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_CRZO_R2_DRS(module),  0x80600060);
 
 		ISP_WR32(CAM_REG_CRZBO_R2_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_CRZBO_R2_CON2(module), 0x00200020);
 		ISP_WR32(CAM_REG_CRZBO_R2_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_CRZBO_R2_DRS(module),  0x80300030);
 
 		ISP_WR32(CAM_REG_RSSO_R2_CON(module),  0x800000C0);
 		ISP_WR32(CAM_REG_RSSO_R2_CON2(module), 0x00600060);
 		ISP_WR32(CAM_REG_RSSO_R2_CON3(module), 0x00300030);
-		ISP_WR32(CAM_REG_RSSO_R2_DRS(module),  0x80900090);
 
-		/* RDMA */
 		ISP_WR32(CAM_REG_RAWI_R2_CON(module),  0x80000200);
 		ISP_WR32(CAM_REG_RAWI_R2_CON2(module), 0x01000100);
-		ISP_WR32(CAM_REG_RAWI_R2_CON3(module), 0x00800080);
-		ISP_WR32(CAM_REG_RAWI_R2_DRS(module),  0x81800180);
+		ISP_WR32(CAM_REG_RAWI_R2_CON3(module), 0x01800180);
+
 
 		ISP_WR32(CAM_REG_UFDI_R2_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_UFDI_R2_CON2(module), 0x00200020);
-		ISP_WR32(CAM_REG_UFDI_R2_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_UFDI_R2_DRS(module),  0x80300030);
+		ISP_WR32(CAM_REG_UFDI_R2_CON3(module), 0x00300030);
 
 		ISP_WR32(CAM_REG_PDI_CON(module),  0x80000080);
 		ISP_WR32(CAM_REG_PDI_CON2(module), 0x00400040);
-		ISP_WR32(CAM_REG_PDI_CON3(module), 0x00200020);
-		ISP_WR32(CAM_REG_PDI_DRS(module),  0x80600060);
+		ISP_WR32(CAM_REG_PDI_CON3(module), 0x00600060);
 
 		ISP_WR32(CAM_REG_BPCI_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_BPCI_CON2(module), 0x00200020);
-		ISP_WR32(CAM_REG_BPCI_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_BPCI_DRS(module),  0x80300030);
+		ISP_WR32(CAM_REG_BPCI_CON3(module), 0x00300030);
+
 
 		ISP_WR32(CAM_REG_BPCI_R2_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_BPCI_R2_CON2(module), 0x00200020);
-		ISP_WR32(CAM_REG_BPCI_R2_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_BPCI_R2_DRS(module),  0x80300030);
+		ISP_WR32(CAM_REG_BPCI_R2_CON3(module), 0x00300030);
+
 
 		ISP_WR32(CAM_REG_LSCI_CON(module),  0x80000040);
 		ISP_WR32(CAM_REG_LSCI_CON2(module), 0x00200020);
-		ISP_WR32(CAM_REG_LSCI_CON3(module), 0x00100010);
-		ISP_WR32(CAM_REG_LSCI_DRS(module),  0x80300030);
+		ISP_WR32(CAM_REG_LSCI_CON3(module), 0x00300030);
 	}
-
-	/* Enable urgent FIFO (DRS) setting */
-	ISP_WR32(CAMSYS_REG_HALT1_EN,     0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT2_EN,     0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT3_EN,     0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT4_EN,     0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT1_SEC_EN, 0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT2_SEC_EN, 0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT3_SEC_EN, 0x00000001);
-	ISP_WR32(CAMSYS_REG_HALT4_SEC_EN, 0x00000001);
 }
 
 /*******************************************************************************
@@ -2689,8 +2655,6 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 
 	/* 1. wait type update */
 	if (WaitIrq->EventInfo.Clear == ISP_IRQ_CLEAR_STATUS) {
-		if (log_on)
-			LOG_NOTICE("+ [1]update status\n");
 		spin_lock_irqsave(&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
 		IspInfo.IrqInfo.Status[WaitIrq->Type]
 			[WaitIrq->EventInfo.St_type]
@@ -2699,13 +2663,10 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 
 		spin_unlock_irqrestore(&(IspInfo.SpinLockIrq[WaitIrq->Type]),
 			flags);
-		if (log_on)
-			LOG_NOTICE("- [1]update status\n");
+
 		return Ret;
 	}
 	{
-		if (log_on)
-			 LOG_NOTICE("+ check status\n");
 		spin_lock_irqsave(&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
 		if (WaitIrq->EventInfo.Status &
 		    IspInfo.IrqInfo.MarkedFlag[WaitIrq->Type]
@@ -2713,8 +2674,7 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 
 			spin_unlock_irqrestore(
 				&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
-			if (log_on)
-				LOG_NOTICE("- check status[1]\n");
+
 			/* force to be non_clear wait if marked before,*/
 			/* and check the request wait timing */
 			/* if the entry time of wait request after mark */
@@ -2741,23 +2701,17 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 			/* |                                              | */
 			/* Sig                                            Sig */
 			/*  */
-			if (log_on)
-				LOG_NOTICE("+ get freeze_passbysigcnt\n");
+
 			freeze_passbysigcnt = !(ISP_GetIRQState(
 				WaitIrq->Type,
 				WaitIrq->EventInfo.St_type,
 				WaitIrq->EventInfo.UserKey,
 				WaitIrq->EventInfo.Status));
-			if (log_on)
-				LOG_NOTICE("- get freeze_passbysigcnt\n");
 		} else {
 			spin_unlock_irqrestore(
 				&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
-			if (log_on)
-				LOG_NOTICE("- check status[2]\n");
+
 			if (WaitIrq->EventInfo.Clear == ISP_IRQ_CLEAR_WAIT) {
-				if (log_on)
-					LOG_NOTICE("+ [2]update status\n");
 				spin_lock_irqsave(
 					&(IspInfo.SpinLockIrq[WaitIrq->Type]),
 					flags);
@@ -2776,12 +2730,10 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 				spin_unlock_irqrestore(
 					&(IspInfo.SpinLockIrq[WaitIrq->Type]),
 					flags);
-				if (log_on)
-					LOG_NOTICE("- [2]update status\n");
+
 			} else if (WaitIrq->EventInfo.Clear ==
 				ISP_IRQ_CLEAR_ALL) {
-				if (log_on)
-					LOG_NOTICE("+ [3]update status\n");
+
 				spin_lock_irqsave(
 					&(IspInfo.SpinLockIrq[WaitIrq->Type]),
 					flags);
@@ -2793,23 +2745,18 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 				spin_unlock_irqrestore(
 					&(IspInfo.SpinLockIrq[WaitIrq->Type]),
 					flags);
-				if (log_on)
-					LOG_NOTICE("- [3]update status\n");
 			}
 		}
 	}
 
 	/* Store irqinfo status in here to redeuce time of spin_lock_irqsave */
-	if (log_on)
-		LOG_NOTICE("+ update irqStatus\n");
 	spin_lock_irqsave(&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
 
 	irqStatus = IspInfo.IrqInfo.Status[WaitIrq->Type]
 		[WaitIrq->EventInfo.St_type][WaitIrq->EventInfo.UserKey];
 
 	spin_unlock_irqrestore(&(IspInfo.SpinLockIrq[WaitIrq->Type]), flags);
-	if (log_on)
-		LOG_NOTICE("- update irqStatus\n");
+
 	if (WaitIrq->EventInfo.Clear == ISP_IRQ_CLEAR_NONE) {
 		if (IspInfo.IrqInfo.Status[WaitIrq->Type]
 			[WaitIrq->EventInfo.St_type][WaitIrq->EventInfo.UserKey]
@@ -2830,7 +2777,8 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 			goto NON_CLEAR_WAIT;
 		}
 	}
-	if (log_on)
+
+#ifdef ENABLE_WAITIRQ_LOG
 	LOG_INF(
 		"before wait: Clear(%d) Type(%d) StType(%d) Sts(0x%08X) WaitSts(0x%08X) Timeout(%d) userKey(%d)\n",
 		WaitIrq->EventInfo.Clear,
@@ -2840,10 +2788,9 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 		WaitIrq->EventInfo.Status,
 		WaitIrq->EventInfo.Timeout,
 		WaitIrq->EventInfo.UserKey);
+#endif
 
 	/* 2. start to wait signal */
-	if (log_on)
-		LOG_NOTICE("+ start to wait signal\n");
 	if (ISP_CheckUseCamWaitQ(WaitIrq->Type,
 		WaitIrq->EventInfo.St_type,
 		WaitIrq->EventInfo.Status)) {
@@ -2884,8 +2831,7 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 				  ISP_MsToJiffies(
 				  WaitIrq->EventInfo.Timeout));
 	}
-	if (log_on)
-		LOG_NOTICE("- start to wait signal\n");
+
 	/* check if user is interrupted by system signal */
 	if ((Timeout != 0) &&
 	    (!ISP_GetIRQState(WaitIrq->Type,
@@ -2900,12 +2846,7 @@ static int ISP_WaitIrq(struct ISP_WAIT_IRQ_STRUCT *WaitIrq)
 			WaitIrq->EventInfo.Status);
 
 		Ret = -ERESTARTSYS;  /* actually it should be -ERESTARTSYS */
-		if (WaitIrq->EventInfo.UserKey == 1)
-			log_on = 1;
 		goto EXIT;
-	} else {
-		if (WaitIrq->EventInfo.UserKey == 1)
-			log_on = 0;
 	}
 	/* timeout */
 	if (Timeout == 0) {
@@ -3476,7 +3417,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 
 				IrqInfo.EventInfo.UserKey = 0;
 			}
-			if (log_on)
+#ifdef ENABLE_WAITIRQ_LOG
 			LOG_INF(
 				"IRQ type(%d), userKey(%d), timeout(%d), userkey(%d), st_status(%d), status(%d)\n",
 				IrqInfo.Type,
@@ -3485,6 +3426,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 				IrqInfo.EventInfo.UserKey,
 				IrqInfo.EventInfo.St_type,
 				IrqInfo.EventInfo.Status);
+#endif
 			Ret = ISP_WaitIrq(&IrqInfo);
 		} else {
 			LOG_NOTICE("copy_from_user failed\n");
@@ -3921,7 +3863,6 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 	case ISP_GET_SUPPORTED_ISP_CLOCKS:
 	{
 		struct ISP_CLK_INFO ispclks;
-
 		memset((void *)&ispclks, 0x0, sizeof(struct ISP_CLK_INFO));
 
 		ispclks.clklevelcnt =
@@ -4150,7 +4091,6 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 	case SV_GET_SUPPORTED_ISP_CLOCKS:
 	{
 		struct ISP_CLK_INFO ispclks;
-
 		memset((void *)&ispclks, 0x0, sizeof(struct ISP_CLK_INFO));
 
 		ispclks.clklevelcnt =
@@ -5142,7 +5082,7 @@ static int ISP_open(
 		IrqUserKey_UserInfo[i].userKey = -1;
 	}
 
-	IspInfo.BufInfo.Read.pData = kmalloc(ISP_BUF_SIZE, GFP_KERNEL);
+	IspInfo.BufInfo.Read.pData = kmalloc(ISP_BUF_SIZE, GFP_ATOMIC);
 	IspInfo.BufInfo.Read.Size = ISP_BUF_SIZE;
 	IspInfo.BufInfo.Read.Status = ISP_BUF_STATUS_EMPTY;
 	if (IspInfo.BufInfo.Read.pData == NULL) {
@@ -5298,37 +5238,6 @@ static inline void ISP_StopHW(int module)
 	}
 
 RESET:
-	#ifdef VENDOR_EDIT
-	/* Henry.Chang@Camera.Driver add for HW reboot error 20190322*/
-	/* timer*/
-	time = ktime_get();
-	m_sec = time.tv64;
-	loopCnt = 100;
-	LOG_INF("%s: reset, m_sec %lld\n", moduleName, m_sec);
-
-	/* Reset*/
-	ISP_WR32(CAM_REG_CTL_SW_CTL(module), 0x0);
-	ISP_WR32(CAM_REG_CTL_SW_CTL(module), 0x1);
-	while (((ISP_RD32(CAM_REG_CTL_SW_CTL(module)) & 0x2) != 0x2) || (loopCnt)) {
-		/*LOG_DBG("%s resetting...\n", moduleName);*/
-		/*timer*/
-		time = ktime_get();
-		sec = time.tv64;
-		/* wait time>timeoutMs, break */
-		if ((sec  - m_sec) > timeoutMs) {
-			LOG_INF("%s: wait SW idle timeout\n", moduleName);
-			break;
-		} else {
-			loopCnt--;
-		}
-	}
-
-	ISP_WR32(CAM_REG_CTL_SW_CTL(module), 0x4);
-	ISP_WR32(CAM_REG_CTL_SW_CTL(module), 0x0);
-	regTGSt = (ISP_RD32(CAM_REG_TG_INTER_ST(module)) & 0x00003F00) >> 8;
-	LOG_DBG("%s_TG_ST(%d)_SW_ST(0x%x), sec %lld\n", moduleName, regTGSt,
-		ISP_RD32(CAM_REG_CTL_SW_CTL(module)), sec);
-	#else
 	LOG_INF("%s: reset\n", moduleName);
 	/* timer*/
 	time = ktime_get();
@@ -5354,11 +5263,11 @@ RESET:
 	regTGSt = (ISP_RD32(CAM_REG_TG_INTER_ST(module)) & 0x00003F00) >> 8;
 	LOG_DBG("%s_TG_ST(%d)_SW_ST(0x%x)\n", moduleName, regTGSt,
 		ISP_RD32(CAM_REG_CTL_SW_CTL(module)));
-	#endif
 
 	/*disable CMOS*/
 	ISP_WR32(CAM_REG_TG_SEN_MODE(module),
 		(ISP_RD32(CAM_REG_TG_SEN_MODE(module))&0xfffffffe));
+
 }
 
 /*******************************************************************************
@@ -5460,49 +5369,13 @@ static inline void ISP_StopSVHW(int module)
 				moduleName, (sec - m_sec));
 		}
 	}
-	#ifdef VENDOR_EDIT
-	/* Henry.Chang@Camera.Driver add for HW reboot error 20190322*/
-	/* timer*/
-	time = ktime_get();
-	m_sec = time.tv64;
-	loopCnt = 100;
-	LOG_INF("%s: reset, m_sec %lld\n", moduleName, m_sec);
 
-	/* Reset*/
-	ISP_WR32(CAMSV_REG_SW_CTL(module), 0x1);
-	while (((ISP_RD32(CAMSV_REG_SW_CTL(module)) & 0x3) != 0x3 ) || (loopCnt)) {
-		/* camsv_top0 DMA2, camsv_2 need additional polling */
-		/* register DMA_SOFT_RSTSTAT with IMGO and FUEO */
-		if ((module == ISP_CAMSV1_IDX) &&
-			((DMA_ST_MASK_CAMSV_IMGO_OR_UFO &
-			ISP_RD32(CAMSV_REG_DMA_SOF_RSTSTAT(module))) ==
-			DMA_ST_MASK_CAMSV_IMGO_OR_UFO))
-		break;
-		/*LOG_DBG("%s resetting...\n", moduleName);*/
-		/*timer*/
-		time = ktime_get();
-		sec = time.tv64;
-		/* wait time>timeoutMs, break */
-		if ((sec  - m_sec) > timeoutMs) {
-			LOG_INF("%s: wait SW idle timeout\n", moduleName);
-			break;
-		} else {
-			loopCnt--;
-		}
-	}
-	ISP_WR32(CAMSV_REG_SW_CTL(module), 0x4); /* SW_RST:1 */
-	ISP_WR32(CAMSV_REG_SW_CTL(module), 0x0);
-	regTGSt = (ISP_RD32(CAMSV_REG_TG_INTER_ST(module)) & 0x00003F00) >> 8;
-	LOG_DBG("%s_TG_ST(%d)_SW_ST(0x%x), sec %lld\n", moduleName, regTGSt,
-		ISP_RD32(CAMSV_REG_SW_CTL(module)), sec);
-	#else
 	LOG_INF("%s: reset\n", moduleName);
 	/* timer*/
 	time = ktime_get();
 	m_sec = time.tv64;
 
 	/* Reset*/
-	ISP_WR32(CAMSV_REG_SW_CTL(module), 0x0);
 	ISP_WR32(CAMSV_REG_SW_CTL(module), 0x1);
 	while ((ISP_RD32(CAMSV_REG_SW_CTL(module)) & 0x3) != 0x3) {
 		/* camsv_top0 DMA2, camsv_2 need additional polling */
@@ -5527,7 +5400,6 @@ static inline void ISP_StopSVHW(int module)
 	regTGSt = (ISP_RD32(CAMSV_REG_TG_INTER_ST(module)) & 0x00003F00) >> 8;
 	LOG_DBG("%s_TG_ST(%d)_SW_ST(0x%x)\n", moduleName, regTGSt,
 		ISP_RD32(CAMSV_REG_SW_CTL(module)));
-	#endif
 
 	/*disable CMOS*/
 	ISP_WR32(CAMSV_REG_TG_SEN_MODE(module),
@@ -8571,7 +8443,7 @@ ISP_Irq_CAMSV(
 			}
 
 			IRQ_LOG_KEEPER(module, m_CurrentPPB, _LOG_INF,
-				       "%s P1_SOF_%d_%d(0x%08x_0x%08x,0x%08x),int_us: %d, stamp[%d]\n",
+				       "%s P1_SOF_%d_%d(0x%08x_0x%08x,0x%08x),int_us:0x%08x, stamp[0x%08x]\n",
 				       str,
 				       sof_count[module], cur_v_cnt,
 				       (unsigned int)(ISP_RD32(
@@ -10349,21 +10221,6 @@ static void SMI_INFO_DUMP(enum ISP_IRQ_TYPE_ENUM irq_module)
 			g_ISPIntStatus_SMI[irq_module].ispIntErr =
 				g_ISPIntStatus_SMI[irq_module].ispInt4Err = 0;
 		}
-		if (g_ISPIntStatus_SMI[irq_module].ispIntErr &
-			TG_ERR_ST) {
-
-			LOG_NOTICE("TG_ERR:SMI_DUMP by module:%d\n",
-				irq_module);
-
-			if (smi_debug_bus_hang_detect(
-					SMI_PARAM_BUS_OPTIMIZATION,
-					true, false, true) != 0)
-				LOG_NOTICE("TG_ERR:smi_debug_bus_hang_detect");
-
-			g_ISPIntStatus_SMI[irq_module].ispIntErr =
-				g_ISPIntStatus_SMI[irq_module].ispInt4Err = 0;
-		}
-
 		break;
 	case ISP_IRQ_TYPE_INT_CAMSV_0_ST:
 	case ISP_IRQ_TYPE_INT_CAMSV_1_ST:

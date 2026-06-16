@@ -617,19 +617,14 @@ int mt_cpufreq_dts_map(void)
 unsigned int _mt_cpufreq_get_cpu_level(void)
 {
 	unsigned int lv = CPU_LEVEL_0;
-	int val = (get_devinfo_with_index(7) & 0xFF);
 
-	if ((val == 0x09) || (val == 0x90) || (val == 0x08) || (val == 0x10)
-	|| (val == 0x06) || (val == 0x60) || (val == 0x04) || (val == 0x20))
-		lv = CPU_LEVEL_4;
-	else if ((val == 0x07) || (val == 0xE0) || (val == 0x50)
-	|| (val == 0x0A))
-		lv = CPU_LEVEL_3;
+	lv = CPU_LEVEL_0;
 
 	turbo_flag = 0;
 
-	tag_pr_info("%d, %d, (%d, %d) efuse_val = 0x%x\n",
-		lv, turbo_flag, UP_SRATE, DOWN_SRATE, val);
+	tag_pr_info("%d, %d, (%d, %d)\n",
+		lv, turbo_flag, UP_SRATE, DOWN_SRATE);
+
 	return lv;
 }
 

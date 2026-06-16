@@ -82,8 +82,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "pvrsrv.h"
 
-#include "img_opts.h"
-
 #if defined(SUPPORT_TRUSTED_DEVICE)
 #include "rgxdevice.h"
 #include "pvrsrv_device.h"
@@ -455,13 +453,11 @@ static INLINE void GetApphints(PVRSRV_RGXDEV_INFO *psDevInfo, RGX_SRVINIT_APPHIN
 		}
 
 		/* MTK default FW debug flags */
-#if !((IMG_1_10_OPTS) & IMG_1_10_OPT_DISABLE_FW_LOGGING_BY_DEFAULT)
 		ui32LogType |= (RGXFWIF_LOG_TYPE_TRACE |
 				RGXFWIF_LOG_TYPE_GROUP_MAIN |
 				RGXFWIF_LOG_TYPE_GROUP_CSW |
 				RGXFWIF_LOG_TYPE_GROUP_POW |
 				RGXFWIF_LOG_TYPE_GROUP_HWR);
-#endif
 
 		psHints->ui32LogType = ui32LogType;
 	}

@@ -81,8 +81,6 @@ void __iomem *apu_mdla_base;
 #define CLK_CFG_UPDATE		(cksys_base + 0x004)
 #define CLK_CFG_0		(cksys_base + 0x020)
 #define CLK_CFG_1		(cksys_base + 0x030)
-#define CLK_CFG_2		(cksys_base + 0x040)
-#define CLK_CFG_3		(cksys_base + 0x050)
 #define CLK_CFG_6		(cksys_base + 0x080)
 #define CLK_CFG_6_SET		(cksys_base + 0x084)
 #define CLK_CFG_6_CLR		(cksys_base + 0x088)
@@ -156,7 +154,6 @@ void __iomem *apu_mdla_base;
 #define CAMSYS_CG_CON		(cam_base + 0x0000)
 #define CAMSYS_CG_SET		(cam_base + 0x0004)
 #define CAMSYS_CG_CLR		(cam_base + 0x0008)
-#define CAMSYS_SW_RST		(cam_base + 0x000C)
 
 #define IMG_CG_CON		(img_base + 0x0000)
 #define IMG_CG_SET		(img_base + 0x0004)
@@ -1711,14 +1708,8 @@ static int mtk_cg_enable_dump(struct clk_hw *hw)
 	mtk_cg_clr_bit(hw);
 
 	/*if (!strcmp(__clk_get_name(hw->clk), "mm_mdp_tdshp"))*/
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Feature, 2019/05/07,
-	* remove log print for performance
-	*/
 	pr_notice("%s: %s (%08x)\r\n", __func__,
 		__clk_get_name(hw->clk), clk_readl(MM_CG_CON0));
-	#endif
 
 	return 0;
 }
@@ -1728,14 +1719,8 @@ static void mtk_cg_disable_dump(struct clk_hw *hw)
 	mtk_cg_set_bit(hw);
 
 	/*if (!strcmp(__clk_get_name(hw->clk), "mm_mdp_tdshp"))*/
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Feature, 2019/05/07,
-	* remove log print for performance
-	*/
 	pr_notice("%s: %s (%08x)\r\n", __func__,
 		__clk_get_name(hw->clk), clk_readl(MM_CG_CON0));
-	#endif
 }
 
 const struct clk_ops mtk_clk_gate_ops = {
@@ -2887,7 +2872,7 @@ static const struct mtk_gate mm_clks[] __initconst = {
 	GATE_MM0(MMSYS_MDP_RDMA1, "mm_mdp_rdma1", "mm_sel", 13),
 	GATE_MM0(MMSYS_MDP_RSZ0, "mm_mdp_rsz0", "mm_sel", 14),
 	GATE_MM0(MMSYS_MDP_RSZ1, "mm_mdp_rsz1", "mm_sel", 15),
-	GATE_MM0(MMSYS_MDP_TDSHP, "mm_mdp_tdshp", "mm_sel", 16),
+	GATE_MM0_DUMP(MMSYS_MDP_TDSHP, "mm_mdp_tdshp", "mm_sel", 16),
 	GATE_MM0(MMSYS_MDP_WROT0, "mm_mdp_wrot0", "mm_sel", 17),
 	GATE_MM0(MMSYS_MDP_WROT1, "mm_mdp_wrot1", "mm_sel", 18),
 
@@ -3578,6 +3563,10 @@ static void __init mtk_apmixedsys_init(struct device_node *node)
 	clk_clrl(MMPLL_CON0, PLL_EN);
 	clk_setl(MMPLL_PWR_CON0, PLL_ISO_EN);
 	clk_clrl(MMPLL_PWR_CON0, PLL_PWR_ON);
+/*MSDCPLL*/
+	clk_clrl(MSDCPLL_CON0, PLL_EN);
+	clk_setl(MSDCPLL_PWR_CON0, PLL_ISO_EN);
+	clk_clrl(MSDCPLL_PWR_CON0, PLL_PWR_ON);
 /*MFGPLL*/
 	clk_clrl(MFGPLL_CON0, PLL_EN);
 	clk_setl(MFGPLL_PWR_CON0, PLL_ISO_EN);
@@ -3592,10 +3581,6 @@ static void __init mtk_apmixedsys_init(struct device_node *node)
 	clk_setl(TVDPLL_PWR_CON0, PLL_ISO_EN);
 	clk_clrl(TVDPLL_PWR_CON0, PLL_PWR_ON);
 #endif
-/*MSDCPLL*/
-	clk_clrl(MSDCPLL_CON0, PLL_EN);
-	clk_setl(MSDCPLL_PWR_CON0, PLL_ISO_EN);
-	clk_clrl(MSDCPLL_PWR_CON0, PLL_PWR_ON);
 /*APLL1*/
 	clk_clrl(APLL1_CON0, PLL_EN);
 	clk_setl(APLL1_PWR_CON0, PLL_ISO_EN);
@@ -4070,9 +4055,9 @@ unsigned int mt_get_ckgen_freq(unsigned int ID)
 
 	/* wait frequency meter finish */
 	while (clk_readl(CLK26CALI_0) & 0x10) {
-	udelay(10);
+	mdelay(10);
 	i++;
-	if (i > 20)
+	if (i > 10)
 		break;
 	}
 
@@ -4087,19 +4072,10 @@ unsigned int mt_get_ckgen_freq(unsigned int ID)
 
 	clk_writel(CLK26CALI_0, 0x0000);
 	/*print("ckgen meter[%d] = %d Khz\n", ID, output);*/
-	#ifdef VENDOR_EDIT
-	/*Henry.Chang@Camera.Driver add for vpu shutdown error check cam2apu TX 20190514*/
-	if (i > 20)
-		return 0;
-	else
-		return output;
-	#else
 	if (i > 10)
 		return 0;
 	else
 		return output;
-	#endif
-
 
 }
 
@@ -4121,9 +4097,9 @@ unsigned int mt_get_abist_freq(unsigned int ID)
 
 	/* wait frequency meter finish */
 	while (clk_readl(CLK26CALI_0) & 0x10) {
-		udelay(10);
+		mdelay(10);
 		i++;
-		if (i > 20)
+		if (i > 10)
 		break;
 	}
 
@@ -4136,7 +4112,8 @@ unsigned int mt_get_abist_freq(unsigned int ID)
 	/*clk_writel(CLK26CALI_0, clk26cali_0);*/
 	/*clk_writel(CLK26CALI_1, clk26cali_1);*/
 	clk_writel(CLK26CALI_0, 0x0000);
-	if (i > 20)
+	/*pr_debug("%s = %d Khz\n", abist_array[ID-1], output);*/
+	if (i > 10)
 		return 0;
 	else
 		return (output * 2);
@@ -4223,38 +4200,26 @@ void univpll_192m_en(int en)
 
 void pll_if_on(void)
 {
-	int ret = 0;
-
 	if (clk_readl(ARMPLL_LL_CON0) & 0x1)
 		pr_notice("suspend warning: ARMPLL_LL is on!!!\n");
 	if (clk_readl(ARMPLL_BL_CON0) & 0x1)
 		pr_notice("suspend warning: ARMPLL_BL is on!!!\n");
-	if (clk_readl(UNIVPLL_CON0) & 0x1) {
+	if (clk_readl(UNIVPLL_CON0) & 0x1)
 		pr_notice("suspend warning: UNIVPLL is on!!!\n");
-		ret++;
-	}
-	if (clk_readl(MFGPLL_CON0) & 0x1) {
+	if (clk_readl(MFGPLL_CON0) & 0x1)
 		pr_notice("suspend warning: MFGPLL is on!!!\n");
-		ret++;
-	}
-	if (clk_readl(MMPLL_CON0) & 0x1) {
+	if (clk_readl(MMPLL_CON0) & 0x1)
 		pr_notice("suspend warning: MMPLL is on!!!\n");
-		ret++;
-	}
 	if (clk_readl(ADSPPLL_CON0) & 0x1)
 		pr_notice("suspend warning: ADSPPLL is on!!!\n");
 	if (clk_readl(MSDCPLL_CON0) & 0x1)
 		pr_notice("suspend warning: MSDCPLL is on!!!\n");
-	if (clk_readl(TVDPLL_CON0) & 0x1) {
+	if (clk_readl(TVDPLL_CON0) & 0x1)
 		pr_notice("suspend warning: TVDPLL is on!!!\n");
-		ret++;
-	}
 	if (clk_readl(APLL1_CON0) & 0x1)
 		pr_notice("suspend warning: APLL1 is on!!!\n");
 	if (clk_readl(APLL2_CON0) & 0x1)
 		pr_notice("suspend warning: APLL2 is on!!!\n");
-	if (ret > 0)
-		WARN_ON(1);
 
 #if 0
 	pr_notice("%s: AP_PLL_CON3 = 0x%08x\r\n", __func__,
@@ -4405,44 +4370,6 @@ void check_mm0_clk_sts(void)
 		clk_readl(MMPLL_CON1));
 }
 
-void check_vpu_clk_sts(void)
-{
-	int temp = 10;
-
-	/* confirm vpu clk */
-	pr_notice("CLK_CFG_2 = 0x%08x\r\n", clk_readl(CLK_CFG_2));
-	pr_notice("CLK_CFG_3 = 0x%08x\r\n", clk_readl(CLK_CFG_3));
-	temp = mt_get_abist_freq(24);
-	pr_notice("univ freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_abist_freq(23);
-
-	temp = mt_get_ckgen_freq(14);
-	pr_notice("ipu freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_ckgen_freq(1);
-
-	temp = mt_get_ckgen_freq(13);
-	pr_notice("dsp3 freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_ckgen_freq(1);
-
-	temp = mt_get_ckgen_freq(12);
-	pr_notice("dsp2 freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_ckgen_freq(1);
-
-	temp = mt_get_ckgen_freq(11);
-	pr_notice("dsp1 freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_ckgen_freq(1);
-
-	temp = mt_get_ckgen_freq(10);
-	pr_notice("dsp freq = %d\n", temp);
-	if (temp == 0)
-		temp = mt_get_ckgen_freq(1);
-}
-
 void check_img_clk_sts(void)
 {
 	/* confirm mm0 clk */
@@ -4465,20 +4392,9 @@ void check_cam_clk_sts(void)
 {
 	/* confirm mm0 clk */
 	pr_notice("CLK_CFG_1 = 0x%08x\n", clk_readl(CLK_CFG_1));
-	pr_notice("CLK_CFG_0 = 0x%08x\n", clk_readl(CLK_CFG_0));
-	pr_notice("CLK_CFG_2 = 0x%08x\n", clk_readl(CLK_CFG_2));
-	pr_notice("MMPLL_CON0 = 0x%08x\n", clk_readl(MMPLL_CON0));
-	pr_notice("MMPLL_CON1 = 0x%08x\n", clk_readl(MMPLL_CON1));
-	pr_notice("MMPLL_PWR_CON0 = 0x%08x\n", clk_readl(MMPLL_PWR_CON0));
-	mt_get_ckgen_freq(1);
-	pr_notice("mm freq = %d\n", mt_get_ckgen_freq(2));
-	mt_get_ckgen_freq(1);
 	pr_notice("cam freq = %d\n", mt_get_ckgen_freq(8));
-	mt_get_ckgen_freq(1);
-	pr_notice("ccu freq = %d\n", mt_get_ckgen_freq(9));
 	pr_notice("MM_CG_CON0 = 0x%08x\n", clk_readl(MM_CG_CON0));
 	pr_notice("CAMSYS_CG_CON = 0x%08x\n", clk_readl(CAMSYS_CG_CON));
-	pr_notice("CAMSYS_SW_RST = 0x%08x\n", clk_readl(CAMSYS_SW_RST));
 }
 #endif
 

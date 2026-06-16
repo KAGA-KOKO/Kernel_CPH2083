@@ -83,13 +83,7 @@ static int pppolac_recv_core(struct sock *sk_udp, struct sk_buff *skb)
 
 	/* Put it back if it is a control packet. */
 	if (skb->data[sizeof(struct udphdr)] & L2TP_CONTROL_BIT)
-#ifndef VENDOR_EDIT
-		//Asiga@PSW.NW.DATA.2092399, 2019/06/20
-		//modify for Qcom temp CR, VPN can't connect internet a few mins later
 		return opt->backlog_rcv(sk_udp, skb);
-#else
-		return 2;
-#endif /* VENDOR_EDIT */
 
 	/* Skip UDP header. */
 	skb_pull(skb, sizeof(struct udphdr));
@@ -196,18 +190,9 @@ drop:
 
 static int pppolac_recv(struct sock *sk_udp, struct sk_buff *skb)
 {
-#ifndef VENDOR_EDIT
-	//Asiga@PSW.NW.DATA.2092399, 2019/06/20
-	//modify for Qcom temp CR, VPN can't connect internet a few mins later
 	sock_hold(sk_udp);
 	sk_receive_skb(sk_udp, skb, 0);
 	return 0;
-#else
-	int retval;
-	sock_hold(sk_udp);
-	retval =  sk_receive_skb(sk_udp, skb, 0);
-	return (retval >> 1);
-#endif /* VENDOR_EDIT */
 }
 
 static struct sk_buff_head delivery_queue;

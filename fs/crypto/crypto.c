@@ -150,7 +150,6 @@ int fscrypt_do_page_crypto(const struct inode *inode, fscrypt_direction_t rw,
 	int res = 0;
 
 	BUG_ON(len == 0);
-	BUG_ON(fscrypt_is_hw_encrypt(inode));
 
 	BUILD_BUG_ON(sizeof(iv) != FS_IV_SIZE);
 	BUILD_BUG_ON(AES_BLOCK_SIZE != FS_IV_SIZE);

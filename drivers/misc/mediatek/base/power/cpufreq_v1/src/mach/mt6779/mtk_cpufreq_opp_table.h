@@ -341,225 +341,6 @@
 #define CPU_DVFS_VOLT14_VPROC3_PRO	 61250		/* 10uV */
 #define CPU_DVFS_VOLT15_VPROC3_PRO	 60000		/* 10uV */
 
-/* Lite  */
-/* for DVFS OPP table L */
-#define CPU_DVFS_FREQ0_LL_LITE		1800000		/* KHz */
-#define CPU_DVFS_FREQ1_LL_LITE		1733000		/* KHz */
-#define CPU_DVFS_FREQ2_LL_LITE		1666000		/* KHz */
-#define CPU_DVFS_FREQ3_LL_LITE		1548000		/* KHz */
-#define CPU_DVFS_FREQ4_LL_LITE		1475000		/* KHz */
-#define CPU_DVFS_FREQ5_LL_LITE		1375000		/* KHz */
-#define CPU_DVFS_FREQ6_LL_LITE		1275000		/* KHz */
-#define CPU_DVFS_FREQ7_LL_LITE		1175000		/* KHz */
-#define CPU_DVFS_FREQ8_LL_LITE		1075000		/* KHz */
-#define CPU_DVFS_FREQ9_LL_LITE		999000		/* KHz */
-#define CPU_DVFS_FREQ10_LL_LITE		925000		/* KHz */
-#define CPU_DVFS_FREQ11_LL_LITE		850000		/* KHz */
-#define CPU_DVFS_FREQ12_LL_LITE		774000		/* KHz */
-#define CPU_DVFS_FREQ13_LL_LITE		774000		/* KHz */
-#define CPU_DVFS_FREQ14_LL_LITE		774000		/* KHz */
-#define CPU_DVFS_FREQ15_LL_LITE		774000		/* KHz */
-
-/* for DVFS OPP table B */
-#define CPU_DVFS_FREQ0_L_LITE		2000000		/* KHz */
-#define CPU_DVFS_FREQ1_L_LITE		1933000		/* KHz */
-#define CPU_DVFS_FREQ2_L_LITE		1866000		/* KHz */
-#define CPU_DVFS_FREQ3_L_LITE		1800000		/* KHz */
-#define CPU_DVFS_FREQ4_L_LITE		1651000		/* KHz */
-#define CPU_DVFS_FREQ5_L_LITE		1503000		/* KHz */
-#define CPU_DVFS_FREQ6_L_LITE		1414000		/* KHz */
-#define CPU_DVFS_FREQ7_L_LITE		1295000		/* KHz */
-#define CPU_DVFS_FREQ8_L_LITE		1176000		/* KHz */
-#define CPU_DVFS_FREQ9_L_LITE		1087000		/* KHz */
-#define CPU_DVFS_FREQ10_L_LITE		998000		/* KHz */
-#define CPU_DVFS_FREQ11_L_LITE		909000		/* KHz */
-#define CPU_DVFS_FREQ12_L_LITE		850000		/* KHz */
-#define CPU_DVFS_FREQ13_L_LITE		850000		/* KHz */
-#define CPU_DVFS_FREQ14_L_LITE		850000		/* KHz */
-#define CPU_DVFS_FREQ15_L_LITE		850000		/* KHz */
-
-/* for DVFS OPP table CCI */
-#define CPU_DVFS_FREQ0_CCI_LITE		1260000		/* KHz */
-#define CPU_DVFS_FREQ1_CCI_LITE		1190000		/* KHz */
-#define CPU_DVFS_FREQ2_CCI_LITE		1155000		/* KHz */
-#define CPU_DVFS_FREQ3_CCI_LITE		1120000		/* KHz */
-#define CPU_DVFS_FREQ4_CCI_LITE		984000		/* KHz */
-#define CPU_DVFS_FREQ5_CCI_LITE		917000		/* KHz */
-#define CPU_DVFS_FREQ6_CCI_LITE		827000		/* KHz */
-#define CPU_DVFS_FREQ7_CCI_LITE		737000		/* KHz */
-#define CPU_DVFS_FREQ8_CCI_LITE		669000		/* KHz */
-#define CPU_DVFS_FREQ9_CCI_LITE		579000		/* KHz */
-#define CPU_DVFS_FREQ10_CCI_LITE	512000		/* KHz */
-#define CPU_DVFS_FREQ11_CCI_LITE	445000		/* KHz */
-#define CPU_DVFS_FREQ12_CCI_LITE	400000		/* KHz */
-#define CPU_DVFS_FREQ13_CCI_LITE	400000		/* KHz */
-#define CPU_DVFS_FREQ14_CCI_LITE	400000		/* KHz */
-#define CPU_DVFS_FREQ15_CCI_LITE	400000		/* KHz */
-
-/* for DVFS OPP table L */
-#define CPU_DVFS_VOLT0_VPROC1_LITE	100000		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC1_LITE	 98125		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC1_LITE	 96250		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC1_LITE	 91875		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC1_LITE	 89375		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC1_LITE	 85625		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC1_LITE	 82500		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC1_LITE	 80000		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC1_LITE	 75000		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC1_LITE	 72500		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC1_LITE	 69375		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC1_LITE	 66875		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC1_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC1_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC1_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC1_LITE	 63750		/* 10uV */
-
-/* for DVFS OPP table B */
-#define CPU_DVFS_VOLT0_VPROC2_LITE	106875		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC2_LITE	104375		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC2_LITE	101250		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC2_LITE	 98125		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC2_LITE	 93750		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC2_LITE	 88750		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC2_LITE	 86250		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC2_LITE	 80000		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC2_LITE	 78125		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC2_LITE	 75625		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC2_LITE	 72500		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC2_LITE	 70000		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC2_LITE	 67500		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC2_LITE	 67500		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC2_LITE	 67500		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC2_LITE	 67500		/* 10uV */
-
-/* for DVFS OPP table CCI */
-#define CPU_DVFS_VOLT0_VPROC3_LITE	100000		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC3_LITE	 96250		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC3_LITE	 94375		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC3_LITE	 91875		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC3_LITE	 86875		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC3_LITE	 84375		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC3_LITE	 80000		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC3_LITE	 77500		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC3_LITE	 74375		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC3_LITE	 71250		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC3_LITE	 68125		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC3_LITE	 65625		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC3_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC3_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC3_LITE	 63750		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC3_LITE	 63750		/* 10uV */
-
-/* P65 */
-/* for DVFS OPP table L */
-#define CPU_DVFS_FREQ0_LL_P95		2000000		/* KHz */
-#define CPU_DVFS_FREQ1_LL_P95		1933000		/* KHz */
-#define CPU_DVFS_FREQ2_LL_P95		1866000		/* KHz */
-#define CPU_DVFS_FREQ3_LL_P95		1800000		/* KHz */
-#define CPU_DVFS_FREQ4_LL_P95		1733000		/* KHz */
-#define CPU_DVFS_FREQ5_LL_P95		1666000		/* KHz */
-#define CPU_DVFS_FREQ6_LL_P95		1548000		/* KHz */
-#define CPU_DVFS_FREQ7_LL_P95		1475000		/* KHz */
-#define CPU_DVFS_FREQ8_LL_P95		1375000		/* KHz */
-#define CPU_DVFS_FREQ9_LL_P95		1275000		/* KHz */
-#define CPU_DVFS_FREQ10_LL_P95		1175000		/* KHz */
-#define CPU_DVFS_FREQ11_LL_P95		1075000		/* KHz */
-#define CPU_DVFS_FREQ12_LL_P95		999000		/* KHz */
-#define CPU_DVFS_FREQ13_LL_P95		925000		/* KHz */
-#define CPU_DVFS_FREQ14_LL_P95		850000		/* KHz */
-#define CPU_DVFS_FREQ15_LL_P95		774000		/* KHz */
-
-/* for DVFS OPP table B */
-#define CPU_DVFS_FREQ0_L_P95		2300000		/* KHz */
-#define CPU_DVFS_FREQ1_L_P95		2133000		/* KHz */
-#define CPU_DVFS_FREQ2_L_P95		2066000		/* KHz */
-#define CPU_DVFS_FREQ3_L_P95		2000000		/* KHz */
-#define CPU_DVFS_FREQ4_L_P95		1933000		/* KHz */
-#define CPU_DVFS_FREQ5_L_P95		1866000		/* KHz */
-#define CPU_DVFS_FREQ6_L_P95		1800000		/* KHz */
-#define CPU_DVFS_FREQ7_L_P95		1651000		/* KHz */
-#define CPU_DVFS_FREQ8_L_P95		1503000		/* KHz */
-#define CPU_DVFS_FREQ9_L_P95		1414000		/* KHz */
-#define CPU_DVFS_FREQ10_L_P95		1295000		/* KHz */
-#define CPU_DVFS_FREQ11_L_P95		1176000		/* KHz */
-#define CPU_DVFS_FREQ12_L_P95		1087000		/* KHz */
-#define CPU_DVFS_FREQ13_L_P95		998000		/* KHz */
-#define CPU_DVFS_FREQ14_L_P95		909000		/* KHz */
-#define CPU_DVFS_FREQ15_L_P95		850000		/* KHz */
-
-/* for DVFS OPP table CCI */
-#define CPU_DVFS_FREQ0_CCI_P95		1400000		/* KHz */
-#define CPU_DVFS_FREQ1_CCI_P95		1353000		/* KHz */
-#define CPU_DVFS_FREQ2_CCI_P95		1306000		/* KHz */
-#define CPU_DVFS_FREQ3_CCI_P95		1260000		/* KHz */
-#define CPU_DVFS_FREQ4_CCI_P95		1190000		/* KHz */
-#define CPU_DVFS_FREQ5_CCI_P95		1155000		/* KHz */
-#define CPU_DVFS_FREQ6_CCI_P95		1120000		/* KHz */
-#define CPU_DVFS_FREQ7_CCI_P95		984000		/* KHz */
-#define CPU_DVFS_FREQ8_CCI_P95		917000		/* KHz */
-#define CPU_DVFS_FREQ9_CCI_P95		827000		/* KHz */
-#define CPU_DVFS_FREQ10_CCI_P95		737000		/* KHz */
-#define CPU_DVFS_FREQ11_CCI_P95		669000		/* KHz */
-#define CPU_DVFS_FREQ12_CCI_P95		579000		/* KHz */
-#define CPU_DVFS_FREQ13_CCI_P95		512000		/* KHz */
-#define CPU_DVFS_FREQ14_CCI_P95		445000		/* KHz */
-#define CPU_DVFS_FREQ15_CCI_P95		400000		/* KHz */
-
-/* for DVFS OPP table L */
-#define CPU_DVFS_VOLT0_VPROC1_P95	100000		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC1_P95	 98125		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC1_P95	 95625		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC1_P95	 93125		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC1_P95	 91250		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC1_P95	 88750		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC1_P95	 84375		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC1_P95	 82500		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC1_P95	 80000		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC1_P95	 77500		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC1_P95	 75000		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC1_P95	 71875		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC1_P95	 70000		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC1_P95	 68125		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC1_P95	 66250		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC1_P95	 63750		/* 10uV */
-
-/* for DVFS OPP table B */
-#define CPU_DVFS_VOLT0_VPROC2_P95	111875		/* 10uV	*/
-#define CPU_DVFS_VOLT1_VPROC2_P95	104375		/* 10uV	*/
-#define CPU_DVFS_VOLT2_VPROC2_P95	101250		/* 10uV	*/
-#define CPU_DVFS_VOLT3_VPROC2_P95	98750		/* 10uV	*/
-#define CPU_DVFS_VOLT4_VPROC2_P95	95625		/* 10uV	*/
-#define CPU_DVFS_VOLT5_VPROC2_P95	93125		/* 10uV	*/
-#define CPU_DVFS_VOLT6_VPROC2_P95	90000		/* 10uV	*/
-#define CPU_DVFS_VOLT7_VPROC2_P95	86875		/* 10uV	*/
-#define CPU_DVFS_VOLT8_VPROC2_P95	83125		/* 10uV	*/
-#define CPU_DVFS_VOLT9_VPROC2_P95	80000		/* 10uV	*/
-#define CPU_DVFS_VOLT10_VPROC2_P95	78125		/* 10uV	*/
-#define CPU_DVFS_VOLT11_VPROC2_P95	75625		/* 10uV	*/
-#define CPU_DVFS_VOLT12_VPROC2_P95	73125		/* 10uV	*/
-#define CPU_DVFS_VOLT13_VPROC2_P95	71250		/* 10uV	*/
-#define CPU_DVFS_VOLT14_VPROC2_P95	69375		/* 10uV	*/
-#define CPU_DVFS_VOLT15_VPROC2_P95	67500		/* 10uV	*/
-
-/* for DVFS OPP table CCI */
-#define CPU_DVFS_VOLT0_VPROC3_P95	100000		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC3_P95	 97500		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC3_P95	 95000		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC3_P95	 92500		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC3_P95	 88750		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC3_P95	 86875		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC3_P95	 84375		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC3_P95	 80000		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC3_P95	 78750		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC3_P95	 76250		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC3_P95	 73750		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC3_P95	 71875		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC3_P95	 69375		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC3_P95	 67500		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC3_P95	 65625		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC3_P95	 63750		/* 10uV */
-
-
 /* DVFS OPP table */
 #define OPP_TBL(cluster, seg, lv, vol)	\
 static struct mt_cpu_freq_info opp_tbl_##cluster##_e##lv##_0[] = {        \
@@ -609,17 +390,6 @@ OPP_TBL(LL,  PRO, 2, 1); /* opp_tbl_LL_e2_0   */
 OPP_TBL(L,  PRO, 2, 2); /* opp_tbl_L_e2_0  */
 OPP_TBL(CCI, PRO, 2, 3); /* opp_tbl_CCI_e2_0 */
 
-OPP_TBL(LL,  LITE, 3, 1); /* opp_tbl_LL_e3_0   */
-OPP_TBL(L,  LITE, 3, 2); /* opp_tbl_L_e3_0  */
-OPP_TBL(CCI, LITE, 3, 3); /* opp_tbl_CCI_e3_0 */
-
-OPP_TBL(LL,  P95, 4, 1); /* opp_tbl_LL_e4_0   */
-OPP_TBL(L,   P95, 4, 2); /* opp_tbl_L_e4_0  */
-OPP_TBL(CCI, P95, 4, 3); /* opp_tbl_CCI_e4_0 */
-
-
-
-
 struct opp_tbl_info opp_tbls[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 	/* LL */
 	{
@@ -629,10 +399,6 @@ struct opp_tbl_info opp_tbls[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 				ARRAY_SIZE(opp_tbl_LL_e1_0) },
 		[CPU_LEVEL_2] = { opp_tbl_LL_e2_0,
 				ARRAY_SIZE(opp_tbl_LL_e2_0) },
-		[CPU_LEVEL_3] = { opp_tbl_LL_e3_0,
-				ARRAY_SIZE(opp_tbl_LL_e3_0) },
-		[CPU_LEVEL_4] = { opp_tbl_LL_e4_0,
-				ARRAY_SIZE(opp_tbl_LL_e4_0) },
 
 	},
 	/* L */
@@ -643,10 +409,6 @@ struct opp_tbl_info opp_tbls[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 				ARRAY_SIZE(opp_tbl_L_e1_0) },
 		[CPU_LEVEL_2] = { opp_tbl_L_e2_0,
 				ARRAY_SIZE(opp_tbl_L_e2_0) },
-		[CPU_LEVEL_3] = { opp_tbl_L_e3_0,
-				ARRAY_SIZE(opp_tbl_L_e3_0) },
-		[CPU_LEVEL_4] = { opp_tbl_L_e4_0,
-				ARRAY_SIZE(opp_tbl_L_e4_0) },
 
 	},
 	/* CCI */
@@ -657,10 +419,6 @@ struct opp_tbl_info opp_tbls[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 				ARRAY_SIZE(opp_tbl_CCI_e1_0) },
 		[CPU_LEVEL_2] = { opp_tbl_CCI_e2_0,
 				ARRAY_SIZE(opp_tbl_CCI_e2_0) },
-		[CPU_LEVEL_3] = { opp_tbl_CCI_e3_0,
-				ARRAY_SIZE(opp_tbl_CCI_e3_0) },
-		[CPU_LEVEL_4] = { opp_tbl_CCI_e4_0,
-				ARRAY_SIZE(opp_tbl_CCI_e4_0) },
 
 	},
 };
@@ -846,125 +604,6 @@ static struct mt_cpu_freq_method opp_tbl_method_CCI_PRO[] = {	/* PRO */
 	FP(2,	2),
 };
 
-static struct mt_cpu_freq_method opp_tbl_method_LL_LITE[] = {	/* LITE */
-	/* POS,	CLK */
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-};
-
-static struct mt_cpu_freq_method opp_tbl_method_L_LITE[] = {	/* LITE */
-	/* POS,	CLK */
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-};
-
-static struct mt_cpu_freq_method opp_tbl_method_CCI_LITE[] = {	/* LITE */
-	/* POS,	CLK */
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-};
-
-static struct mt_cpu_freq_method opp_tbl_method_LL_P95[] = {	/* P95 */
-	/* POS,	CLK */
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-};
-
-static struct mt_cpu_freq_method opp_tbl_method_L_P95[] = {	/* P95 */
-	/* POS,	CLK */
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(1,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-};
-
-static struct mt_cpu_freq_method opp_tbl_method_CCI_P95[] = {	/* P95 */
-	/* POS,	CLK */
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	1),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-	FP(2,	2),
-};
 
 struct opp_tbl_m_info opp_tbls_m[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 	/* LL */
@@ -972,23 +611,17 @@ struct opp_tbl_m_info opp_tbls_m[NR_MT_CPU_DVFS][NUM_CPU_LEVEL] = {
 		[CPU_LEVEL_0] = { opp_tbl_method_LL_FY },
 		[CPU_LEVEL_1] = { opp_tbl_method_LL_SBa },
 		[CPU_LEVEL_2] = { opp_tbl_method_LL_PRO },
-		[CPU_LEVEL_3] = { opp_tbl_method_LL_LITE },
-		[CPU_LEVEL_4] = { opp_tbl_method_LL_P95 },
 	},
 	/* L */
 	{
 		[CPU_LEVEL_0] = { opp_tbl_method_L_FY },
 		[CPU_LEVEL_1] = { opp_tbl_method_L_SBa },
 		[CPU_LEVEL_2] = { opp_tbl_method_L_PRO },
-		[CPU_LEVEL_3] = { opp_tbl_method_L_LITE },
-		[CPU_LEVEL_4] = { opp_tbl_method_L_P95 },
 	},
 	/* CCI */
 	{
 		[CPU_LEVEL_0] = { opp_tbl_method_CCI_FY },
 		[CPU_LEVEL_1] = { opp_tbl_method_CCI_SBa },
 		[CPU_LEVEL_2] = { opp_tbl_method_CCI_PRO },
-		[CPU_LEVEL_3] = { opp_tbl_method_CCI_LITE },
-		[CPU_LEVEL_4] = { opp_tbl_method_CCI_P95 },
 	},
 };

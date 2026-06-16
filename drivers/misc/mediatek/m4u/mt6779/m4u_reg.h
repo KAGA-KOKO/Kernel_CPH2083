@@ -318,7 +318,7 @@
 		(0x908+((mau)*0x20)+((mmu)*0x100))
 #define REG_MMU_MAU_END_BIT32(mmu, mau)	  (0x90C+((mau)*0x20)+((mmu)*0x100))
 
-#define REG_MMU_MAU_LARB_EN(mmu)		(0x910+(mmu*0x100))
+#define REG_MMU_MAU_LARB_EN(mmu)		(0x910+0x100)
 #define F_MAU_LARB_VAL(mau, larb)	 ((larb)<<(mau*8))
 #define F_MAU_LARB_MSK(mau)	     (0xff<<(mau*8))
 #define REG_MMU_MAU_PORT_EN(mmu, mau)	    (0x914+((mau)*0x20)+((mmu)*0x100))

@@ -34,11 +34,6 @@
 #include "inc/mt6360.h"
 #include "inc/tcpci_typec.h"
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Add for WD */
-#include <mt-plat/mtk_boot.h>
-#endif
-
 #ifdef CONFIG_RT_REGMAP
 #include <mt-plat/rt-regmap.h>
 #endif /* CONFIG_RT_REGMAP */
@@ -64,46 +59,6 @@
 #define MEDIATEK_6360_DID_V2	0x3492
 #define MEDIATEK_6360_DID_V3	0x3493
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-#define INVALID_SBU_VOLT	-1
-static int typec_sbu_volt_mv = INVALID_SBU_VOLT;
-int oppo_get_typec_sbu_voltage(void)
-{
-	return typec_sbu_volt_mv;
-}
-EXPORT_SYMBOL(oppo_get_typec_sbu_voltage);
-
-static void oppo_set_typec_sbu_voltage(int sbu_volt_mv)
-{
-	typec_sbu_volt_mv = sbu_volt_mv;
-}
-
-static bool water_detect_feature = false;
-static struct mt6360_chip *oppo_mt6360_chip = NULL;
-static int oppo_enable_usbid_polling_init(struct mt6360_chip *chip, bool en);
-void oppo_set_water_detect(bool enable)
-{
-	if (enable) {
-		if (oppo_mt6360_chip)
-			oppo_enable_usbid_polling_init(oppo_mt6360_chip, true);
-		water_detect_feature = true;
-	} else {
-		if (oppo_mt6360_chip)
-			oppo_enable_usbid_polling_init(oppo_mt6360_chip, false);
-		water_detect_feature = false;
-	}
-}
-EXPORT_SYMBOL(oppo_set_water_detect);
-
-int oppo_get_water_detect(void)
-{
-	if (water_detect_feature)
-		return 1;
-	return 0;
-}
-EXPORT_SYMBOL(oppo_get_water_detect);
-#endif /*VENDOR_EDIT*/
 
 struct mt6360_chip {
 	struct i2c_client *client;
@@ -139,11 +94,6 @@ struct mt6360_chip {
 
 #ifdef CONFIG_WD_SBU_POLLING
 	struct work_struct wd_work;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-	/*Enable sbu polling with work, delay 10s*/
-	struct delayed_work sbu_en_work;
-#endif
 	struct mutex usbid_irq_lock;
 	bool usbid_irqen;
 #endif /* CONFIG_WD_SBU_POLLING */
@@ -856,11 +806,6 @@ static inline int mt6360_enable_auto_rpconnect(struct tcpc_device *tcpc,
 }
 
 #ifdef CONFIG_WD_SBU_POLLING
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-static bool sbu_polling_en = false;
-static int mt6360_set_cc(struct tcpc_device *tcpc, int pull);
-#endif
 static int mt6360_get_cc(struct tcpc_device *tcpc, int *cc1, int *cc2);
 static void mt6360_enable_usbid_irq(struct mt6360_chip *chip, bool en);
 
@@ -868,60 +813,6 @@ static int mt6360_enable_usbid_polling(struct mt6360_chip *chip, bool en)
 {
 	int ret;
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Add for WD */
-	MT6360_INFO("%s sbu_polling_en=%u, en=%u \n", __func__, sbu_polling_en, en);
-#endif
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-	if (water_detect_feature == false) {
-		MT6360_INFO("%s water_detect_switch_status is false, set polling false\n", __func__);
-		en = false;
-	}
-#endif
-
-	if (!(chip->tcpc->tcpc_flags & TCPC_FLAGS_WATER_DETECTION))
-		return 0;
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-	if (sbu_polling_en == en)
-		return 0;
-#endif
-
-	if (en) {
-		ret = charger_dev_set_usbid_src_ton(chip->chgdev, 100000);
-		if (ret < 0) {
-			dev_err(chip->dev, "%s usbid src on 100ms fail\n",
-					__func__);
-			return ret;
-		}
-
-		ret = charger_dev_set_usbid_rup(chip->chgdev, 75000);
-		if (ret < 0) {
-			dev_err(chip->dev, "%s usbid rup75k fail\n", __func__);
-			return ret;
-		}
-	}
-
-	ret = charger_dev_enable_usbid(chip->chgdev, en);
-	if (ret < 0)
-		return ret;
-	mt6360_enable_usbid_irq(chip, en);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-	sbu_polling_en = en;
-#endif
-	return 0;
-}
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-static int oppo_enable_usbid_polling_init(struct mt6360_chip *chip, bool en)
-{
-	int ret;
-
 	if (!(chip->tcpc->tcpc_flags & TCPC_FLAGS_WATER_DETECTION))
 		return 0;
 
@@ -944,31 +835,8 @@ static int oppo_enable_usbid_polling_init(struct mt6360_chip *chip, bool en)
 	if (ret < 0)
 		return ret;
 	mt6360_enable_usbid_irq(chip, en);
-
-	MT6360_INFO("%s set sbu_polling_init[%u]\n", __func__, en);
-
-	sbu_polling_en = en;
-
 	return 0;
 }
-#endif /*VENDOR_EDIT*/
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-static void mt6360_sbu_en_work(struct work_struct *work)
-{
-	struct delayed_work *dwork = to_delayed_work(work);
-	struct mt6360_chip *chip = container_of(dwork, struct mt6360_chip, sbu_en_work);
-
-	tcpci_lock_typec(chip->tcpc);
-
-	//bella temp patch: only enable polling in unattach state
-	if (!chip->tcpc->typec_attach_new && !chip->tcpc->wd_already)
-		mt6360_enable_usbid_polling(chip, true);
-
-	tcpci_unlock_typec(chip->tcpc);
-}
-#endif /*VENDOR_EDIT*/
 
 static void mt6360_wd_work(struct work_struct *work)
 {
@@ -978,8 +846,6 @@ static void mt6360_wd_work(struct work_struct *work)
 
 	tcpci_lock_typec(chip->tcpc);
 
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Modify for WD */
 	ret = mt6360_get_cc(chip->tcpc, &cc1, &cc2);
 	if (ret < 0)
 		goto out;
@@ -987,54 +853,12 @@ static void mt6360_wd_work(struct work_struct *work)
 	/* Only handle usbid event during toggling */
 	if (cc1 != TYPEC_CC_DRP_TOGGLING || cc2 != TYPEC_CC_DRP_TOGGLING)
 		goto out;
-#else
-	if (chip->tcpc->typec_attach_new) {
-		MT6360_INFO("%s: only handle usbid event in unattached state\n", __func__);
-		goto out;
-	}
-#endif /* VENDOR_EDIT */
+
 	ret = tcpci_is_water_detected(chip->tcpc);
 	if (ret <= 0) {
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/16, sjc Add for WD */
-		//fix SBU polling to frequently without water
-		schedule_delayed_work(&chip->sbu_en_work, msecs_to_jiffies(10000));
-#else
 		mt6360_enable_usbid_polling(chip, true);
-#endif /* VENDOR_EDIT */
 		goto out;
 	}
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-	//fix DP device misjudge, only need in snk.only
-	dev_err(chip->dev, "%s typec_role[%d] \n", __func__, chip->tcpc->typec_role);
-	if (chip->tcpc->typec_role == TYPEC_ROLE_SNK) {
-		ret = mt6360_set_cc(chip->tcpc, TYPEC_CC_RP);
-		if (ret < 0)
-			goto out_wd;
-
-		//pull up Rp for 2ms
-		usleep_range(5000, 6000);
-
-		ret = mt6360_get_cc(chip->tcpc, &cc1, &cc2);
-		if (ret < 0)
-			goto out_wd;
-
-		ret = mt6360_set_cc(chip->tcpc, TYPEC_CC_RD);
-
-		dev_err(chip->dev, "%s cc1 = %d, cc2 = %d\n", __func__, cc1, cc2);
-		if (cc1 == TYPEC_CC_VOLT_RD || cc1 == TYPEC_CC_VOLT_RA ||
-				cc2 == TYPEC_CC_VOLT_RD || cc2 == TYPEC_CC_VOLT_RA) {
-			dev_err(chip->dev, "%s Rd/Ra detected, ignore water, in role snk, C to DP/HDMI ?\n", __func__);
-			schedule_delayed_work(&chip->sbu_en_work, msecs_to_jiffies(10000));
-			goto out;
-		}
-	}
-
-out_wd:
-#endif /*VENDOR_EDIT*/
-
 	tcpc_typec_handle_wd(chip->tcpc, true);
 out:
 	tcpci_unlock_typec(chip->tcpc);
@@ -1485,29 +1309,13 @@ static int mt6360_set_cc(struct tcpc_device *tcpc, int pull)
 		mt6360_enable_oneshot_rpconnect(tcpc, true);
 
 #ifdef CONFIG_WD_SBU_POLLING
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Modify for WD (C to DP/HDMI) */
 		mt6360_enable_usbid_polling(chip, true);
-#else
-		cancel_delayed_work_sync(&chip->sbu_en_work);
-		mt6360_enable_usbid_polling(chip, false);
-		schedule_delayed_work(&chip->sbu_en_work, msecs_to_jiffies(10000));
-#endif /*VENDOR_EDIT*/
 #endif /* CONFIG_WD_SBU_POLLING */
 #ifdef CONFIG_TCPC_LOW_POWER_MODE
 		tcpci_set_low_power_mode(tcpc, true, pull);
 #endif /* CONFIG_TCPC_LOW_POWER_MODE */
 		ret = mt6360_command(tcpc, TCPM_CMD_LOOK_CONNECTION);
 	} else {
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Add for WD */
-		/*add for enable usb polling when typec role default snk*/
-#ifdef CONFIG_WD_SBU_POLLING
-		if (pull == TYPEC_CC_RD && tcpc->typec_state == typec_unattached_snk) {
-			schedule_delayed_work(&chip->sbu_en_work, msecs_to_jiffies(10000));
-		}
-#endif
-#endif /* VENDOR_EDIT */
 		data = TCPC_V10_REG_ROLE_CTRL_RES_SET(0, rp_lvl, pull, pull);
 		ret = mt6360_i2c_write8(tcpc, TCPC_V10_REG_ROLE_CTRL, data);
 		mt6360_enable_auto_rpconnect(tcpc, false);
@@ -1862,13 +1670,7 @@ static inline int mt6360_init_water_detection(struct tcpc_device *tcpc)
 	 * 0xc1[1:0] -> Rust exiting counts during rust protection flow
 	 * (when RUST_PROTECT_EN is "1"), set as 4
 	 */
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/02/14, sjc Modify for WD */
 	mt6360_i2c_write8(tcpc, MT6360_REG_WD_DET_CTRL2, 0x02);
-#else
-	/* only check cc1/cc2 in protection mode */
-	mt6360_i2c_write8(tcpc, MT6360_REG_WD_DET_CTRL2, 0x82);
-#endif
 
 	/* DPDM Pull up capability, 220u */
 	mt6360_i2c_write8(tcpc, MT6360_REG_WD_DET_CTRL3, 0xFF);
@@ -1937,10 +1739,6 @@ not_auddev:
 static int mt6360_is_water_detected(struct tcpc_device *tcpc)
 {
 	int ret, usbid;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Add for WD */
-	int boot_mode = 0;
-#endif
 	u32 ub, lb;
 	struct mt6360_chip *chip = tcpc_get_dev_data(tcpc);
 #ifdef CONFIG_CABLE_TYPE_DETECTION
@@ -1959,20 +1757,6 @@ static int mt6360_is_water_detected(struct tcpc_device *tcpc)
 		dev_err(chip->dev, "%s pull low usbid fail\n", __func__);
 		goto err;
 	}
-
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Add for WD */
-	/*add to skip water detection in poweron attatch event*/
-	boot_mode = get_boot_mode();
-	MT6360_INFO("%s: boot_mode=%d, typec_state=%d\n", __func__, boot_mode, tcpc->typec_state);
-
-	if (tcpc->typec_state == typec_attachwait_snk || tcpc->typec_state == typec_attachwait_src) {
-		MT6360_INFO("%s: skip, only do water_detection in unattatched state\n", __func__);
-		oppo_set_typec_sbu_voltage(INVALID_SBU_VOLT);
-		ret = 0;
-		goto out;
-	}
-#endif /* VENDOR_EDIT */
 
 	ret = charger_dev_enable_usbid_floating(chip->chgdev, false);
 	if (ret < 0)
@@ -2005,10 +1789,6 @@ static int mt6360_is_water_detected(struct tcpc_device *tcpc)
 				 __func__);
 		MT6360_INFO("%s recheck pl usbid %dmV\n", __func__, usbid);
 		if (usbid > CONFIG_WD_SBU_PL_BOUND) {
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-			oppo_set_typec_sbu_voltage(usbid);
-#endif /*VENDOR_EDIT*/
 			ret = 1;
 			goto out;
 		}
@@ -2052,10 +1832,6 @@ static int mt6360_is_water_detected(struct tcpc_device *tcpc)
 	msleep(100); /* to avoid the same behavior of the other device */
 	ret = mt6360_get_usbid_adc(tcpc, &usbid);
 	if (ret >= 0) {
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-		oppo_set_typec_sbu_voltage(usbid);
-#endif /*VENDOR_EDIT*/
 		MT6360_INFO("%s recheck usbid %dmV\n", __func__, usbid);
 		if (usbid >= lb && usbid <= ub) {
 			ret = 0;
@@ -2093,11 +1869,6 @@ out:
 err:
 	charger_dev_enable_usbid_floating(chip->chgdev, true);
 	charger_dev_enable_usbid(chip->chgdev, false);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-	if (ret < 0)
-		oppo_set_typec_sbu_voltage(INVALID_SBU_VOLT);
-#endif /*VENDOR_EDIT*/
 	__pm_relax(&chip->wd_wakeup_src);
 	return ret;
 }
@@ -2110,16 +1881,8 @@ static int mt6360_set_water_protection(struct tcpc_device *tcpc, bool en)
 		mt6360_enable_auto_rpconnect(tcpc, false);
 	ret = (en ? mt6360_i2c_set_bit : mt6360_i2c_clr_bit)
 		(tcpc, MT6360_REG_WD_DET_CTRL1, MT6360_WD_PROTECTION_EN);
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/10, sjc Modify for WD */
 	if (!en)
 		mt6360_enable_auto_rpconnect(tcpc, true);
-#else
-	if (!en) {
-		MT6360_INFO("mt6360 exit water protectiton\n");
-		mt6360_enable_auto_rpconnect(tcpc, true);
-	}
-#endif /* VENDOR_EDIT */
 	return ret;
 }
 
@@ -2711,10 +2474,6 @@ static int mt6360_i2c_probe(struct i2c_client *client,
 	mutex_init(&chip->usbid_irq_lock);
 	chip->usbid_irqen = true;
 	INIT_WORK(&chip->wd_work, mt6360_wd_work);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-	INIT_DELAYED_WORK(&chip->sbu_en_work, mt6360_sbu_en_work);
-#endif
 #endif /* CONFIG_WD_SBU_POLLING */
 
 	dev_info(chip->dev, "%s chipID = 0x%0X\n", __func__, chip->chip_id);
@@ -2766,12 +2525,6 @@ static int mt6360_i2c_probe(struct i2c_client *client,
 	tcpc_schedule_init_work(chip->tcpc);
 #ifdef CONFIG_WATER_DETECTION
 	mt6360_water_calibration(chip->tcpc);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/26, sjc Add for WD info */
-	oppo_mt6360_chip = chip;
-	charger_dev_enable_usbid(chip->chgdev, false);
-	mt6360_enable_usbid_irq(chip, false);
-#endif /*VENDOR_EDIT*/
 #endif /* CONFIG_WATER_DETECTION */
 	dev_info(chip->dev, "%s successfully!\n", __func__);
 	return 0;
@@ -2793,10 +2546,6 @@ static int mt6360_i2c_remove(struct i2c_client *client)
 		cancel_delayed_work_sync(&chip->poll_work);
 #ifdef CONFIG_WD_SBU_POLLING
 		cancel_work_sync(&chip->wd_work);
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/04/08, sjc Add for WD (C to DP/HDMI) */
-		cancel_delayed_work_sync(&chip->sbu_en_work);
-#endif
 #endif /* CONFIG_WD_SBU_POLLING */
 		tcpc_device_unregister(chip->dev, chip->tcpc);
 #ifdef CONFIG_RT_REGMAP

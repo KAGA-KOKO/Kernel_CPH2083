@@ -791,13 +791,11 @@ static int trusty_virtio_remove(struct platform_device *pdev)
 	return 0;
 }
 
-//#ifdef VENDOR_EDIT
-//Dongnan.Wu@BSP.Fingeprint.Basic, 2019/07/15, modify the of_match struct to the right way.
 static const struct of_device_id trusty_of_match[] = {
-	{ .compatible = "android,trusty-virtio-v1", },
-	{},
+	{
+		.compatible = "android,trusty-virtio-v1",
+	},
 };
-//endif /* VENDOR_EDIT */
 
 MODULE_DEVICE_TABLE(of, trusty_of_match);
 

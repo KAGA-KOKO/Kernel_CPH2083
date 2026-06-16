@@ -70,17 +70,17 @@ typedef struct _OSWR_LOCK_ {
 #endif /* defined(LINUX) || defined(__QNXNTO__) || defined (INTEGRITY_OS) */
 
 #if defined(LINUX)
-	typedef struct _OS_ATOMIC {IMG_INT32 counter;} ATOMIC_T;
+	typedef struct _OS_ATOMIC {IMG_INT counter;} ATOMIC_T;
 #elif defined(__QNXNTO__)
-	typedef struct _OS_ATOMIC {IMG_UINT32 counter;} ATOMIC_T;
+	typedef struct _OS_ATOMIC {IMG_INT counter;} ATOMIC_T;
 #elif defined(_WIN32)
 	/*
 	 * Dummy definition. WDDM doesn't use Services, but some headers
 	 * still have to be shared. This is one such case.
 	 */
-	typedef struct _OS_ATOMIC {IMG_INT32 counter;} ATOMIC_T;
+	typedef struct _OS_ATOMIC {IMG_INT counter;} ATOMIC_T;
 #elif defined(INTEGRITY_OS)
-	/* Only lower 32bits are used in OS ATOMIC APIs to have consistent behaviour across all OS */
+	/*Fixed size data type to hold the largest value*/
 	typedef struct _OS_ATOMIC {IMG_UINT64 counter;} ATOMIC_T;
 #else
 	#error "Please type-define an atomic lock for this environment"

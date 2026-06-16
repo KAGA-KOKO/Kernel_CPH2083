@@ -10,12 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
-#ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2019/2/21,  for enable KASAN, use GCC complile tool, add flag format
-ifeq ($(CONFIG_KASAN),y)
-subdir-ccflags-y += -Wno-format
-endif
-#endif /*VENDOR_EDIT*/
+
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/m4u/$(MTK_PLATFORM)/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/mmp/
 ccflags-y += -I$(srctree)/drivers/staging/android/ion \

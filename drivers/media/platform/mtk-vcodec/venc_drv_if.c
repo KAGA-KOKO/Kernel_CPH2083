@@ -68,8 +68,17 @@ int venc_if_init(struct mtk_vcodec_ctx *ctx, unsigned int fourcc)
 		return -EINVAL;
 	}
 #endif
+
+	if (ctx->oal_vcodec == 0) {
+		mtk_venc_lock(ctx);
+		mtk_vcodec_enc_clock_on(&ctx->dev->pm);
+	}
 	ret = ctx->enc_if->init(ctx, (unsigned long *)&ctx->drv_handle);
 
+	if (ctx->oal_vcodec == 0) {
+		mtk_vcodec_enc_clock_off(&ctx->dev->pm);
+		mtk_venc_unlock(ctx);
+	}
 	return ret;
 }
 
@@ -88,7 +97,11 @@ int venc_if_get_param(struct mtk_vcodec_ctx *ctx, enum venc_get_param_type type,
 		drv_handle_exist = 0;
 	}
 
+	if (ctx->slowmotion == 0)
+		mtk_venc_lock(ctx);
 	ret = ctx->enc_if->get_param(ctx->drv_handle, type, out);
+	if (ctx->slowmotion == 0)
+		mtk_venc_unlock(ctx);
 
 	if (!drv_handle_exist) {
 		kfree(inst);
@@ -104,8 +117,15 @@ int venc_if_set_param(struct mtk_vcodec_ctx *ctx,
 {
 	int ret = 0;
 
+	if (ctx->oal_vcodec == 0) {
+		mtk_venc_lock(ctx);
+		mtk_vcodec_enc_clock_on(&ctx->dev->pm);
+	}
 	ret = ctx->enc_if->set_param(ctx->drv_handle, type, in);
-
+	if (ctx->oal_vcodec == 0) {
+		mtk_vcodec_enc_clock_off(&ctx->dev->pm);
+		mtk_venc_unlock(ctx);
+	}
 	return ret;
 }
 
@@ -115,11 +135,11 @@ void venc_encode_prepare(void *ctx_prepare, unsigned long *flags)
 
 	mtk_venc_pmqos_prelock(ctx);
 	mtk_venc_lock(ctx);
+	mtk_venc_pmqos_begin_frame(ctx);
 	spin_lock_irqsave(&ctx->dev->irqlock, *flags);
 	ctx->dev->curr_ctx = ctx;
 	spin_unlock_irqrestore(&ctx->dev->irqlock, *flags);
 	mtk_vcodec_enc_clock_on(&ctx->dev->pm);
-	mtk_venc_pmqos_begin_frame(ctx);
 }
 EXPORT_SYMBOL_GPL(venc_encode_prepare);
 
@@ -127,11 +147,11 @@ void venc_encode_unprepare(void *ctx_unprepare, unsigned long *flags)
 {
 	struct mtk_vcodec_ctx *ctx = (struct mtk_vcodec_ctx *)ctx_unprepare;
 
-	mtk_venc_pmqos_end_frame(ctx);
 	mtk_vcodec_enc_clock_off(&ctx->dev->pm);
 	spin_lock_irqsave(&ctx->dev->irqlock, *flags);
 	ctx->dev->curr_ctx = NULL;
 	spin_unlock_irqrestore(&ctx->dev->irqlock, *flags);
+	mtk_venc_pmqos_end_frame(ctx);
 	mtk_venc_unlock(ctx);
 }
 EXPORT_SYMBOL_GPL(venc_encode_unprepare);
@@ -142,9 +162,16 @@ int venc_if_encode(struct mtk_vcodec_ctx *ctx,
 	struct venc_done_result *result)
 {
 	int ret = 0;
+	unsigned long flags;
+
+	if (ctx->oal_vcodec == 0 && ctx->slowmotion == 0)
+		venc_encode_prepare(ctx, &flags);
 
 	ret = ctx->enc_if->encode(ctx->drv_handle, opt, frm_buf,
 							  bs_buf, result);
+
+	if (ctx->oal_vcodec == 0 && ctx->slowmotion == 0)
+		venc_encode_unprepare(ctx, &flags);
 
 	return ret;
 }
@@ -156,8 +183,16 @@ int venc_if_deinit(struct mtk_vcodec_ctx *ctx)
 	if (ctx->drv_handle == 0)
 		return 0;
 
+	if (ctx->oal_vcodec == 0) {
+		mtk_venc_lock(ctx);
+		mtk_vcodec_enc_clock_on(&ctx->dev->pm);
+	}
 	ret = ctx->enc_if->deinit(ctx->drv_handle);
 
+	if (ctx->oal_vcodec == 0) {
+		mtk_vcodec_enc_clock_off(&ctx->dev->pm);
+		mtk_venc_unlock(ctx);
+	}
 	ctx->drv_handle = 0;
 
 	return ret;

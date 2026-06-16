@@ -4025,8 +4025,8 @@ static ssize_t support_show(struct device *dev,
 
 	if (!host)
 		return -EINVAL;
-	
-	printk(KERN_EMERG "%s::prev_value=%d  new_value=%d\n",
+
+	printk(KERN_EMERG"zhye::%s::prev_value=%d  new_value=%d\n",
 		mmc_hostname(host), exStor_prop.prev_support_value, exStor_prop.external_storage_support);
 
 	return snprintf(buf, PAGE_SIZE, "%d\n",
@@ -4049,13 +4049,13 @@ static ssize_t support_store(struct device *dev,
 	if (value >= -1 && value <= 1 )
 		exStor_prop.external_storage_support = value;
 	else{
-		printk(KERN_EMERG "%s::invalid value %d, do nothing\n",__func__,value);
+		printk(KERN_EMERG"zhye::%s::invalid value %d, do nothing\n",__func__,value);
 		return count;
 	}
 
 	if (!host)
 	{
-		printk(KERN_EMERG "%s::Only set flag, do not detect change, set_counter=%d\n",__func__,set_counter);
+		printk(KERN_EMERG"zhye::%s::Only set flag, do not detect change, set_counter=%d\n",__func__,set_counter);
 		return count;
 	}
 
@@ -4150,7 +4150,7 @@ int _mmc_detect_card_removed(struct mmc_host *host)
 		ret = -1;
 		pr_debug("%s: card remove detected\n", mmc_hostname(host));
 	}
-#else
+#else //MOUNT_EXSTORAGE_IF
 	if (ret) {
 		mmc_card_set_removed(host->card);
 		pr_debug("%s: card remove detected\n", mmc_hostname(host));
@@ -4209,7 +4209,7 @@ void mmc_rescan(struct work_struct *work)
 
 #if defined(MOUNT_EXSTORAGE_IF)
 /*ye.zhang@BSP, 2016-05-01, add for CTSI support external storage or not*/
-	if (!(host->caps & MMC_CAP_NONREMOVABLE) && (!strcmp(mmc_hostname(host), "mmc1")))
+	if (!mmc_card_is_removable(host) && (!strcmp(mmc_hostname(host), "mmc1")))
 	{
 		if ((exStor_prop.external_storage_support == EXTERNAL_STORAGE_UNSUPPORT)
 			&&(exStor_prop.prev_support_value == EXTERNAL_STORAGE_UNSUPPORT))
@@ -4223,6 +4223,7 @@ void mmc_rescan(struct work_struct *work)
 		exStor_prop.prev_support_value = exStor_prop.external_storage_support;
 	}
 #endif//MOUNT_EXSTORAGE_IF
+
 	/* If there is a non-removable card registered, only scan once */
 	if (!mmc_card_is_removable(host) && host->rescan_entered)
 		return;
@@ -4271,15 +4272,13 @@ void mmc_rescan(struct work_struct *work)
 	mmc_bus_put(host);
 
 	mmc_claim_host(host);
-#ifndef MOUNT_EXSTORAGE_IF
-/*ye.zhang@BSP, 2016-05-01, add for CTSI support external storage or not*/
-	if (mmc_card_is_removable(host) && host->ops->get_cd &&
-			host->ops->get_cd(host) == 0) {
-#else
 	if ((mmc_card_is_removable(host) && host->ops->get_cd &&
-			host->ops->get_cd(host) == 0) ||
-			(!strcmp(mmc_hostname(host), "mmc1") && exStor_prop.external_storage_support == EXTERNAL_STORAGE_UNSUPPORT)) {
-#endif
+			host->ops->get_cd(host) == 0)
+		#if defined(MOUNT_EXSTORAGE_IF)
+		/*ye.zhang@BSP, 2016-05-01, add for CTSI support external storage or not*/
+		|| (!strcmp(mmc_hostname(host), "mmc1") && exStor_prop.external_storage_support == EXTERNAL_STORAGE_UNSUPPORT)
+		#endif//MOUNT_EXSTORAGE_IF
+		) {
 		mmc_power_off(host);
 		mmc_release_host(host);
 		goto out;
@@ -4346,12 +4345,12 @@ void mmc_stop_host(struct mmc_host *host)
 		disable_irq(host->slot.cd_irq);
 
 	host->rescan_disable = 1;
-#ifndef VENDOR_EDIT 
-//Wen.Luo@BSP.Kernel.Stability, 2018/12/12, Modify for system_server hang
+#ifndef VENDOR_EDIT //yixue.ge@bsp.drv modify
 	cancel_delayed_work_sync(&host->detect);
 #else
 	cancel_delayed_work(&host->detect);
 #endif
+
 	/* clear pm flags now and let card drivers set them as needed */
 	host->pm_flags = 0;
 

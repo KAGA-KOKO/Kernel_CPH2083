@@ -132,12 +132,6 @@ static struct workqueue_struct *accdet_workqueue;
 static struct work_struct eint_work;
 static struct workqueue_struct *eint_workqueue;
 
-#ifdef VENDOR_EDIT
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
- * add for hp delay detection */
-struct delayed_work hp_detect_work;
-#endif /* VENDOR_EDIT */
-
 /* micbias_timer: disable micbias if no accdet irq after eint,
  * timeout: 6 seconds
  * timerHandler: dis_micbias_timerhandler()
@@ -237,12 +231,6 @@ static void accdet_init_debounce(void);
 static void mini_dump_register(void);
 static void accdet_modify_vref_volt_self(void);
 /*******************global function declaration*****************/
-
-#ifdef VENDOR_EDIT
-/* ZhongWenjie@BSP.TP.FUNCTION, 2018/11/19,
- * add to enable tp headset mode when plug in  */
-void __attribute__((weak)) switch_headset_state(int headset_state) {return;}
-#endif /* VENDOR_EDIT */
 
 #if !defined CONFIG_MTK_PMIC_NEW_ARCH
 void pmic_register_interrupt_callback(unsigned int intNo
@@ -575,15 +563,11 @@ static void cat_register(char *buf)
 
 static int dbug_thread(void *unused)
 {
-	dump_register();
-#if 0
-	/* fix syzkaller issue */
 	while (debug_thread_en) {
 		if (dump_reg)
 			dump_register();
 		msleep(500);
 	}
-#endif
 	return 0;
 }
 
@@ -599,12 +583,6 @@ static ssize_t store_accdet_start_debug_thread(struct device_driver *ddri,
 	}
 
 	ret = strncmp(buf, "0", 1);
-	/* fix syzkaller issue */
-	if (debug_thread_en == true) {
-		pr_info("%s() debug thread started, ret!\n", __func__);
-		return count;
-	}
-
 	if (ret) {
 		debug_thread_en = true;
 		thread = kthread_run(dbug_thread, 0, "ACCDET");
@@ -985,18 +963,6 @@ static u32 key_check(u32 v)
 #if PMIC_ACCDET_KERNEL
 static void send_key_event(u32 keycode, u32 flag)
 {
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1223267, 2019/03/27,
-	 * add for not sending hook key release when plugging out */
-	pr_info("[accdet][send_key_event]eint_accdet_sync_flag = %d, cur_eint_state = %d\n",
-		eint_accdet_sync_flag, cur_eint_state);
-	if (((eint_accdet_sync_flag && (cur_eint_state == EINT_PIN_PLUG_OUT))
-		|| (!eint_accdet_sync_flag))
-		&& (keycode == MD_KEY)) {
-		pr_info("[accdet][send_key_event]No hook key release when plugging out\n");
-		return;
-	}
-#endif /* VENDOR_EDIT */
 	switch (keycode) {
 	case DW_KEY:
 		input_report_key(accdet_input_dev, KEY_VOLUMEDOWN, flag);
@@ -1906,11 +1872,6 @@ static void eint_work_callback(void)
 
 		pr_info("%s VUSB LP dis done\n", __func__);
 		enable_accdet(0);
-#ifdef VENDOR_EDIT
-/* ZhongWenjie@BSP.TP.FUNCTION, 2018/11/19,
- * add to enable tp headset mode when plug in  */
-		switch_headset_state(1);
-#endif /* VENDOR_EDIT */
 	} else {
 		pr_info("accdet cur:plug-out, cur_eint_state = %d\n",
 			cur_eint_state);
@@ -1918,12 +1879,7 @@ static void eint_work_callback(void)
 		eint_accdet_sync_flag = false;
 		accdet_thing_in_flag = false;
 		mutex_unlock(&accdet_eint_irq_sync_mutex);
-#ifndef VENDOR_EDIT
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/02/14,
-		 * modified for waiting for 6s before disabling micbias,
-		 * delete timer when plug out 3-pole headset */
 		if (accdet_dts.moisture_detect_mode != 0x5)
-#endif
 			del_timer_sync(&micbias_timer);
 
 		/* disable accdet_sw_en=0
@@ -1932,11 +1888,6 @@ static void eint_work_callback(void)
 			PMIC_ACCDET_SW_EN_SHIFT);
 		disable_accdet();
 		headset_plug_out();
-#ifdef VENDOR_EDIT
-/* ZhongWenjie@BSP.TP.FUNCTION, 2018/11/19,
- * add to enable tp headset mode when plug in  */
-		switch_headset_state(0);
-#endif /* VENDOR_EDIT */
 	}
 
 	if (get_moisture_det_en() == 0x1)
@@ -2196,15 +2147,7 @@ static int pmic_eint_queue_work(int eintID)
 			__func__);
 		cur_eint_state = EINT_PIN_PLUG_OUT;
 #if PMIC_ACCDET_KERNEL
-#ifdef VENDOR_EDIT
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
-		 * add for hp delay detection */
-		pr_info("%s water in no delayed work scheduled when plugging out\n", __func__);
-		cancel_delayed_work_sync(&hp_detect_work);
-		schedule_delayed_work(&hp_detect_work, 0);
-#else /* VENDOR_EDIT */
 		ret = queue_work(eint_workqueue, &eint_work);
-#endif /* VENDOR_EDIT */
 #else
 		eint_work_callback();
 #endif /* end of #if PMIC_ACCDET_KERNEL */
@@ -2219,35 +2162,15 @@ static int pmic_eint_queue_work(int eintID)
 		} else {
 			if (gmoistureID != M_PLUG_OUT) {
 			cur_eint_state = EINT_PIN_PLUG_IN;
-#ifdef VENDOR_EDIT
-			/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
-			 * modified for waiting for 6s before disabling micbias */
-			pr_info("%s delay work to disable micbias after 6s\n", __func__);
-			mod_timer(&micbias_timer,
-				jiffies + MICBIAS_DISABLE_TIMER);
-#else
+
 			if (accdet_dts.moisture_detect_mode != 0x5) {
 				mod_timer(&micbias_timer,
 					jiffies + MICBIAS_DISABLE_TIMER);
 			}
-#endif
 			}
 		}
 #if PMIC_ACCDET_KERNEL
-#ifdef VENDOR_EDIT
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
-		 * add for hp delay detection */
-		if (cur_eint_state == EINT_PIN_PLUG_IN) {
-			pr_info("%s delayed work 500ms scheduled when plugging in\n", __func__);
-			schedule_delayed_work(&hp_detect_work, msecs_to_jiffies(500));
-		} else {
-			pr_info("%s no delayed work scheduled when plugging out\n", __func__);
-			cancel_delayed_work_sync(&hp_detect_work);
-			schedule_delayed_work(&hp_detect_work, 0);
-		}
-#else /* VENDOR_EDIT */
 		ret = queue_work(eint_workqueue, &eint_work);
-#endif /* VENDOR_EDIT */
 #else
 		eint_work_callback();
 #endif /* end of #if PMIC_ACCDET_KERNEL */
@@ -3272,17 +3195,9 @@ void accdet_modify_vref_volt(void)
 
 static void accdet_modify_vref_volt_self(void)
 {
-#ifndef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
-	 * modified for waiting for 6s before disabling micbias */
-	/* make sure seq is disable micbias then connect vref2 */
 	u32 cur_AB, eintID;
-#endif /* VENDOR_EDIT */
 
 	if (accdet_dts.moisture_detect_mode == 0x5) {
-#ifndef VENDOR_EDIT
-		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
-		 * modified for waiting for 6s before disabling micbias */
 		/* make sure seq is disable micbias then connect vref2 */
 
 		/* check EINT0 status, if plug out,
@@ -3317,7 +3232,6 @@ cur_AB = pmic_read(PMIC_ACCDET_MEM_IN_ADDR) >> ACCDET_STATE_MEM_IN_OFFSET;
 				__func__, cur_AB, cable_type);
 			dis_micbias_done = true;
 		}
-#endif /* VENDOR_EDIT */
 		/* disable comp1 delay window */
 		pmic_write_set(PMIC_RG_EINT0NOHYS_ADDR,
 			PMIC_RG_EINT0NOHYS_SHIFT);
@@ -3491,12 +3405,6 @@ int mt_accdet_probe(struct platform_device *dev)
 		pr_notice("%s create eint workqueue fail.\n", __func__);
 		goto err_create_workqueue;
 	}
-
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
-	 * add for hp delay detection */
-	INIT_DELAYED_WORK(&hp_detect_work, eint_work_callback);
-#endif /* VENDOR_EDIT */
 
 #ifdef CONFIG_ACCDET_EINT
 	ret = ext_eint_setup(dev);

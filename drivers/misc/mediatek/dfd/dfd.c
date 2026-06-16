@@ -26,7 +26,7 @@
 static struct dfd_drv *drv;
 
 /* return -1 for error indication */
-int dfd_setup(int version)
+int dfd_setup(void)
 {
 	int ret;
 	int dfd_doe;
@@ -52,17 +52,9 @@ int dfd_setup(int version)
 			dfd_doe = DFD_CACHE_DUMP_ENABLE;
 			if (drv->l2c_trigger)
 				dfd_doe |= DFD_PARITY_ERR_TRIGGER;
-
-			if (version == DFD_EXTENDED_DUMP)
-				ret = mt_secure_call(MTK_SIP_KERNEL_DFD,
-					DFD_SMC_MAGIC_SETUP,
-					(u64) drv->base_addr,
-					drv->chain_length, dfd_doe);
-			else
-				ret = mt_secure_call(MTK_SIP_KERNEL_DFD,
-					DFD_SMC_MAGIC_SETUP,
-					(u64) drv->base_addr,
-					drv->chain_length, 0);
+			ret = mt_secure_call(MTK_SIP_KERNEL_DFD,
+				DFD_SMC_MAGIC_SETUP, (u64) drv->base_addr,
+				drv->chain_length, dfd_doe);
 		} else {
 			ret = mt_secure_call(MTK_SIP_KERNEL_DFD,
 				DFD_SMC_MAGIC_SETUP,

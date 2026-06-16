@@ -55,6 +55,7 @@ static u8 intr_pwm_nu[PWM_MAX];
 #define T         "[PWM]"
 
 void __iomem *pwm_base;
+
 struct mutex pwm_power_lock;
 
 struct pwm_device {

@@ -58,26 +58,13 @@ struct _EARA_NN_PACKAGE {
 	__s32 errorno;
 	__s32 priority;
 	__s32 num_step;
+	__s32 *device;
+	__s32 *boost;
+	__u64 *exec_time;
+	__u64 *target_time;
 
 	__s32 dev_usage;
 	__u32 bw_usage;
-
-	union {
-		__s32 *device;
-		__u64 p_dummy_device;
-	};
-	union {
-		__s32 *boost;
-		__u64 p_dummy_boost;
-	};
-	union {
-		__u64 *exec_time;
-		__u64 p_dummy_exec_time;
-	};
-	union {
-		__u64 *target_time;
-		__u64 p_dummy_target_time;
-	};
 };
 
 enum  {

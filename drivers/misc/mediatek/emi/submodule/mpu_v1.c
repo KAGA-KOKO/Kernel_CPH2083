@@ -187,19 +187,9 @@ static void check_violation(void)
 			pr_info("[MPU] violation trigger MD, ");
 			pr_info("str=%s strlen(str)=%d\n",
 				str, (int)strlen(str));
-        }
-
-		#ifdef VENDOR_EDIT
-		//Deliang.Peng@PSW.MM.Stability.Log, 2019/12/05,
-		//Add for  debug GPU EMI vilolation
-		#ifdef CONFIG_OPPO_SPECIAL_BUILD
-		if(strstr(master_name,"MT6779_M6_AXI_MST_MFG")) {
-			BUG();
 		}
-		#endif
-		#endif /*VENDOR_EDIT*/
 
-		/*aee_kernel_exception("EMI MPU",
+		aee_kernel_exception("EMI MPU",
 			"%s%s = 0x%x,%s = 0x%x,%s = 0x%x,%s = 0x%llx\n%s%s\n",
 			"EMI MPU violation.\n",
 			"EMI_MPUS", mpus,
@@ -207,7 +197,7 @@ static void check_violation(void)
 			"EMI_MPUT_2ND", mput_2nd,
 			"vio_addr", vio_addr,
 			"CRDISPATCH_KEY:EMI MPU Violation Issue/",
-			master_name);*/
+			master_name);
 	}
 #endif
 

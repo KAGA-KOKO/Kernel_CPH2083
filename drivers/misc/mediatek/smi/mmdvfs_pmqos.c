@@ -55,9 +55,6 @@
 #include "mtk_qos_bound.h"
 #endif
 
-#include <linux/regulator/consumer.h>
-static struct regulator *vcore_reg_id;
-
 #undef pr_fmt
 #define pr_fmt(fmt) "[mmdvfs]" fmt
 
@@ -202,7 +199,6 @@ static struct mm_freq_config img_freq = {
 };
 
 static struct mm_freq_config dpe_freq = {
-	.nb.notifier_call = mm_freq_notify,
 	.prop_name = "dpe_freq",
 	.pm_qos_class = PM_QOS_DPE_FREQ,
 	.current_step = STEP_UNREQUEST,
@@ -226,29 +222,9 @@ struct mm_freq_config *all_freqs[] = {
 	&vdec_freq, &venc_freq,
 	&img_freq, &cam_freq, &dpe_freq, &ipe_freq, &ccu_freq};
 
-int __attribute__ ((weak)) is_dvfsrc_opp_fixed(void) { return 1; }
-
 static void mm_apply_vcore(s32 vopp)
 {
 	pm_qos_update_request(&vcore_request, vopp);
-	if (vcore_reg_id) {
-#ifdef CHECK_VOLTAGE
-		u32 v_real, v_target;
-
-		if (vopp >= 0 && vopp < VCORE_OPP_NUM) {
-			v_real = regulator_get_voltage(vcore_reg_id);
-			v_target = get_vcore_uv_table(vopp);
-			if (v_real < v_target) {
-				pr_info("err vcore %d < %d\n",
-					v_real, v_target);
-				if (!is_dvfsrc_opp_fixed())
-					aee_kernel_warning("mmdvfs",
-						"vcore(%d)<target(%d)\n",
-						v_real, v_target);
-			}
-		}
-#endif
-	}
 }
 
 static s32 mm_set_mux_clk(s32 src_mux_id, const char *name,
@@ -1043,11 +1019,6 @@ void mm_qos_update_all_request(struct plist_head *owner_list)
 	u32 larb_count = 0, larb_id = 0, larb_port_id = 0, larb_port_bw = 0;
 	u32 port_id = 0;
 
-	if (!owner_list || plist_head_empty(owner_list)) {
-		pr_notice("%s: owner_list is invalid\n", __func__);
-		return;
-	}
-
 	req = plist_first_entry(owner_list, struct mm_qos_request, owner_node);
 
 	if (is_camera_larb(req->master_id)) {
@@ -1623,9 +1594,6 @@ static int mmdvfs_probe(struct platform_device *pdev)
 #ifdef BLOCKING_MECHANISM
 	init_waitqueue_head(&hrt_wait);
 #endif
-	vcore_reg_id = regulator_get(&pdev->dev, "vcore");
-	if (!vcore_reg_id)
-		pr_info("regulator_get vcore_reg_id failed\n");
 	return 0;
 
 }
@@ -1948,6 +1916,7 @@ int get_larbs_info(char *buf)
 	for (i = 0; i < ARRAY_SIZE(larb_req); i++) {
 		if (!larb_req[i].port_count || !(dump_larbs & 1 << i))
 			continue;
+		smi_debug_bus_hang_detect(1 << i, true, false, false);
 		length += snprintf(buf + length, MAX_DUMP - length,
 			"[%u] port count: %u\n", i, larb_req[i].port_count);
 		for (j = 0; j < ARRAY_SIZE(larb_req[i].ratio); j++) {
@@ -1985,14 +1954,13 @@ int get_larbs_info(char *buf)
 void mmdvfs_print_larbs_info(void)
 {
 	int len;
-	char *ptr, *tmp_str;
+	char *ptr;
 	char *log_str = kmalloc(PAGE_SIZE, GFP_KERNEL);
 
 	if (log_str) {
 		len = get_larbs_info(log_str);
-		tmp_str = log_str;
 		if (len > 0) {
-			while ((ptr = strsep(&tmp_str, "\n")) != NULL)
+			while ((ptr = strsep(&log_str, "\n")) != NULL)
 				pr_notice("%s\n", ptr);
 		} else
 			pr_notice("no larbs info to print\n");
@@ -2004,7 +1972,7 @@ void mmdvfs_print_larbs_info(void)
 int get_dump_larbs(char *buf, const struct kernel_param *kp)
 {
 	int len;
-	smi_debug_bus_hang_detect(1, true, false, false);
+
 	len = get_larbs_info(buf);
 	return len;
 }

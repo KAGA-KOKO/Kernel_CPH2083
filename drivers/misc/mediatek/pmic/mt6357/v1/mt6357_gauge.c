@@ -2038,7 +2038,7 @@ static int fgauge_enable_car_tune_value_calibration(
 	return 0;
 }
 
-#ifndef ODM_HQ_EDIT
+#ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.02.25 add set monitic soc for RTC*/
 static int fgauge_set_rtc_monitic_soc(struct gauge_device *gauge_dev, int rtc_ui_soc)
 {
@@ -2289,7 +2289,7 @@ static struct gauge_ops mt6357_gauge_ops = {
 	.gauge_get_hw_version = fgauge_get_hw_version,
 	.gauge_set_info = fgauge_set_info,
 	.gauge_get_info = fgauge_get_info,
-#ifndef ODM_HQ_EDIT
+#ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.02.25 add set monitci soc for rtc*/
 	.gauge_get_rtc_monitic_soc = fgauge_get_rtc_monitic_soc,
 	.gauge_set_rtc_monitic_soc = fgauge_set_rtc_monitic_soc,

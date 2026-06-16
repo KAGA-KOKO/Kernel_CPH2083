@@ -44,10 +44,10 @@
 #define MULTI_BATTERY 0
 #ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2018.12.18 modify battery id check*/
-#define BATTERY_ID_CHANNEL_NUM 3
-#define ATL_BATTERY_VOLTAGE_MAX	1100000
-#define ATL_BATTERY_VOLTAGE_MIN	820000
-#define SDI_BATTERY_VOLTAGE_MAX	550000
+#define BATTERY_ID_CHANNEL_NUM 2
+#define ATL_BATTERY_VOLTAGE_MAX	950000
+#define ATL_BATTERY_VOLTAGE_MIN	850000
+#define SDI_BATTERY_VOLTAGE_MAX	420000
 #define SDI_BATTERY_VOLTAGE_MIN	300000
 #else /*ODM_HQ_EDIT*/
 #define BATTERY_ID_CHANNEL_NUM 1
@@ -246,12 +246,7 @@ int g_temperature[MAX_TABLE] = {
 #define BAT_NTC_47 0
 
 #if (BAT_NTC_10 == 1)
-/* WT000695@ODM_WT.BSP.Charger.kernel.20191225, Modif battery ntc config*/
-#ifdef ODM_WT_EDIT
-#define RBAT_PULL_UP_R             16000
-#else
 #define RBAT_PULL_UP_R             16900
-#endif /*ODM_WT_EDIT*/
 #endif
 
 #if (BAT_NTC_47 == 1)
@@ -269,42 +264,39 @@ struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[21] = {
 #else /*ODM_HQ_EDIT*/
 struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[28] = {
 #endif /*ODM_HQ_EDIT*/
-/* WT000695@ODM_WT.BSP.Charger.kernel.20191225, Modif battery ntc config*/
-#ifdef ODM_WT_EDIT
-		{-40, 21378},
-		{-35, 20654},
-		{-30, 19806},
-		{-25, 18837},
-		{-20, 17755},
-		{-15, 16582},
-		{-10, 15339},
-		{-5, 14050},
-		{0, 12754},
-		{5, 11484},
-		{10, 10262},
-		{15, 9106},
-		{20, 8036},
-		{25, 7059},
-		{30, 6175},
-		{35, 5388},
-		{40, 4693},
-		{45, 4081},
-		{50, 3546},
-		{55, 3081},
+		{-40, 195652},
+		{-35, 148171},
+		{-30, 113347},
+		{-25, 87559},
+		{-20, 68237},
+		{-15, 53650},
+		{-10, 42506},
+		{-5, 33892},
+		{0, 27219},
+		{5, 22021},
+		{10, 17926},
+		{15, 14674},
+		{20, 12081},
+		{25, 10000},
+		{30, 8315},
+		{35, 6948},
+		{40, 5834},
+		{45, 4917},
+		{50, 4161},
+		{55, 3535},
 #ifndef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.10 add more Rntc to temp */
 		{60, 3014}
 #else /*ODM_HQ_EDIT*/
-		{60, 2678},
-		{65, 2334},
-		{70, 2039},
-		{75, 1782},
-		{80, 1560},
-		{85, 1369},
-		{90, 1204},
-		{95, 1061},
+		{60, 3014},
+		{65, 2650},
+		{70, 2284},
+		{75, 1976},
+		{80, 1715},
+		{85, 1494},
+		{90, 1306},
+		{95, 1146}
 #endif /*ODM_HQ_EDIT*/
-#endif /*ODM_WT_EDIT*/
 };
 #endif
 

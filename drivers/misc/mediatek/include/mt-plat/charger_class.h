@@ -158,11 +158,6 @@ struct charger_ops {
 #ifdef ODM_HQ_EDIT
 /*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.06 add enable_ship_mode API*/
 	int (*enable_ship)(struct charger_device *);
-	int (*check_charging_enable)(struct charger_device *chg_dev, bool *en);
-	int (*charger_suspend)(struct charger_device *);
-	int (*charger_unsuspend)(struct charger_device *);
-#endif
-#ifndef ODM_HQ_EDIT
 /*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.10 add get_charger_type API*/
 	int (*get_charger_type)(struct charger_device *dev, u32 *charger_type);
 /* Mengchun.Zhang@ODM.HQ.BSP.CHG.Basic 2018/12/28 add recharger API*/
@@ -327,14 +322,7 @@ extern int charger_dev_notify(
 #ifdef ODM_HQ_EDIT
 /*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.06 add enable_ship_mode API*/
 extern int charger_dev_enable_ship(struct charger_device *chg_dev);
-
-extern int charger_dev_check_charging_enable(struct charger_device *chg_dev, bool *en);
-
-extern int charger_dev_enter_hiz_mode(struct charger_device *chg_dev);
-extern int charger_dev_exit_hiz_mode(struct charger_device *chg_dev);
 /*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.10 add get_charger_type API*/
-#endif
-#ifndef ODM_HQ_EDIT
 extern int charger_dev_get_charger_type(struct charger_device *chg_dev, u32 *charger_type);
 /* Mengchun.Zhang@ODM.HQ.BSP.CHG.Basic 2018/12/28 add recharger API*/
 extern int charger_dev_recharger(struct charger_device *chg_dev, bool flag);

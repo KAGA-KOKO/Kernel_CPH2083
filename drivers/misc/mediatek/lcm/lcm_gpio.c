@@ -332,8 +332,7 @@ MODULE_DESCRIPTION("MediaTek LCM GPIO driver");
 MODULE_AUTHOR("Joey Pan<joey.pan@mediatek.com>");
 #endif
 #endif
-
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/21 add for LCD gpio bring up */
+/* Wangxianfei@ODM.Multimedia.LCD  2018/11/29 add for LCD gpio bring up */
 #ifdef ODM_HQ_EDIT
 #include <linux/kernel.h>
 #include <linux/module.h>

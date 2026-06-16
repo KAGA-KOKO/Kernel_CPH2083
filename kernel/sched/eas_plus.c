@@ -597,8 +597,7 @@ static struct sched_entity
 			  task_uclamped_min(p) >= src_capacity))
 				return se;
 
-			if (schedtune_prefer_idle(task_of(se))) { 
-					!idle_cpu(cpu)) {
+			if (schedtune_prefer_idle(task_of(se))) {
 				if (!check_min_cap)
 					return se;
 

@@ -140,22 +140,10 @@ static bool blk_flush_queue_rq(struct request *rq, bool add_front)
 		blk_mq_kick_requeue_list(q);
 		return false;
 	} else {
-#ifdef VENDOR_EDIT
-/*Huacai.Zhou@PSW.BSP.Kernel.Performance, 2018-04-28, add foreground task io opt*/
-		if (add_front) {
-			list_add(&rq->queuelist, &rq->q->queue_head);
-			queue_throtl_add_request(rq->q, rq, true);
-		}
-		else {
-			list_add_tail(&rq->queuelist, &rq->q->queue_head);
-			queue_throtl_add_request(rq->q, rq, false);
-		}
-#else
 		if (add_front)
 			list_add(&rq->queuelist, &rq->q->queue_head);
 		else
 			list_add_tail(&rq->queuelist, &rq->q->queue_head);
-#endif /*VENDOR_EDIT*/
 		return true;
 	}
 }
@@ -464,10 +452,6 @@ void blk_insert_flush(struct request *rq)
 			blk_mq_insert_request(rq, false, false, true);
 		} else
 			list_add_tail(&rq->queuelist, &q->queue_head);
-#ifdef VENDOR_EDIT
-/*Huacai.Zhou@PSW.BSP.Kernel.Performance, 2018-04-28, add foreground task io opt*/
-			queue_throtl_add_request(q, rq, false);
-#endif /*VENDOR_EDIT*/
 		return;
 	}
 

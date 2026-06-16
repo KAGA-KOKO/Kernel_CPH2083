@@ -26,22 +26,7 @@
 #ifdef VENDOR_EDIT
 /* Jianchao.Shi@BSP.CHG.Basic, 2018/11/09, sjc Add for charging */
 extern bool mt6360_get_vbus_status(void);
-extern int mt6360_chg_enable(bool en);
-extern int mt6360_chg_enable_wdt(bool enable);
-extern bool oppo_chg_wake_update_work(void);
-extern bool oppo_vooc_get_fastchg_started(void);
-extern int oppo_vooc_get_adapter_update_status(void);
-extern void oppo_vooc_reset_fastchg_after_usbout(void);
-extern void oppo_chg_clear_chargerid_info(void);
-extern void oppo_chg_set_chargerid_switch_val(int);
-extern bool oppo_vooc_get_fastchg_to_normal(void);
-extern bool oppo_vooc_get_fastchg_to_warm(void);
-extern void oppo_chg_set_charger_type_unknown(void);
-int __attribute__((weak)) oppo_chg_get_mmi_status(void)
-{
-	return 1;
-}
-#endif /*VENDOR_EDIT*/
+#endif
 
 static irqreturn_t mt6360_pmu_irq_handler(int irq, void *data)
 {
@@ -49,10 +34,6 @@ static irqreturn_t mt6360_pmu_irq_handler(int irq, void *data)
 	u8 irq_events[MT6360_PMU_IRQ_REGNUM] = {0};
 	u8 irq_masks[MT6360_PMU_IRQ_REGNUM] = {0};
 	int i, j, ret;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/19, sjc Add for charging */
-	bool vbus_status = false;
-#endif
 
 	mt_dbg(mpi->dev, "%s ++\n", __func__);
 	pm_runtime_get_sync(mpi->dev);
@@ -81,36 +62,8 @@ static irqreturn_t mt6360_pmu_irq_handler(int irq, void *data)
 /* Jianchao.Shi@BSP.CHG.Basic, 2018/11/09, sjc Modify for charging */
 				else {
 					if (i == 7) {
-						vbus_status = mt6360_get_vbus_status();
-						printk(KERN_ERR "!!!!! mt6360_pmu_irq_handler: [%d]\n", vbus_status);
-						mt6360_chg_enable_wdt(vbus_status);
-						if (oppo_vooc_get_fastchg_started() == true
-								&& oppo_vooc_get_adapter_update_status() != 1) {
-							printk(KERN_ERR "[OPPO_CHG] %s oppo_vooc_get_fastchg_started = true!\n", __func__);
-							if (vbus_status) {
-								/*vooc adapters MCU vbus reset time is about 800ms(default standard),
-								 * but some adapters reset time is about 350ms, so when vbus plugin irq
-								 * was trigger, fastchg_started is true(default standard is false).
-								 */
-								mt6360_chg_enable(false);
-							}
-						} else {
-							if (!vbus_status) {
-								oppo_vooc_reset_fastchg_after_usbout();
-								if (oppo_vooc_get_fastchg_started() == false) {
-									oppo_chg_set_chargerid_switch_val(0);
-									oppo_chg_clear_chargerid_info();
-								}
-								oppo_chg_set_charger_type_unknown();
-							} else {
-								if ((oppo_vooc_get_fastchg_to_normal() == true)
-										|| (oppo_vooc_get_fastchg_to_warm() == true)
-										|| (oppo_chg_get_mmi_status() == 0)) {
-									mt6360_chg_enable(false);
-								}
-							}
-							oppo_chg_wake_update_work();
-						}
+						printk(KERN_ERR "!!!!! mt6360_pmu_irq_handler: [%d]\n",
+							mt6360_get_vbus_status());
 					} else {
 						dev_dbg(mpi->dev,
 							"handle_irq [%d,%d]\n", i, j);					

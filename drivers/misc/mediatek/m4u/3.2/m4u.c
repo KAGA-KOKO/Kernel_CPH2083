@@ -55,8 +55,7 @@
 #ifdef M4U_TEE_SERVICE_ENABLE
 #include "tz_m4u.h"
 
-#if defined(CONFIG_TRUSTONIC_TEE_SUPPORT) && \
-	!defined(CONFIG_MTK_TEE_GP_SUPPORT)
+#if defined(CONFIG_TRUSTONIC_TEE_SUPPORT)
 #include "mobicore_driver_api.h"
 #endif
 
@@ -107,12 +106,11 @@ static int m4u_buf_show(void *priv,
 	struct m4u_buf_info_t *pMvaInfo = priv;
 
 	M4U_PRINT_SEQ(data,
-		"0x%-8x, 0x%-8x, 0x%lx, 0x%-8x, 0x%x, %s, 0x%x, 0x%x, 0x%x, %llu ns\n",
+		"0x%-8x, 0x%-8x, 0x%lx, 0x%-8x, 0x%x, %s, 0x%x, 0x%x, 0x%x\n",
 		pMvaInfo->mva, pMvaInfo->mva+pMvaInfo->size-1, pMvaInfo->va,
 		pMvaInfo->size, pMvaInfo->prot,
 		m4u_get_port_name(pMvaInfo->port),
-		pMvaInfo->flags, mva_start, mva_end,
-		pMvaInfo->current_ts);
+		pMvaInfo->flags, mva_start, mva_end);
 
 	return 0;
 }
@@ -123,7 +121,7 @@ int m4u_dump_buf_info(struct seq_file *seq, unsigned int domain_idx)
 
 	M4U_PRINT_SEQ(seq, "\ndump mva allocated info ========>\n");
 	M4U_PRINT_SEQ(seq,
-	"mva_start   mva_end          va       size     prot   module   flags   debug1  debug2  ts\n");
+	"mva_start   mva_end          va       size     prot   module   flags   debug1  debug2\n");
 
 	mva_foreach_priv((void *) m4u_buf_show, seq, domain_idx);
 
@@ -178,8 +176,11 @@ int m4u_put_sgtable_pages(struct sg_table *table)
 	for_each_sg(table->sgl, sg, table->nents, i) {
 		struct page *page = sg_page(sg);
 
-		if (page)
+		if (page) {
+			if (!PageReserved(page))
+				SetPageDirty(page);
 			put_page(page);
+		}
 	}
 	return 0;
 }
@@ -846,7 +847,6 @@ int m4u_alloc_mva(struct m4u_client_t *client,
 	pMvaInfo->mva_align = mva_align;
 	pMvaInfo->size_align = size_align;
 	pMvaInfo->domain_idx = domain_idx;
-	pMvaInfo->current_ts = sched_clock();
 	*pMva = mva;
 
 	if (flags & M4U_FLAGS_SEQ_ACCESS)
@@ -1781,9 +1781,8 @@ static int __m4u_sec_init(void)
 		M4UERR("m4u exec command fail\n");
 		goto out;
 	}
-	M4ULOG_HIGH("%s ret:0x%x, rsp:0x%x\n",
-			__func__, ret, ctx->m4u_msg->rsp);
-	/* ret = ctx->m4u_msg->rsp; */
+
+	ret = ctx->m4u_msg->rsp;
 out:
 #ifdef CONFIG_MACH_MT6779
 	for (i = 0; i < SMI_LARB_NR; i++)
@@ -1896,28 +1895,24 @@ out:
 
 #endif
 /* ------------------------------------------------------------- */
-#if defined(CONFIG_TRUSTONIC_TEE_SUPPORT) && \
-		!defined(CONFIG_MTK_TEE_GP_SUPPORT)
+#include "mobicore_driver_api.h"
+
 static const struct mc_uuid_t m4u_drv_uuid = M4U_DRV_UUID;
 static struct mc_session_handle m4u_dci_session;
 static struct m4u_msg *m4u_dci_msg;
-#endif
 
 int m4u_sec_init(void)
 {
 	int ret;
-#if defined(CONFIG_TRUSTONIC_TEE_SUPPORT) && \
-		!defined(CONFIG_MTK_TEE_GP_SUPPORT)
 	enum mc_result mcRet;
-#endif
+
 	M4UINFO("call m4u_sec_init in normal m4u driver\n");
 
 	if (m4u_tee_en) {
 		M4UMSG("warning: m4u secure has been inited, %d\n", m4u_tee_en);
 		goto m4u_sec_reinit;
 	}
-#if defined(CONFIG_TRUSTONIC_TEE_SUPPORT) && \
-		!defined(CONFIG_MTK_TEE_GP_SUPPORT)
+
 	/* Allocating WSM for DCI */
 	mcRet = mc_malloc_wsm(MC_DEVICE_ID_DEFAULT, 0,
 		sizeof(struct m4u_msg), (uint8_t **) &m4u_dci_msg, 0);
@@ -1946,7 +1941,7 @@ int m4u_sec_init(void)
 		for (i = 0; i < 10000000; i++)
 			j++;
 	}
-#endif
+
 	m4u_sec_set_context();
 
 	if (!m4u_tee_en) {
@@ -2872,18 +2867,15 @@ static int m4u_remove(struct platform_device *pdev)
 static int m4u_suspend(struct platform_device *pdev, pm_message_t mesg)
 {
 	m4u_reg_backup();
-	M4UINFO("M4U backup in suspend dev:%d\n", pdev->id);
+	M4UINFO("M4U backup in suspend\n");
 
 	return 0;
 }
 
 static int m4u_resume(struct platform_device *pdev)
 {
-#ifdef M4U_TEE_SERVICE_ENABLE
-	m4u_late_resume();
-#endif
 	m4u_reg_restore();
-	M4UINFO("M4U restore in resume dev:%d\n", pdev->id);
+	M4UINFO("M4U restore in resume\n");
 	return 0;
 }
 

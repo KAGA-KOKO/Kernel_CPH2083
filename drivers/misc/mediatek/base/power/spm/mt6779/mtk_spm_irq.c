@@ -125,7 +125,6 @@ static void mtk_spm_unmask_edge_trig_irqs_for_cirq(void)
 	}
 }
 
-#define WAKE_NO_STATUS	0xdeaddead
 static bool spm_in_idle;
 static int cpu_pm_callback_wakeup_src_restore(
 	struct notifier_block *self, unsigned long cmd, void *v)
@@ -136,11 +135,10 @@ static int cpu_pm_callback_wakeup_src_restore(
 	 * Set edge trigger interrupt pending only in case CPU_PM_EXIT
 	 */
 	if (cmd == CPU_PM_EXIT && spm_in_idle) {
-	for (i = 0; i < IRQ_NUMBER; i++) {
-		if ((spm_read(SPM_SW_RSV_0) & WAKE_NO_STATUS) != WAKE_NO_STATUS)
+		for (i = 0; i < IRQ_NUMBER; i++) {
 			if (spm_read(SPM_SW_RSV_0) & list[i].wakesrc)
 				mt_irq_set_pending(edge_trig_irqs[i]);
-	}
+		}
 	}
 
 	return NOTIFY_OK;
@@ -166,7 +164,6 @@ void mtk_spm_irq_backup(void)
 #endif
 
 #if defined(CONFIG_MTK_SYS_CIRQ)
-	mt_cirq_sw_reset();
 	mt_cirq_clone_gic();
 	mt_cirq_enable();
 #endif

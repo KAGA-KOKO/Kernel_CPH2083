@@ -40,11 +40,8 @@
 #define LOG_INFO(format,...) pr_info(LOG_TAG "  %s:  "format,__func__,## __VA_ARGS__)
 #define LOG_DEBUG(format,...) pr_debug(LOG_TAG "  %s:  "format,__func__,## __VA_ARGS__)
 
-#define ERROR_I2C       1
-#define ERROR_CHECKSUM  2
-#define ERROR_READ_FLAG 3
-
-
+#define DUMP_OTP 0
+#define USING_AWB_CALI_INSENSOR     0
 
 
 static DEFINE_SPINLOCK(g_spinLock);
@@ -75,22 +72,22 @@ char g_otp_buf[3][MAX_EEPROM_BYTE] = {{0},{0},{0}};
 
 typedef struct
 {
-    int group_flag_page;
-    int group_flag_addr;
-    int group_flag;
-    int group_start_page;
-    int group_start_addr;
-    int group_end_page;
-    int group_end_addr;
-    int group_checksum_page;
-    int group_checksum_addr;
+    unsigned int group_flag_page;
+    unsigned int group_flag_addr;
+    unsigned int group_flag;
+    unsigned int group_start_page;
+    unsigned int group_start_addr;
+    unsigned int group_end_page;
+    unsigned int group_end_addr;
+    unsigned int group_checksum_page;
+    unsigned int group_checksum_addr;
 }GROUP_ADDR_INFO;
 
 typedef struct
 {
     char group_name[MAX_NAME_LENGTH];
-    int group_flag_page;
-    int group_flag_addr;
+    unsigned int group_flag_page;
+    unsigned int group_flag_addr;
     GROUP_ADDR_INFO group_addr_info[MAX_GROUP_ADDR_NUM];
 }GROUP_INFO;
 
@@ -103,85 +100,100 @@ typedef struct
     int page_end_addr;
     int group_num;
     int group_addr_info_num;
-    int group_checksum;
     GROUP_INFO group_info[MAX_GROUP_NUM];
     int  (* readFunc) (u8 page,u16 addr, u8 *data);
 }OTP_MAP;
 
 
-int s5k4h7yx_read_data(u8 page,u16 addr,u8 *data);
+int hi556_read_data(u8 page,u16 addr,u8 *data);
+int s5k3h7yx_read_data(u8 page,u16 addr,u8 *data);
 
 
 
+OTP_MAP hi556_otp_map = {
+        .module_name = "HI556_LY",
+        .is_page_read = 0,
+        .group_num = 4,
+        .group_addr_info_num = 3,
+        .readFunc = hi556_read_data,
+        .group_info = {
+                    {"info",
+                        -1,0x0401,
+                          {
+                             {-1,-1,0x01,-1,0x402,-1,0x409,-1,0x412},
+                             {-1,-1,0x13,-1,0x413,-1,0x41A,-1,0x423},
+                             {-1,-1,0x37,-1,0x424,-1,0x42B,-1,0x434},
 
-OTP_MAP s5k4h7yx_hlt_otp_map = {
-        .module_name = "S5K4H7YX_HLT",
+                          },
+                    },
+                    {"awb",
+                        -1,0x0435,
+                        {
+                            {-1,-1,0x01,-1,0x436,-1,0x441,-1,0x453},
+                            {-1,-1,0x13,-1,0x454,-1,0x45F,-1,0x471},
+                            {-1,-1,0x37,-1,0x472,-1,0x47E,-1,0x48F},
+                         },
+                    },
+                    {"lightsource",
+                        -1,0x04c0,
+                        {
+                            {-1,-1,0x01,-1,0x4C1,-1,0x4C4,-1,0x4C5},
+                            {-1,-1,0x13,-1,0x4c6,-1,0x4c9,-1,0x4CA},
+                            {-1,-1,0x37,-1,0x4cb,-1,0x4Ce,-1,0x4CF},
+                        },
+                    },
+                    {"lsc",
+                        -1,0x04D0,
+                        {
+                            {-1,-1,0x01,-1,0x4D1, -1, 0xC1C, -1, 0xC1D},
+                            {-1,-1,0x13,-1,0xC1E, -1, 0x1369,-1, 0x136A},
+                            {-1,-1,0x37,-1,0x136B,-1, 0x1AB6,-1, 0x1AB7},
+                        },
+                    },
+            },
+};
+OTP_MAP s5k3h7yx_otp_map = {
+        .module_name = "S5K3H7YX_LY",
         .is_page_read = 1,
         .page_start_addr = 0x0A04,
         .page_end_addr = 0x0A43,
-        .group_num = 8,
+        .group_num = 4,
         .group_addr_info_num = 2,
-        .readFunc = s5k4h7yx_read_data,
-        .group_checksum = 2,
+        .readFunc = s5k3h7yx_read_data,
         .group_info = {
-                        {"info",
-                            -1,-1,
-                            {
-                                {21,0x0A10,1,21,0x0A04,21,0x0A0F,21,0x0A11},//12
-                                {23,0x0A10,1,23,0x0A04,23,0x0A0F,23,0x0A11},
-                            },
+                    {"info_awb",
+                        -1,-1,
+                          {
+                            {0x01,0x0A04,0x01,0x01,0x0A05,0x01,0x0A1A,0x01,0x0A1B},
+                            {0x02,0x0A04,0x01,0x02,0x0A05,0x02,0x0A1A,0x02,0x0A1B},
+                          },
+                    },
+                    {"lightsource",
+                        -1,-1,
+                        {
+                            {0x01,0x0A1C,0x01,0x01,0x0A1D,0x01,0x0A20,0x01,0x0A21},
+                            {0x02,0x0A1C,0x01,0x02,0x0A1D,0x02,0x0A20,0x02,0x0A21},
+
+                         },
+                    },
+                    {"af",
+                        -1,-1,
+                        {
+                             {0x01,0x0A22,0x01,0x01,0x0A23,0x01,0x0A26,0x01,0x0A27},
+                             {0x02,0x0A22,0x01,0x02,0x0A23,0x02,0x0A26,0x02,0x0A27},
+
                         },
-                        {"lsc",
-                            0,0x0A3D,
-                            {
-                                {-1,-1,1,1,0x0A04,6,0x0A2B,-1,-1},//360
-                                {-1,-1,3,6,0x0A2C,12,0x0A13,-1,-1},
-                            },
+                    },
+                    {"lsc",
+                        -1,-1,
+                        {
+                             {0x0C,0x0A18,0x01,0x04,0x0A04,0x08,0x0A0C,0x0C,0x0A19},
+                             {0x0C,0x0A16,0x01,0x08,0x0A0D,0x0C,0x0A15,0x0C,0x0A17},
                         },
-                        {"awb_5100",
-                            -1,-1,
-                            {
-                                 {21,0x0A26,1,21,0x0A12,21,0x0A21,21,0x0A27},//16
-                                 {23,0x0A26,1,23,0x0A12,23,0x0A21,23,0x0A27},
-                            },
-                        },
-                        {"awb_4000",
-                            -1,-1,
-                            {
-                                 {21,0x0A3E,1,21,0x0A2A,21,0x0A39,21,0x0A3F},//16
-                                 {23,0x0A3E,1,23,0x0A2A,23,0x0A39,23,0x0A3F},
-                            },
-                        },
-                        {"awb_3100",
-                            -1,-1,
-                            {
-                                 {22,0x0A18,1,22,0x0A04,22,0x0A13,22,0x0A19},//16
-                                 {24,0x0A18,1,24,0x0A04,24,0x0A13,24,0x0A19},
-                            },
-                        },
-                        {"lightsource_5100",
-                            -1,-1,
-                            {
-                                 {21,0x0A28,1,21,0x0A22,21,0x0A25,21,0x0A29},//4
-                                 {23,0x0A28,1,23,0x0A22,23,0x0A25,23,0x0A29},
-                            },
-                        },
-                        {"lightsource_4000",
-                            -1,-1,
-                            {
-                                 {21,0x0A40,1,21,0x0A3A,21,0x0A3D,21,0x0A41},//4
-                                 {23,0x0A40,1,23,0x0A3A,23,0x0A3D,23,0x0A41},
-                            },
-                        },
-                        {"lightsource_3100",
-                            -1,-1,
-                            {
-                                 {22,0x0A1A,1,22,0x0A14,22,0x0A17,22,0x0A1B},//4
-                                 {24,0x0A1A,1,24,0x0A14,24,0x0A17,24,0x0A1B},
-                            },
-                        },
+                    },
             },
 };
+
 
 static int read_reg16_data8(u16 addr, u8 *data)
 {
@@ -218,7 +230,7 @@ static int write_reg16_data8(u16 addr, u8 data)
     char puSendCmd[3] = {(char)(addr >> 8), (char)(addr & 0xff),
                         (char)(data & 0xff)};
     spin_lock(&g_spinLock);
-    g_pstI2CclientG->addr =
+        g_pstI2CclientG->addr =
             g_pstI2CclientG->addr & (I2C_MASK_FLAG | I2C_WR_FLAG);
     spin_unlock(&g_spinLock);
 
@@ -236,7 +248,7 @@ static int write_reg16_data8(u16 addr, u8 data)
     return 0;
 }
 
-/*static int write_reg16_data16(u16 addr, u16 data)
+static int write_reg16_data16(u16 addr, u16 data)
 {
     int  i4RetValue = 0;
     char puSendCmd[4] = {(char)(addr >> 8), (char)(addr & 0xff),
@@ -258,7 +270,7 @@ static int write_reg16_data8(u16 addr, u8 data)
     spin_unlock(&g_spinLock);
 
     return 0;
-}*/
+}
 
 static int parse_otp_map_data(OTP_MAP * map,char * data)
 {
@@ -266,29 +278,23 @@ static int parse_otp_map_data(OTP_MAP * map,char * data)
     int addr = 0,size = 0,page = 0, curr_addr = 0;
     int  ret = 0;
     char readByte = 0;
-    char readByte2 = 0;
-    int readByte_checksum = 0;
     int checksum = -1;
 
-    LOG_INFO("module: %s group_num:%d ......",map->module_name,  map->group_num);
+    LOG_INFO("module: %s  ......",map->module_name);
 
     for( i = 0 ; i < map->group_num; i++){
 
         checksum = 0;
         size = 0;
 
-        LOG_INFO("i:%d, groupinfo: %s,start_addr 0x%04x(%04d)",i, map->group_info[i].group_name,curr_addr,curr_addr);
+        LOG_INFO("groupinfo: %s,start_addr 0x%04x(%04d)",map->group_info[i].group_name,curr_addr,curr_addr);
 
-        if( map->group_info[i].group_flag_addr >= 0 ){
+        if((!map->is_page_read) && (map->group_info[i].group_flag_addr >= 0)){
 
             ret = map->readFunc(map->group_info[i].group_flag_page,map->group_info[i].group_flag_addr,&readByte);
             if(ret < 0){
                 LOG_ERR("   read flag error addr 0x%04x",map->group_info[i].group_flag_addr);
-                return -ERROR_I2C;
-            }
-            if((0 == map->group_info[i].group_flag_page) && (0x0A3D == map->group_info[i].group_flag_addr)){
-                LOG_INFO("special txd s5k4h7yx read lsc flag %d",readByte);
-                readByte = readByte & 0x03;
+                return ret;
             }
             for( j = 0; j < map->group_addr_info_num ; j++){
 
@@ -297,18 +303,18 @@ static int parse_otp_map_data(OTP_MAP * map,char * data)
                     break;
                 }
             }
-        }else if((map->is_page_read) && (map->group_info[i].group_flag_addr < 0)){
+        }else if(map->is_page_read){
 
-            for( j = 0; j < map->group_addr_info_num ; j++){
-                ret = map->readFunc(map->group_info[i].group_addr_info[j].group_flag_page,
+             for( j = 0; j < map->group_addr_info_num ; j++){
+                 ret = map->readFunc(map->group_info[i].group_addr_info[j].group_flag_page,
                                         map->group_info[i].group_addr_info[j].group_flag_addr,
                                             &readByte);
-                if(ret < 0){
+                 if(ret < 0){
                      LOG_ERR("   read flag error p:0x%x addr 0x%04x",
                                    map->group_info[i].group_addr_info[j].group_flag_page,
                                        map->group_info[i].group_addr_info[j].group_flag_addr);
                  }
-                if(readByte == map->group_info[i].group_addr_info[j].group_flag){
+                 if(readByte == map->group_info[i].group_addr_info[j].group_flag){
                      LOG_INFO("   found flag ,group index %d flag %d", j, readByte);
                      break;
                  }
@@ -317,8 +323,8 @@ static int parse_otp_map_data(OTP_MAP * map,char * data)
 
         if(j ==  map->group_addr_info_num){
 
-            LOG_ERR("   Can't found group flag 0x%x",readByte);
-            return -ERROR_READ_FLAG;
+            LOG_ERR("   Can't found group flag %d",readByte);
+            return -1;
         }
 
         if(!map->is_page_read){
@@ -421,46 +427,17 @@ static int parse_otp_map_data(OTP_MAP * map,char * data)
             }
         }/*map->is_page_read*/
 
-       if(map->group_checksum == 0){
-            checksum = (checksum % 0xFF )+1;
-            ret = map->readFunc(map->group_info[i].group_addr_info[j].group_checksum_page,
+        checksum = (checksum % 0xFF )+1;
+        ret = map->readFunc(map->group_info[i].group_addr_info[j].group_checksum_page,
                                 map->group_info[i].group_addr_info[j].group_checksum_addr,
                                     &readByte);
-            if(checksum == readByte){
-                LOG_INFO("groupinfo: %s, checksum OK c(%04d) r(%04d)",map->group_info[i].group_name,checksum,readByte);
-            }else{
-                LOG_ERR("groupinfo: %s, checksum ERROR ret=%d, checksum=%04d readByte=%04d",map->group_info[i].group_name,ret,checksum,readByte);
-                ret = -ERROR_CHECKSUM;
-                }
-       }else if(map->group_checksum == 2){
-            checksum = (checksum % 0xFF );
-            ret = map->readFunc(map->group_info[i].group_addr_info[j].group_checksum_page,map->group_info[i].group_addr_info[j].group_checksum_addr,&readByte);
-            if (0 > map->group_info[i].group_addr_info[j].group_checksum_addr){
-                LOG_INFO("333 group_checksum_addr < 0, No need checksum !");
-            } else if(checksum == readByte){
-                LOG_INFO("333 groupinfo: %s, checksum OK c(%04d) r(%04d)",map->group_info[i].group_name,checksum,readByte);
-            }else{
-                LOG_ERR("333 groupinfo: %s, checksum ERROR ret=%d, checksum=%04d readByte=%04d",map->group_info[i].group_name,ret,checksum,readByte);
-                ret = -ERROR_CHECKSUM;
-                }
-       }else if(map->group_checksum == 1){
-            checksum = checksum % 0xFFFF;
-            readByte_checksum = 0;
-            ret = map->readFunc(map->group_info[i].group_addr_info[j].group_checksum_page,
-                                map->group_info[i].group_addr_info[j].group_checksum_addr,
-                                    &readByte2);
-            ret = map->readFunc(map->group_info[i].group_addr_info[j].group_checksum_page,
-                                map->group_info[i].group_addr_info[j].group_checksum_addr+1,
-                                    &readByte);
-            readByte_checksum = (readByte2 << 8) | readByte;
+        if(checksum == readByte){
 
-            if(checksum == readByte_checksum){
-                LOG_INFO("groupinfo: %s, checksum OK c(%04d) r(%04d)",map->group_info[i].group_name,checksum,readByte_checksum);
-            }else{
-                LOG_ERR("groupinfo: %s, checksum ERROR ret=%d, checksum=%04d readByte=%04d",
-                                map->group_info[i].group_name,ret,checksum,readByte_checksum);
-                ret = -ERROR_CHECKSUM;
-                }
+            LOG_INFO("groupinfo: %s, checksum OK c(%04d) r(%04d)",map->group_info[i].group_name,checksum,readByte);
+
+        }else{
+            LOG_ERR("groupinfo: %s, checksum ERROR ret=%d, checksum=%04d readByte=%04d",
+                                map->group_info[i].group_name,ret,checksum,readByte);
 
         }
         LOG_INFO("groupinfo: %s,end_addr 0x%04x(%04d) size 0x%04x(%04d)",
@@ -472,11 +449,94 @@ static int parse_otp_map_data(OTP_MAP * map,char * data)
 }
 
 
+int hi556_read_data(u8 page,u16 addr,u8 *data)
+{
+    static u16 last_addr = 0;
+    if( addr != last_addr+ 1){
+        write_reg16_data8(0x010a,(addr >>8) & 0xff);
+        write_reg16_data8(0x010b, addr & 0xff);
+        write_reg16_data8(0x0102,0x01);
+    }
+
+    last_addr = addr;
+    return read_reg16_data8(0x0108,data);
+}
+
+void hi556_otp_read_enable()
+{
+    write_reg16_data16(0x0e00,0x0102);
+    write_reg16_data16(0x0e02,0x0102);
+    write_reg16_data16(0x0e0c,0x0100);
+    write_reg16_data16(0x27fe,0xe000);
+    write_reg16_data16(0x0b0e,0x8600);
+    write_reg16_data16(0x0d04,0x0100);
+    write_reg16_data16(0x0d02,0x0707);
+    write_reg16_data16(0x0f30,0x6e25);
+
+    write_reg16_data16(0x0f32,0x7067);
+    write_reg16_data16(0x0f02,0x0106);
+    write_reg16_data16(0x0a04,0x0000);
+    write_reg16_data16(0x0e0a,0x0001);
+    write_reg16_data16(0x004a,0x0100);
+    write_reg16_data16(0x003e,0x1000);
+    write_reg16_data16(0x0a00,0x0100);
+
+    write_reg16_data8(0x0a02,0x01);
+    write_reg16_data8(0x0a00,0x00);
+    msleep(10);
+    write_reg16_data8(0x0f02,0x00);
+    write_reg16_data8(0x011a,0x01);
+    write_reg16_data8(0x011b,0x09);
+    write_reg16_data8(0x0d04,0x01);
+    write_reg16_data8(0x0d02,0x07);
+    write_reg16_data8(0x003e,0x10);
+    write_reg16_data8(0x0a00,0x01);
+}
+
+void hi556_otp_read_disable()
+{
+    write_reg16_data8(0x0a00,0x00);
+    msleep(10);
+    write_reg16_data8(0x004a,0x00);
+    write_reg16_data8(0x0d04,0x00);
+    write_reg16_data8(0x003e,0x00);
+    write_reg16_data8(0x004a,0x01);
+    write_reg16_data8(0x0a00,0x01);
+}
 
 
 
+unsigned int Hi556_read_region(struct i2c_client *client, unsigned int addr,unsigned char *data,unsigned int size)
+{
+    int ret = 0;
+    if(g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][READ_FLAG_ADDR] ){
+        LOG_INFO("from mem addr 0x%x,size %d",addr,size);
+        memcpy((void *)data,&g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][addr],size);
+        return size;
+    }
+    if(client != NULL){
 
-int s5k4h7yx_read_data(u8 page,u16 addr,u8 *data)
+        g_pstI2CclientG = client;
+
+    }else if(g_pstI2Cclients[CAM_CAL_SENSOR_IDX_SUB] != NULL){
+
+        g_pstI2CclientG = g_pstI2Cclients[CAM_CAL_SENSOR_IDX_SUB];
+        g_pstI2CclientG->addr = 0x40 >> 1;
+    }
+
+
+    hi556_otp_read_enable();
+    ret = parse_otp_map_data(&hi556_otp_map,&g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][0]);
+    if(!ret){
+        g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][CHECKSUM_FLAG_ADDR] = OTP_DATA_GOOD_FLAG;
+    }
+
+    hi556_otp_read_disable();
+    g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][READ_FLAG_ADDR] = 1;
+    return ret;
+}
+
+int s5k3h7yx_read_data(u8 page,u16 addr,u8 *data)
 {
     u8 get_byte = 0;
     int ret = 0;
@@ -494,35 +554,30 @@ int s5k4h7yx_read_data(u8 page,u16 addr,u8 *data)
     return ret;
 }
 
-unsigned int s5k4h7yx_hlt_read_region(struct i2c_client *client, unsigned int addr,unsigned char *data,unsigned int size)
+unsigned int s5k3h7yx_read_region(struct i2c_client *client, unsigned int addr,unsigned char *data,unsigned int size)
 {
     int ret = 0;
-    LOG_DEBUG("s5k4h7yx_hlt_read_region addr:0x%x, size:%d", addr, size);
-    if(NULL != data && g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][READ_FLAG_ADDR] ){
+    if(g_otp_buf[CAM_CAL_SENSOR_IDX_MAIN][READ_FLAG_ADDR] ){
         LOG_INFO("from mem addr 0x%x,size %d",addr,size);
-        memcpy((void *)data, &g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][addr],size);
+        memcpy((void *)data,&g_otp_buf[CAM_CAL_SENSOR_IDX_MAIN][addr],size);
         return size;
     }
     if(client != NULL){
 
         g_pstI2CclientG = client;
 
-    }else if(g_pstI2Cclients[CAM_CAL_SENSOR_IDX_SUB] != NULL){
+    }else if(g_pstI2Cclients[CAM_CAL_SENSOR_IDX_MAIN] != NULL){
 
-        g_pstI2CclientG = g_pstI2Cclients[CAM_CAL_SENSOR_IDX_SUB];
+        g_pstI2CclientG = g_pstI2Cclients[CAM_CAL_SENSOR_IDX_MAIN];
 
         g_pstI2CclientG->addr = 0x20 >> 1;
-    } else {
-        LOG_ERR("s5k4h7yx_hlt_read_region no client.");
-        return -1;
     }
-    ret = parse_otp_map_data(&s5k4h7yx_hlt_otp_map, &g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][0]);
+    ret = parse_otp_map_data(&s5k3h7yx_otp_map,&g_otp_buf[CAM_CAL_SENSOR_IDX_MAIN][0]);
     if(!ret){
-        g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][CHECKSUM_FLAG_ADDR] = OTP_DATA_GOOD_FLAG;
-        g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][READ_FLAG_ADDR] = 1;
+          LOG_INFO("Enable LSC InSensor");
+          write_reg16_data8(0x0B00,1);
+          g_otp_buf[CAM_CAL_SENSOR_IDX_MAIN][CHECKSUM_FLAG_ADDR] = OTP_DATA_GOOD_FLAG;
     }
-    if(NULL != data){
-        memcpy((void *)data, &g_otp_buf[CAM_CAL_SENSOR_IDX_SUB][addr], size);
-    }
+    g_otp_buf[CAM_CAL_SENSOR_IDX_MAIN][READ_FLAG_ADDR] = 1;
     return ret;
 }

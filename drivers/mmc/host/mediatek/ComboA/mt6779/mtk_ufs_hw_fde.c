@@ -242,6 +242,8 @@ static void msdc_crypto_switch_config(struct msdc_host *host,
 	/* 1. set ctr */
 	aes_sw_reg = MSDC_READ32(EMMC52_AES_EN);
 
+	hw_hie_iv_num = hie_get_iv(req);
+
 	if (aes_sw_reg & EMMC52_AES_SWITCH_VALID0) {
 		MSDC_GET_FIELD(EMMC52_AES_CFG_GP0,
 			EMMC52_AES_MODE_0, aes_mode_current);
@@ -258,20 +260,28 @@ static void msdc_crypto_switch_config(struct msdc_host *host,
 	case MSDC_CRYPTO_XTS_AES:
 	case MSDC_CRYPTO_AES_CBC_ESSIV:
 	case MSDC_CRYPTO_BITLOCKER:
-	case MSDC_CRYPTO_AES_CTR:
-		hw_hie_iv_num = hie_get_iv(req);
+	{
 		if (hw_hie_iv_num) {
-			ctr[0] = lower_32_bits(hw_hie_iv_num);
-#ifndef CONFIG_MTK_EMMC_HW_CQ
-			ctr[1] = upper_32_bits(hw_hie_iv_num);
-#endif
+			ctr[0] = hw_hie_iv_num & 0xffffffff;
+			ctr[1] = (hw_hie_iv_num >> 32) & 0xffffffff;
 		} else {
 			ctr[0] = block_address;
 		}
 		break;
+	}
 	case MSDC_CRYPTO_AES_ECB:
 	case MSDC_CRYPTO_AES_CBC:
 		break;
+	case MSDC_CRYPTO_AES_CTR:
+	{
+		if (hw_hie_iv_num) {
+			ctr[0] = hw_hie_iv_num & 0xffffffff;
+			ctr[1] = (hw_hie_iv_num >> 32) & 0xffffffff;
+		} else {
+			ctr[0] = block_address;
+		}
+		break;
+	}
 	case MSDC_CRYPTO_AES_CBC_MAC:
 		break;
 	default:

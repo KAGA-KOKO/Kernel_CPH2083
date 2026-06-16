@@ -69,8 +69,12 @@
 	cd_level = /bits/ 8 <MSDC_CD_HIGH>;
 	//#endif /*VENDOR_EDIT*/
 	cd-gpios = <&pio 8 0>;
+#ifndef CONFIG_FPGA_EARLY_PORTING
+	status = "okay";
+#else
 	status = "disable";
-	//vmmc-supply = <&mt_pmic_vmch_ldo_reg>;
+#endif
+	vmmc-supply = <&mt_pmic_vmch_ldo_reg>;
 	vqmmc-supply = <&mt_pmic_vmc_ldo_reg>;
 	clocks = <&infracfg_ao INFRACFG_AO_MSDC1_SCK_CG>,
 		<&infracfg_ao INFRACFG_AO_MSDC1_CG>;

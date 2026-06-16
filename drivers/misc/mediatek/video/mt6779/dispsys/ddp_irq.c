@@ -35,13 +35,6 @@
 #include "primary_display.h"
 #include "ddp_misc.h"
 #include "disp_recovery.h"
-#ifdef VENDOR_EDIT
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-* add for fingerprint notify frigger
-*/
-#include <soc/oppo/oppo_project.h>
-#endif
 
 /* IRQ log print kthread */
 static struct task_struct *disp_irq_log_task;
@@ -365,15 +358,6 @@ irqreturn_t disp_irq_handler(int irq, void *dev_id)
 			DDPIRQ("IRQ: RDMA%d reg update done!\n", index);
 
 		if (reg_val & (1 << 2)) {
-			#ifdef VENDOR_EDIT
-			/*
-			* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-			* add for fingerprint notify frigger
-			*/
-			if (is_project(OPPO_19011) || is_project(OPPO_19301)) {
-				fpd_notify_check_trig();
-			}
-			#endif
 			mmprofile_log_ex(
 				ddp_mmp_get_events()->SCREEN_UPDATE[index],
 				MMPROFILE_FLAG_END, reg_val,

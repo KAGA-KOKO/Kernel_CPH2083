@@ -55,11 +55,6 @@
 #include <mt-plat/aee.h>
 #include <disp_assert_layer.h>
 #endif
-#ifdef VENDOR_EDIT
-/*yixue.ge@PSW.BSP.Kernel.Driver 20170808 modify for get some data about performance */
-#include <linux/proc_fs.h>
-#include <linux/module.h>
-#endif /*VENDOR_EDIT*/
 
 #include "internal.h"
 
@@ -85,11 +80,6 @@ static int lowmem_minfree[6] = {
 };
 
 static int lowmem_minfree_size = 4;
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM 2018-01-15 modify for lowmemkill count */
-static bool lmk_cnt_enable = true;
-static unsigned long tatal_lowmem_kill_count = 0;
-#endif /*VENDOR_EDIT*/
 
 static unsigned long lowmem_deathpending_timeout;
 
@@ -98,13 +88,6 @@ static unsigned long lowmem_deathpending_timeout;
 		if (lowmem_debug_level >= (level))	\
 			pr_info(x);			\
 	} while (0)
-
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM 2018-03-12 modify for using aggressive for lowmem*/
-static unsigned int almk_swap_ratio1 = 3;
-static unsigned int almk_totalram_ratio = 6;
-static bool almk_enable = true;
-#endif /*VENDOR_EDIT*/
 
 static unsigned long lowmem_count(struct shrinker *s,
 				  struct shrink_control *sc)
@@ -196,10 +179,6 @@ static int lowmem_check_status_by_zone(enum zone_type high_zoneidx,
 				new_other_file +=
 				zone_page_state(z, NR_ZONE_ACTIVE_FILE) +
 				zone_page_state(z, NR_ZONE_INACTIVE_FILE);
-#ifdef VENDOR_EDIT
-				/* Wen.Luo@BSP.Kernel.Stability 2019/1/07 add for bug-id:1757111, alloc order 0 fail,but oppo2 has 25M memory */
-				new_other_free -= zone_page_state(z, NR_FREE_OPPO2_PAGES);
-#endif /* VENDOR_EDIT */
 
 				/* Compute memory pressure level */
 				memory_pressure +=
@@ -252,12 +231,7 @@ static int lowmem_check_status_by_zone(enum zone_type high_zoneidx,
 }
 
 /* Aggressive Memory Reclaim(AMR) */
-#ifdef VENDOR_EDIT
-/*tianwen@PSW.BSP.Memory, 2019-04-26, check free and file pages before almk*/
-static short lowmem_amr_check(int *to_be_aggressive, int other_file, int other_free)
-#else
 static short lowmem_amr_check(int *to_be_aggressive, int other_file)
-#endif
 {
 #ifdef CONFIG_SWAP
 #ifdef CONFIG_64BIT
@@ -270,9 +244,6 @@ static short lowmem_amr_check(int *to_be_aggressive, int other_file)
 #ifndef CONFIG_MTK_GMO_RAM_OPTIMIZE
 	int i;
 #endif
-
-#ifndef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM, 2018/03/01, mask aggressive lmk*/
 	swap_pages = atomic_long_read(&nr_swap_pages);
 	/* More than 1/2 swap usage */
 	if (swap_pages * 2 < total_swap_pages)
@@ -280,15 +251,6 @@ static short lowmem_amr_check(int *to_be_aggressive, int other_file)
 	/* More than 3/4 swap usage */
 	if (swap_pages * 4 < total_swap_pages)
 		(*to_be_aggressive)++;
-#endif /*VENDOR_EDIT*/
-
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM, 2018/03/12, use aggressive for lowmem*/
-	swap_pages = atomic_long_read(&nr_swap_pages);
-
-	if (almk_enable && (swap_pages * almk_swap_ratio1 < total_swap_pages))
-		(*to_be_aggressive)++;
-#endif /*VENDOR_EDIT*/
 
 #ifndef CONFIG_MTK_GMO_RAM_OPTIMIZE
 	/* Try to enable AMR when we have enough memory */
@@ -305,26 +267,12 @@ static short lowmem_amr_check(int *to_be_aggressive, int other_file)
 		 * try to kill 906       when other_file >= lowmem_minfree[5]
 		 * try to kill 300 ~ 906 when other_file  < lowmem_minfree[5]
 		 */
-
-#ifdef VENDOR_EDIT
-/*tianwen@PSW.BSP.Memory, 2019-04-26, check free and file pages before almk*/
-	 	if (*to_be_aggressive > 0) {
-	 		if ((other_free + other_file) < totalram_pages/almk_totalram_ratio)
-	 		{
-				if (other_file < lowmem_minfree[i])
-					i -= *to_be_aggressive;
-				if (likely(i >= 0))
-					amr_adj = lowmem_adj[i];
-	 		}
-	 	}
-#else
 		if (*to_be_aggressive > 0) {
 			if (other_file < lowmem_minfree[i])
 				i -= *to_be_aggressive;
 			if (likely(i >= 0))
 				amr_adj = lowmem_adj[i];
 		}
-#endif
 	}
 #endif
 
@@ -343,12 +291,7 @@ static int lowmem_check_status_by_zone(enum zone_type high_zoneidx,
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
-/*tianwen@PSW.BSP.Memory, 2019-04-26, check free and file pages before almk*/
-#define lowmem_amr_check(a, b, c) (short)(OOM_SCORE_ADJ_MAX + 1)
-#else
 #define lowmem_amr_check(a, b) (short)(OOM_SCORE_ADJ_MAX + 1)
-#endif
 #endif
 
 static void __lowmem_trigger_warning(struct task_struct *selected)
@@ -411,51 +354,7 @@ static void dump_memory_status(short selected_oom_score_adj)
 	show_free_areas(0);
 	oom_dump_extra_info();
 }
-#ifdef VENDOR_EDIT
-/*yixue.ge@PSW.BSP.Kernel.Driver 20170808 modify for get some data about performance */
-static ssize_t lowmem_kill_count_proc_read(struct file *file, char __user *buf,
-		size_t count,loff_t *off)
-{
-	char page[256] = {0};
-	int len = 0;
 
-	if (!lmk_cnt_enable)
-		return 0;
-
-	len = sprintf(&page[len],"total_lowmem_kill_count:%lu\n",tatal_lowmem_kill_count);
-
-	if(len > *off)
-	   len -= *off;
-	else
-	   len = 0;
-
-	if(copy_to_user(buf,page,(len < count ? len : count))){
-	   return -EFAULT;
-	}
-	*off += len < count ? len : count;
-	return (len < count ? len : count);
-
-}
-
-struct file_operations lowmem_kill_count_proc_fops = {
-	.read = lowmem_kill_count_proc_read,
-};
-
-static int __init setup_lowmem_killinfo(void)
-{
-
-	proc_create("lowmemkillcounts", S_IRUGO, NULL, &lowmem_kill_count_proc_fops);
-	return 0;
-}
-module_init(setup_lowmem_killinfo);
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-/*Wen.Luo@BSP.Kernel.Stability 2019/03/26 , almk_swap_ratio1 for difference TOTALRAM */
-#define SZ_1G_PAGES (SZ_1G >> PAGE_SHIFT)
-#define TOTALRAM_4GB (4*SZ_1G_PAGES)
-#define TOTALRAM_6GB (6*SZ_1G_PAGES)
-#endif
 static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
@@ -482,14 +381,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		lowmem_print(4, "lowmem_shrink lock failed\n");
 		return SHRINK_STOP;
 	}
-#ifdef VENDOR_EDIT
-/* Wen.Luo@BSP.Kernel.Stability 2019/1/07 add for bug-id:1757111, alloc order 0 fail,but oppo2 has 25M memory */
-	if (IS_ENABLED(CONFIG_CMA)) {
-		if (!(sc->gfp_mask & __GFP_MOVABLE)) {
-			other_free -= global_page_state(NR_FREE_OPPO2_PAGES);
-		}
-	}
-#endif /* VENDOR_EDIT */
+
 	/*
 	 * Check whether it is caused by low memory in lower zone(s)!
 	 * This will help solve over-reclaiming situation while total number
@@ -501,12 +393,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 
 	other_min_score_adj =
 		min(other_min_score_adj,
-#ifdef VENDOR_EDIT
-/*tianwen@PSW.BSP.Memory, 2019-04-26, check free and file pages before almk*/
-		    lowmem_amr_check(&to_be_aggressive, other_file, other_free));
-#else
-			lowmem_amr_check(&to_be_aggressive, other_file));
-#endif
+		    lowmem_amr_check(&to_be_aggressive, other_file));
 
 	/* Let other_free be positive or zero */
 	if (other_free < 0)
@@ -609,11 +496,6 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			task_set_lmk_waiting(selected);
 		task_unlock(selected);
 		trace_lowmemory_kill(selected, cache_size, cache_limit, free);
-#ifdef VENDOR_EDIT
-/*yixue.ge@PSW.BSP.Kernel.Driver 20170808 modify for get some data about performance */
-		if (lmk_cnt_enable)
-			tatal_lowmem_kill_count++;
-#endif /* VENDOR_EDIT */
 		lowmem_print(1, "Killing '%s' (%d) (tgid %d), adj %hd,\n"
 				 "   to free %ldkB on behalf of '%s' (%d) because\n"
 				 "   cache %ldkB is below limit %ldkB for oom_score_adj %hd (%hd)\n"
@@ -625,15 +507,6 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			     cache_size, cache_limit,
 			     min_score_adj, other_min_score_adj,
 			     free, to_be_aggressive);
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM. 2018/01/15, modify for show more meminfo*/
-		show_mem(SHOW_MEM_FILTER_NODES);
-#ifdef CONFIG_OPPO_SPECIAL_BUILD
-		if(selected_oom_score_adj < 300 ) {
-			oom_dump_extra_info();
-		}
-#endif
-#endif /*VENDOR_EDIT*/
 		lowmem_deathpending_timeout = jiffies + HZ;
 		lowmem_trigger_warning(selected, selected_oom_score_adj);
 
@@ -678,13 +551,6 @@ static int __init lowmem_init(void)
 
 	register_shrinker(&lowmem_shrinker);
 
-#ifdef VENDOR_EDIT
-/*Wen.Luo@BSP.Kernel.Stability 2019/03/26 , almk_swap_ratio1 for difference TOTALRAM */
-	if (totalram_pages <= TOTALRAM_4GB) {
-		almk_swap_ratio1 = 3;
-	}else
-		almk_swap_ratio1 = 4;
-#endif
 #ifdef MTK_LMK_USER_EVENT
 	/* initialize work for uevent */
 	INIT_WORK(&mtklmk_work, mtklmk_async_uevent);
@@ -796,14 +662,3 @@ module_param_named(debug_level, lowmem_debug_level, uint, 0644);
 module_param_named(debug_adj, lowmem_warn_adj, short, 0644);
 module_param_named(no_debug_adj, lowmem_no_warn_adj, short, 0644);
 
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM 2018-03-12 modify for using aggressive lmk swap usage ratio*/
-module_param_named(almk_swap_ratio1, almk_swap_ratio1, uint, S_IRUGO | S_IWUSR);
-module_param_named(almk_totalram_ratio, almk_totalram_ratio, uint, S_IRUGO | S_IWUSR);
-module_param_named(almk_enable, almk_enable, bool, S_IRUGO | S_IWUSR);
-#endif /*VENDOR_EDIT*/
-
-#ifdef VENDOR_EDIT
-/*huacai.zhou@PSW.BSP.Kernel.MM 2018-01-15 modify for lowmemkill count */
-module_param_named(lmk_cnt_enable, lmk_cnt_enable, bool, S_IRUGO | S_IWUSR);
-#endif /*VENDOR_EDIT*/

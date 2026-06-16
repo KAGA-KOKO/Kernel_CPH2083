@@ -43,6 +43,17 @@
 #define COMPAT_TPD_GET_FILTER_PARA _IOWR(TOUCH_IOC_MAGIC, \
 						2, struct tpd_filter_t)
 #endif
+#ifdef ODM_HQ_EDIT
+/*zhangyin@ODM_HQ.BSP.TP.Function, 2018/12/12 add for oppo devinfo*
+ *zhangyin@ODM_HQ.BSP.TP.Function, 2019/01/30 add for oppo headset state*/
+struct tp_devinfo oppo_tp_data = {
+	.tp_dev_name = "unknown",
+	.manufacture = "unknown",
+	.fw_name = "unknown",
+	.version = 0,
+};
+u32 g_oppo_headset_state_flag = 0;
+#endif/*ODM_HQ_EDIT*/
 struct tpd_filter_t tpd_filter;
 struct tpd_dts_info tpd_dts_data;
 struct pinctrl *pinctrl1;
@@ -547,8 +558,6 @@ static int tpd_probe(struct platform_device *pdev)
 
 	TPD_DMESG("enter %s, %d\n", __func__, __LINE__);
 
-	TPD_DMESG("[TP] saved_command_line = %s \n", saved_command_line);
-
 	if (misc_register(&tpd_misc_device))
 		pr_info("mtk_tpd: tpd_misc_device register failed\n");
 	tpd_get_gpio_info(pdev);
@@ -640,19 +649,17 @@ static int tpd_probe(struct platform_device *pdev)
 	for (i = 1; i < TP_DRV_MAX_COUNT; i++) {
 		/* add tpd driver into list */
 		if (tpd_driver_list[i].tpd_device_name != NULL) {
-			#ifdef ODM_WT_EDIT
-			//zhenzhenwu@ODM.BSP.TP  2020/02/03 modify for bring up himax TP
-			if(strstr(saved_command_line, "hx83102d_hdp_dsi_vdo_hlt"))
-			#endif
-			{
-			    tpd_driver_list[i].tpd_local_init();
-			    /* msleep(1); */
-			    if (tpd_load_status == 1) {
-				    TPD_DMESG("tpd_probe, tpd_driver_name=%s\n",
+			tpd_driver_list[i].tpd_local_init();
+			/* msleep(1); */
+			if (tpd_load_status == 1) {
+				TPD_DMESG("tpd_probe, tpd_driver_name=%s\n",
 					  tpd_driver_list[i].tpd_device_name);
-				    g_tpd_drv = &tpd_driver_list[i];
-				    break;
-			    }
+				g_tpd_drv = &tpd_driver_list[i];
+				#ifdef ODM_HQ_EDIT
+				/*zhangyin@ODM_HQ.BSP.TP.Function, 2018/12/07 add for oppo devinfo*/
+				oppo_tp_data.tp_dev_name = tpd_driver_list[i].tpd_device_name;
+				#endif/*ODM_HQ_EDIT*/
+				break;
 			}
 		}
 	}

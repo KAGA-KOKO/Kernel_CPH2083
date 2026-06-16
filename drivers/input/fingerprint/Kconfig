@@ -41,19 +41,5 @@ config GOODIX_SENSOR_TYPE
 	  Must input sensor type, or default is GF316M GF318M GF3118M GF518M GF5118M GF516M GF816M
 	  GF3208 GF3206 GF3266 GF3288 GF5206 GF5216 GF5208
 endif
-config SILEAD_FP
-	tristate "Silead Fingerprint driver support"
-	help
-	  This supports Silead Fingerprint drivers.
-config SILEAD_FP_SPI
-	tristate "Silead spi Fingerprint driver support"
-	select SILEAD_FP
-	help
-	  This supports Silead spi Fingerprint drivers.
-config EGIS_FINGERPRINT
-        bool "EGIS Fingerprint"
-        default n
-        help
-          This supports egis Fingerprint drivers.
 endif
 endmenu

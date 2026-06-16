@@ -43,19 +43,12 @@ static const struct mt6360_ldo_platform_data def_platform_data = {
 	.ldo1_ctrls = { 0x00, 0x80, 0x01, 0x2c, 0x44 },
 	.ldo2_ctrls = { 0x00, 0x80, 0x01, 0x2c, 0x44 },
 	.ldo3_ctrls = { 0x00, 0x80, 0x01, 0x6c, 0x84 },
-#ifdef OPPO_P90M_SDCARD_FLAG    
-	.ldo5_ctrls = { 0x00, 0x80, 0x01, 0x2c, 0x84 },
-#else
 	.ldo5_ctrls = { 0x00, 0x80, 0x81, 0x2c, 0x84 },
-#endif
 };
 
-#ifdef VENDOR_EDIT
-/*Dongnan.Wu@BSP.Fingerprint.Basic 2019/03/04, modify for fingerprint power sequence */
 static const u8 ldo_ctrl_mask[MT6360_LDO_CTRLS_NUM] = {
-	0xff, 0xff, 0xff, 0xff, 0xff
+	0xff, 0x8f, 0xff, 0xff, 0xff
 };
-#endif /* VENDOR_EDIT */
 
 static int mt6360_ldo_read_device(void *client, u32 addr, int len, void *dst)
 {
@@ -164,7 +157,6 @@ static int mt6360_ldo_reg_update_bits(struct mt6360_ldo_info *mli,
 	mt_dbg(mli->dev,
 		"%s reg[%02x], mask[%02x], data[%02x]\n",
 		__func__, addr, mask, data);
-
 	mutex_lock(&mli->io_lock);
 	ret = rt_regmap_update_bits(mli->regmap, &rrd, addr, mask, data);
 	mutex_unlock(&mli->io_lock);
@@ -358,13 +350,6 @@ static int mt6360_ldo_disable(struct regulator_dev *rdev)
 	int id = rdev_get_id(rdev), ret;
 
 	mt_dbg(&rdev->dev, "%s, id = %d\n", __func__, id);
-#ifdef VENDOR_EDIT
-/*Dongnan.Wu@BSP.Fingerprint.Basic 2019/03/04, modify for fingerprint power sequence */
-	if (!rdev->use_count) {
-		dev_dbg(&rdev->dev,"%s should not be disable(use_count = %d)\n", desc->name, rdev->use_count);
-		return -1;
-	}
-#endif /* VENDOR_EDIT */
 	ret = mt6360_ldo_reg_update_bits(mli, desc->enable_reg,
 					 desc->enable_mask, 0);
 	if (ret < 0) {
@@ -706,13 +691,8 @@ static int mt6360_ldo_parse_dt_data(struct device *dev,
 				  pdata->ldo2_ctrls, MT6360_LDO_CTRLS_NUM);
 	of_property_read_u8_array(np, "ldo3_ctrls",
 				  pdata->ldo3_ctrls, MT6360_LDO_CTRLS_NUM);
-#ifdef OPPO_P90M_SDCARD_FLAG	
-    of_property_read_u8_array(np, "ldo5_ctrls_p90m",
+	of_property_read_u8_array(np, "ldo5_ctrls",
 				  pdata->ldo5_ctrls, MT6360_LDO_CTRLS_NUM);
-#else
-    of_property_read_u8_array(np, "ldo5_ctrls",
-				  pdata->ldo5_ctrls, MT6360_LDO_CTRLS_NUM);
-#endif
 bypass_irq_res:
 	dev_dbg(dev, "%s --\n", __func__);
 	return 0;

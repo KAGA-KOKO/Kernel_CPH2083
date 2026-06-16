@@ -31,14 +31,6 @@
 #include "primary_display.h"
 #include "mt-plat/mtk_chip.h"
 
-#ifdef VENDOR_EDIT
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-* add for dimming layer HBM mode
-*/
-#include <soc/oppo/oppo_project.h>
-#endif /*VENDOR_EDIT*/
-
 /* use this magic_code to detect memory corruption */
 #define MAGIC_CODE 0xDEADAAA0U
 
@@ -161,8 +153,6 @@ static struct {
 	{DISP_OPT_OVL_WCG, 0, "DISP_OPT_OVL_WCG"},
 	{DISP_OPT_OVL_SBCH, 0, "DISP_OPT_OVL_SBCH"},
 	{DISP_OPT_MMPATH, 0, "DISP_OPT_MMPATH"},
-	{DISP_OPT_LCM_HBM, 0, "DISP_OPT_LCM_HBM"},
-	{DISP_OPT_TUI_MODE, 0, "DISP_OPT_TUI_MODE"},
 };
 
 const char *disp_helper_option_spy(enum DISP_HELPER_OPT option)
@@ -449,21 +439,6 @@ void disp_helper_option_init(void)
 	/* OVL SBCH */
 	disp_helper_set_option(DISP_OPT_OVL_SBCH, 1);
 	disp_helper_set_option(DISP_OPT_MMPATH, 0);
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-	* add for dimming layer HBM mode
-	*/
-	disp_helper_set_option(DISP_OPT_LCM_HBM, 1);
-	#else
-	if (is_project(OPPO_18073) || is_project(OPPO_18593)
-		|| is_project(OPPO_19011) || is_project(OPPO_19301)) {
-		disp_helper_set_option(DISP_OPT_LCM_HBM, 1);
-	} else {
-		disp_helper_set_option(DISP_OPT_LCM_HBM, 0);
-	}
-	#endif /*VENDOR_EDIT*/
-	disp_helper_set_option(DISP_OPT_TUI_MODE, 0);
 }
 
 int disp_helper_get_option_list(char *stringbuf, int buf_len)

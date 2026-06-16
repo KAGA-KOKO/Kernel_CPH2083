@@ -18,7 +18,8 @@
 #define CHG_DATA_FILE		"/data/oppo/psw/bad_bat_chg_data.ini"
 #define INVALID_DATA		-9999
 
-typedef enum {
+typedef enum
+{
 	SHORT_C_BATT_STATUS__NORMAL = 0,
 	SHORT_C_BATT_STATUS__CV_ERR_CODE1,
 	SHORT_C_BATT_STATUS__FULL_ERR_CODE2,
@@ -27,27 +28,31 @@ typedef enum {
 	SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5,
 }OPPO_CHG_SHORT_BATTERY_STATUS;
 
-typedef enum {
+typedef enum
+{
 	SHORT_C_BATT_SW_STATUS__OFF = 0,
 	SHORT_C_BATT_SW_STATUS__ON,
 }OPPO_CHG_SHORT_BATTERY_SWITCH_STATUS;
 
-typedef enum {
+typedef enum
+{
 	SHORT_C_BATT_FEATURE_SW_STATUS__OFF = 0,
 	SHORT_C_BATT_FEATURE_SW_STATUS__ON,
 }OPPO_CHG_SHORT_BATTERY_FEATURE_SW_STATUS;
 
-typedef enum {
+typedef enum
+{
 	SHORT_C_BATT_FEATURE_HW_STATUS__OFF = 0,
 	SHORT_C_BATT_FEATURE_HW_STATUS__ON,
 }OPPO_CHG_SHORT_BATTERY_FEATURE_HW_STATUS;
 
-typedef enum {
+typedef enum
+{
 	SHORT_C_BATT_FEATURE_IC_STATUS__OFF = 0,
 	SHORT_C_BATT_FEATURE_IC_STATUS__ON,
 }OPPO_CHG_SHORT_BATTERY_FEATURE_IC_STATUS;
 
-struct short_c_batt_item {
+struct short_c_batt_item{
 	char *name;
 	int value;
 };

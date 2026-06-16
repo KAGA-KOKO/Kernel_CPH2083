@@ -68,7 +68,6 @@ static int fops_vcodec_open(struct file *file)
 	INIT_LIST_HEAD(&ctx->list);
 	ctx->dev = dev;
 	init_waitqueue_head(&ctx->queue);
-	mutex_init(&ctx->worker_lock);
 
 	ctx->type = MTK_INST_ENCODER;
 	ret = mtk_vcodec_enc_ctrls_setup(ctx);
@@ -145,11 +144,8 @@ static int fops_vcodec_release(struct file *file)
 	mtk_v4l2_debug(0, "[%d] encoder", ctx->id);
 	mutex_lock(&dev->dev_mutex);
 
-	mtk_release_pmqos(ctx);
 	mtk_vcodec_enc_empty_queues(file, ctx);
-	mutex_lock(&ctx->worker_lock);
 	v4l2_m2m_ctx_release(ctx->m2m_ctx);
-	mutex_unlock(&ctx->worker_lock);
 	mtk_vcodec_enc_release(ctx);
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
@@ -374,7 +370,6 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 	mtk_v4l2_debug(0, "encoder registered as /dev/video%d",
 				   vfd_enc->num);
 
-	atomic_set(&dev->enc_smvr, 0);
 	mtk_prepare_venc_dvfs();
 	mtk_prepare_venc_emi_bw();
 	pm_notifier(mtk_vcodec_enc_suspend_notifier, 0);

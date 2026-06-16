@@ -253,7 +253,7 @@ config SND_SOC_MTK_AUDIO_DSP
 	  If unsure select "N".
 
 #ifdef VENDOR_EDIT
-#Yongzhi.Zhang@PSW.MM.AudioDriver.feature.1209435, 2017/10/30, add for KTV
+#Yongzhi.Zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/07, add for KTV
 config OPPO_KTV_DEV
     bool "KTV feature"
 	default n

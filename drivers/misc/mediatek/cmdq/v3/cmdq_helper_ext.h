@@ -671,7 +671,6 @@ struct cmdqRecStruct {
 	void *running_task;
 	bool jump_replace;	/* jump replace or not */
 	bool finalized;		/* set to true after flush() or startLoop() */
-	bool force_inorder;
 	CmdqInterruptCB loop_cb;
 	unsigned long loop_user_data;
 	CmdqAsyncFlushCB async_callback;
@@ -789,8 +788,6 @@ struct cmdq_event_table *cmdq_event_get_table(void);
 u32 cmdq_event_get_table_size(void);
 
 /* CMDQ core feature functions */
-
-bool cmdq_core_check_pkt_valid(struct cmdq_pkt *pkt);
 
 void cmdq_core_deinit_group_cb(void);
 
@@ -928,7 +925,7 @@ u32 *cmdq_core_get_pc_inst(const struct cmdqRecStruct *handle,
 void cmdq_core_dump_handle_buffer(const struct cmdq_pkt *pkt,
 	const char *tag);
 u32 *cmdq_core_dump_pc(const struct cmdqRecStruct *handle,
-	int thread, const char *tag, bool *reset);
+	int thread, const char *tag);
 
 s32 cmdq_core_is_group_flag(enum CMDQ_GROUP_ENUM engGroup, u64 engineFlag);
 s32 cmdq_core_acquire_thread(enum CMDQ_SCENARIO_ENUM scenario, bool exclusive);

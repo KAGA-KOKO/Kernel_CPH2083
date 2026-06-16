@@ -150,7 +150,7 @@ static struct vb2_buffer *get_display_buffer(struct mtk_vcodec_ctx *ctx,
 	dstbuf = container_of(disp_frame_buffer, struct mtk_video_dec_buf,
 						  frame_buffer);
 	num_planes = dstbuf->vb.vb2_buf.num_planes;
-	mutex_lock(&ctx->buf_lock);
+	mutex_lock(&ctx->lock);
 	if (dstbuf->used) {
 		for (i = 0; i < num_planes; i++) {
 			vb2_set_plane_payload(&dstbuf->vb.vb2_buf, i,
@@ -173,7 +173,7 @@ static struct vb2_buffer *get_display_buffer(struct mtk_vcodec_ctx *ctx,
 		v4l2_m2m_buf_done(&dstbuf->vb, VB2_BUF_STATE_DONE);
 		ctx->decoded_frame_cnt++;
 	}
-	mutex_unlock(&ctx->buf_lock);
+	mutex_unlock(&ctx->lock);
 	return &dstbuf->vb.vb2_buf;
 }
 
@@ -208,7 +208,7 @@ static struct vb2_buffer *get_free_buffer(struct mtk_vcodec_ctx *ctx)
 						  frame_buffer);
 	dstbuf->flags |= REF_FREED;
 
-	mutex_lock(&ctx->buf_lock);
+	mutex_lock(&ctx->lock);
 	if (dstbuf->used) {
 		if ((dstbuf->queued_in_vb2) &&
 			(dstbuf->queued_in_v4l2) &&
@@ -261,7 +261,7 @@ static struct vb2_buffer *get_free_buffer(struct mtk_vcodec_ctx *ctx)
 		}
 		dstbuf->used = false;
 	}
-	mutex_unlock(&ctx->buf_lock);
+	mutex_unlock(&ctx->lock);
 	return &dstbuf->vb.vb2_buf;
 }
 
@@ -347,16 +347,6 @@ static void mtk_vdec_queue_stop_play_event(struct mtk_vcodec_ctx *ctx)
 {
 	static const struct v4l2_event ev_eos = {
 		.type = V4L2_EVENT_EOS,
-	};
-
-	mtk_v4l2_debug(1, "[%d]", ctx->id);
-	v4l2_event_queue_fh(&ctx->fh, &ev_eos);
-}
-
-static void mtk_vdec_queue_noseqheader_event(struct mtk_vcodec_ctx *ctx)
-{
-	static const struct v4l2_event ev_eos = {
-		.type = V4L2_EVENT_MTK_VDEC_NOHEADER,
 	};
 
 	mtk_v4l2_debug(1, "[%d]", ctx->id);
@@ -450,12 +440,9 @@ static void mtk_vdec_worker(struct work_struct *work)
 	unsigned int fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
 	unsigned int dpbsize = 0;
 
-	mutex_lock(&ctx->worker_lock);
-
 	if (ctx->state != MTK_STATE_HEADER) {
 		v4l2_m2m_job_finish(dev->m2m_dev_dec, ctx->m2m_ctx);
 		mtk_v4l2_debug(1, " %d", ctx->state);
-		mutex_unlock(&ctx->worker_lock);
 		return;
 	}
 
@@ -464,7 +451,6 @@ static void mtk_vdec_worker(struct work_struct *work)
 	if (src_buf == NULL) {
 		v4l2_m2m_job_finish(dev->m2m_dev_dec, ctx->m2m_ctx);
 		mtk_v4l2_debug(1, "[%d] src_buf empty!!", ctx->id);
-		mutex_unlock(&ctx->worker_lock);
 		return;
 	}
 
@@ -472,7 +458,6 @@ static void mtk_vdec_worker(struct work_struct *work)
 	if (dst_buf == NULL) {
 		v4l2_m2m_job_finish(dev->m2m_dev_dec, ctx->m2m_ctx);
 		mtk_v4l2_debug(1, "[%d] dst_buf empty!!", ctx->id);
-		mutex_unlock(&ctx->worker_lock);
 		return;
 	}
 
@@ -545,7 +530,6 @@ static void mtk_vdec_worker(struct work_struct *work)
 
 		mtk_vdec_queue_stop_play_event(ctx);
 		v4l2_m2m_job_finish(dev->m2m_dev_dec, ctx->m2m_ctx);
-		mutex_unlock(&ctx->worker_lock);
 		return;
 	}
 
@@ -562,7 +546,6 @@ static void mtk_vdec_worker(struct work_struct *work)
 		v4l2_m2m_job_finish(dev->m2m_dev_dec, ctx->m2m_ctx);
 		mtk_v4l2_err("[%d] id=%d src_addr is NULL!!",
 					 ctx->id, src_buf->index);
-		mutex_unlock(&ctx->worker_lock);
 		return;
 	}
 	dst_buf_info->flags &= ~CROP_CHANGED;
@@ -578,9 +561,9 @@ static void mtk_vdec_worker(struct work_struct *work)
 		= src_buf_info->vb.vb2_buf.timestamp;
 	dst_buf_info->vb.timecode
 		= src_buf_info->vb.timecode;
-	mutex_lock(&ctx->buf_lock);
+	mutex_lock(&ctx->lock);
 	dst_buf_info->used = true;
-	mutex_unlock(&ctx->buf_lock);
+	mutex_unlock(&ctx->lock);
 	src_buf_info->used = true;
 	do_gettimeofday(&worktvstart1);
 	ret = vdec_if_decode(ctx, buf, pfb, &src_chg);
@@ -700,8 +683,6 @@ static void mtk_vdec_worker(struct work_struct *work)
 	mtk_vcodec_perf_log("worker:%ld",
 		(vputvend.tv_sec - worktvstart.tv_sec) * 1000000 +
 		(vputvend.tv_usec - worktvstart.tv_usec));
-
-	mutex_unlock(&ctx->worker_lock);
 }
 
 static int vidioc_try_decoder_cmd(struct file *file, void *priv,
@@ -859,18 +840,10 @@ void mtk_vcodec_dec_set_default_params(struct mtk_vcodec_ctx *ctx)
 						  MTK_VDEC_MIN_H,
 						  MTK_VDEC_MAX_H, 5, 6);
 
-	if (q_data->fmt->num_planes == 1) {
-		q_data->sizeimage[0] =
-			q_data->coded_width * q_data->coded_height * 3/2;
-		q_data->bytesperline[0] = q_data->coded_width;
-
-	} else if (q_data->fmt->num_planes == 2) {
-		q_data->sizeimage[0] =
-			q_data->coded_width * q_data->coded_height;
-		q_data->bytesperline[0] = q_data->coded_width;
-		q_data->sizeimage[1] = q_data->sizeimage[0] / 2;
-		q_data->bytesperline[1] = q_data->coded_width;
-	}
+	q_data->sizeimage[0] = q_data->coded_width * q_data->coded_height;
+	q_data->bytesperline[0] = q_data->coded_width;
+	q_data->sizeimage[1] = q_data->sizeimage[0] / 2;
+	q_data->bytesperline[1] = q_data->coded_width;
 }
 
 static int mtk_vdec_set_param(struct mtk_vcodec_ctx *ctx)
@@ -1091,8 +1064,6 @@ static int vidioc_vdec_subscribe_evt(struct v4l2_fh *fh,
 	case V4L2_EVENT_SOURCE_CHANGE:
 		return v4l2_src_change_event_subscribe(fh, sub);
 	case V4L2_EVENT_MTK_VDEC_ERROR:
-		return v4l2_event_subscribe(fh, sub, 0, NULL);
-	case V4L2_EVENT_MTK_VDEC_NOHEADER:
 		return v4l2_event_subscribe(fh, sub, 0, NULL);
 	default:
 		return v4l2_ctrl_subscribe_event(fh, sub);
@@ -1800,7 +1771,7 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 	unsigned int src_chg = 0;
 	bool res_chg = false;
 	bool mtk_vcodec_unsupport = false;
-	bool need_seq_header = false;
+	bool wait_seq_header = false;
 	int ret = 0;
 	unsigned long frame_size[2];
 	unsigned int i = 0;
@@ -1820,7 +1791,7 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 	if (vb->vb2_queue->type != V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		vb2_v4l2 = to_vb2_v4l2_buffer(vb);
 		buf = container_of(vb2_v4l2, struct mtk_video_dec_buf, vb);
-		mutex_lock(&ctx->buf_lock);
+		mutex_lock(&ctx->lock);
 		if (buf->used == false) {
 			v4l2_m2m_buf_queue(ctx->m2m_ctx, vb2_v4l2);
 			buf->queued_in_vb2 = true;
@@ -1831,7 +1802,7 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 			buf->queued_in_v4l2 = true;
 			buf->ready_to_display = false;
 		}
-		mutex_unlock(&ctx->buf_lock);
+		mutex_unlock(&ctx->lock);
 		return;
 	}
 
@@ -1892,9 +1863,9 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 	res_chg = ((src_chg & VDEC_RES_CHANGE) != 0U) ? true : false;
 	mtk_vcodec_unsupport = ((src_chg & VDEC_HW_NOT_SUPPORT) != 0) ?
 						   true : false;
-	need_seq_header = ((src_chg & VDEC_NEED_SEQ_HEADER) != 0U) ?
+	wait_seq_header = ((src_chg & VDEC_NEED_SEQ_HEADER) != 0U) ?
 					  true : false;
-	if (ret || !res_chg || mtk_vcodec_unsupport || need_seq_header) {
+	if (ret || !res_chg || mtk_vcodec_unsupport || wait_seq_header) {
 		/*
 		 * fb == NULL menas to parse SPS/PPS header or
 		 * resolution info in src_mem. Decode can fail
@@ -1915,11 +1886,7 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 			mtk_vcodec_unsupport);
 
 		/* If not support the source, eg: w/h, bitdepth, level, we need to stop to play it */
-		if (need_seq_header) {
-			mtk_v4l2_err("[%d]Error!! Need seq header!",
-						 ctx->id);
-			mtk_vdec_queue_noseqheader_event(ctx);
-		} else if (mtk_vcodec_unsupport || last_frame_type != NON_EOS) {
+		if (mtk_vcodec_unsupport || last_frame_type != NON_EOS) {
 			mtk_v4l2_err("[%d]Error!! Codec driver not support the file!",
 						 ctx->id);
 			mtk_vdec_queue_error_event(ctx);
@@ -1997,10 +1964,10 @@ static void vb2ops_vdec_buf_finish(struct vb2_buffer *vb)
 
 	vb2_v4l2 = container_of(vb, struct vb2_v4l2_buffer, vb2_buf);
 	buf = container_of(vb2_v4l2, struct mtk_video_dec_buf, vb);
-	mutex_lock(&ctx->buf_lock);
+	mutex_lock(&ctx->lock);
 	buf->queued_in_v4l2 = false;
 	buf->queued_in_vb2 = false;
-	mutex_unlock(&ctx->buf_lock);
+	mutex_unlock(&ctx->lock);
 
 	// Check if need to proceed cache operations for Capture Queue
 	vb2_v4l2 = container_of(vb, struct vb2_v4l2_buffer, vb2_buf);

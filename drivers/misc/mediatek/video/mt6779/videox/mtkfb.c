@@ -92,15 +92,6 @@
 #endif
 #include "mmpath.h"
 
-#ifdef VENDOR_EDIT
-/*
- * Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
- * add for mipi clk change
- */
-#include <soc/oppo/oppo_project.h>
-#include <mt-plat/mtk_ccci_common.h>
-#endif /*VENDOR_EDIT*/
-
 /* static variable */
 static u32 MTK_FB_XRES;
 static u32 MTK_FB_YRES;
@@ -116,21 +107,6 @@ static int vsync_cnt;
 static const struct timeval FRAME_INTERVAL = { 0, 30000 };	/* 33ms */
 static bool no_update;
 static struct disp_session_input_config session_input;
-
-#ifdef VENDOR_EDIT
-//jie.cheng@Swdp.shanghai, 2017/06/05, Add notifier for fb info
-static BLOCKING_NOTIFIER_HEAD(mtkfb_notifier_list);
-int mtkfb_register_client(struct notifier_block *nb)
-{
-    return blocking_notifier_chain_register(&mtkfb_notifier_list, nb);
-}
-EXPORT_SYMBOL(mtkfb_register_client);
-int mtkfb_unregister_client(struct notifier_block *nb)
-{
-    return blocking_notifier_chain_unregister(&mtkfb_notifier_list, nb);
-}
-EXPORT_SYMBOL(mtkfb_unregister_client);
-#endif /* VENDOR_EDIT */
 
 /* macro definiton */
 #define ALIGN_TO(x, n)  (((x) + ((n) - 1)) & ~((n) - 1))
@@ -238,13 +214,6 @@ static void mtkfb_early_suspend(void);
 #ifdef VENDOR_EDIT
 /* LiPing-m@PSW.MM.Display.LCD.Machine 2017/11/03, Add for support backlight ic */
 int is_lm3697 = 1;
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
-* add resume to doze for tp gesture.
-*/
-void notify_suspend_to_tp(struct fb_info *info, enum mtkfb_aod_power_mode aod_pm);
-extern bool ds_rec_fpd;
-extern bool doze_rec_fpd;
 #endif /*VENDOR_EDIT*/
 void mtkfb_log_enable(int enable)
 {
@@ -358,16 +327,6 @@ static int mtkfb_blank(int blank_mode, struct fb_info *info)
 }
 #endif
 
-#ifdef VENDOR_EDIT
-/*
-* Yongpeng.Yi@PSW.MM.Display.LCD.Machine, 2018/02/27,
-* add for face fill light node
-*/
-unsigned int ffl_backlight_backup;
-extern unsigned int ffl_set_mode;
-extern unsigned int ffl_backlight_on;
-extern bool ffl_trigger_finish;
-#endif /* VENDOR_EDIT */
 int mtkfb_set_backlight_level(unsigned int level)
 {
 	bool aal_is_support = disp_aal_is_support();
@@ -376,36 +335,10 @@ int mtkfb_set_backlight_level(unsigned int level)
 
 	DISPDBG("%s:%d Start\n", __func__, level);
 
-	#ifndef VENDOR_EDIT
-	/*
-	* Yongpeng.Yi@PSW.MM.Display.LCD.Machine, 2018/02/27,
-	* add for face fill light node,ffl set need after backlight on.
-	*/
 	if (aal_is_support)
 		primary_display_setbacklight_nolock(level);
 	else
-	primary_display_setbacklight(level);
-	#else
-	if (aal_is_support) {
-		if (level > 0) {
-			ffl_backlight_on = 1;
-		} else {
-			ffl_backlight_on = 0;
-		}
-		ffl_backlight_backup = level;
-		if (ffl_trigger_finish || (level == 0)) {
-			if ((ffl_set_mode != 1) || (level == 0)) {
-				primary_display_setbacklight_nolock(level);
-			}
-			if ((level > 0) && (ffl_set_mode == 1)) {
-				ffl_set_enable(1);
-			}
-		}
-	} else {
 		primary_display_setbacklight(level);
-	}
-	#endif /* VENDOR_EDIT */
-	DISPDBG("mtkfb_set_backlight_level End\n");
 
 	DISPDBG("%s End\n", __func__);
 	return 0;
@@ -1097,12 +1030,6 @@ int mtkfb_aod_mode_switch(enum mtkfb_aod_power_mode aod_pm)
 		 * First DOZE to power on dispsys and LCM(low power mode);
 		 * then DOZE_SUSPEND to power off dispsys.
 		 */
-		if (ds_rec_fpd || doze_rec_fpd) {
-			DISPCHECK("AOD power mode DOZE_SUSPEND skip\n");
-			ds_rec_fpd = false;
-			doze_rec_fpd = false;
-			return 0;
-		}
 		if (primary_display_is_sleepd() &&
 			primary_display_get_lcm_power_state()) {
 			primary_display_set_power_mode(DOZE);
@@ -1189,13 +1116,6 @@ static int mtkfb_ioctl(struct fb_info *info, unsigned int cmd,
 		enum mtkfb_aod_power_mode aod_pm = MTKFB_AOD_POWER_MODE_ERROR;
 
 		aod_pm = (enum mtkfb_aod_power_mode)arg;
-		#ifdef VENDOR_EDIT
-		/*
-		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
-		* add resume to doze for tp gesture.
-		*/
-		notify_suspend_to_tp(info,aod_pm);
-		#endif /* VENDOR_EDIT */
 		ret = mtkfb_aod_mode_switch(arg);
 		break;
 	}
@@ -2555,24 +2475,6 @@ void get_backlight_ic(void) {
 	pr_err("[LCD] func:%s, is_lm3697 = %d \n", __func__, is_lm3697);
 }
 
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
-* add resume to doze for tp gesture.
-*/
-void notify_suspend_to_tp(struct fb_info *info, enum mtkfb_aod_power_mode aod_pm) {
-	enum mtkfb_power_mode prev_pm = primary_display_get_power_mode();
-
-	if (aod_pm == MTKFB_AOD_DOZE && prev_pm == FB_RESUME) {
-		int blank_mode = FB_BLANK_POWERDOWN;
-		struct fb_event event;
-
-		event.info  = info;
-		event.data = &blank_mode;
-		pr_info("%s for gesture\n", __func__);
-		fb_notifier_call_chain(FB_EVENT_BLANK, &event);
-	}
-}
-
 #endif /*VENDOR_EDIT*/
 static int mtkfb_probe(struct platform_device *pdev)
 {
@@ -2766,18 +2668,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 #endif
 	fbdev->state = MTKFB_ACTIVE;
 
-	#ifdef VENDOR_EDIT
-	/*
-	 * Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-	 * add for mipi clk change
-	 */
-	if (is_project(OPPO_18073) || is_project(OPPO_18593)
-		|| is_project(OPPO_19011) || is_project(OPPO_19301)) {
-		register_ccci_sys_call_back(MD_SYS1, MD_DISPLAY_DYNAMIC_MIPI, primary_display_ccci_mipi_callback);
-		pr_info("mtkfb_probe: mipi_clk_change is regist ok\n");
-	}
-	#endif /*VENDOR_EDIT*/
-
 	MSG_FUNC_LEAVE();
 	pr_info("disp driver(2) %s end\n", __func__);
 	return 0;
@@ -2878,11 +2768,6 @@ static void mtkfb_early_suspend(void)
 	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL)
 		return;
 
-#ifdef VENDOR_EDIT
-//jie.cheng@Swdp.shanghai, 2017/06/05, Add notifier for fb info
-	blocking_notifier_call_chain(&mtkfb_notifier_list, 0, NULL);
-#endif
-
 	DISPMSG("%s+\n", __func__);
 
 	ret = primary_display_suspend();
@@ -2911,11 +2796,6 @@ static void mtkfb_late_resume(void)
 
 	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL)
 		return;
-
-#ifdef VENDOR_EDIT
-//jie.cheng@Swdp.shanghai, 2017/06/05, Add notifier for fb info
-	blocking_notifier_call_chain(&mtkfb_notifier_list, 1, NULL);
-#endif
 
 	DISPMSG("%s+\n", __func__);
 

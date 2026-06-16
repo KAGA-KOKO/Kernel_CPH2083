@@ -126,11 +126,6 @@ static const struct snd_soc_dapm_route mtk_dai_hostless_routes[] = {
 	{"I2S1", NULL, "Hostless_ADDA_DL_I2S_OUT DL"},
 	{"I2S3", NULL, "Hostless_ADDA_DL_I2S_OUT DL"},
 	{"I2S5", NULL, "Hostless_ADDA_DL_I2S_OUT DL"},
-#ifdef VENDOR_EDIT
-	/* Yongzhi.Zhang@Multimedia.AudioDriver.FTM.1701793, 2018/12/14, add for P90 Louderspktest */
-	{"I2S3_CH1", "DL1_CH1", "Hostless_ADDA_DL_I2S_OUT DL"},
-	{"I2S3_CH2", "DL1_CH2", "Hostless_ADDA_DL_I2S_OUT DL"},
-#endif /* VENDOR_EDIT */
 
 	/* Hostless_SRC */
 	{"ADDA_DL_CH1", "SRC_1_OUT_CH1", "Hostless_SRC_1_DL"},

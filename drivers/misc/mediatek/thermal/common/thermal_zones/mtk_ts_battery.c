@@ -468,7 +468,7 @@ struct thermal_cooling_device *cdev, unsigned long state)
 		 */
 #ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.02.12 remove shutdown in hig temp*/
-	//BUG();
+	//	BUG();
 #endif /*ODM_HQ_EDIT*/
 	}
 	return 0;

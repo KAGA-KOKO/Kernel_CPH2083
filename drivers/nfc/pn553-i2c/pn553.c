@@ -68,13 +68,7 @@
 #endif
 
 #include <linux/timer.h>
-#include <linux/clk.h>
 #include "pn553.h"
-//#ifdef VENDOR_EDIT
-//Yukun.Wong@CN.NFC.Basic.Hardware, 2019/06/04,
-//Add for : Avoid probe on non-nfc platform 19301
-#include <soc/oppo/oppo_project.h>
-//#endif /* VENDOR_EDIT */
 
 #define NEXUS5x    0
 #define HWINFO     0
@@ -87,45 +81,17 @@
 #define SIG_NFC 44
 #define MAX_BUFFER_SIZE 512
 #define MAX_SECURE_SESSIONS 1
-//#ifdef VENDOR_EDIT
-//wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-//Add for :when phone is in sleep,wakeup AP
-#define WAKEUP_SRC_TIMEOUT    (2000)
-//#endif /* VENDOR_EDIT */
 /* Macro added to disable SVDD power toggling */
 /* #define JCOP_4X_VALIDATION */
-
-//#ifdef VENDOR_EDIT
-//Weiwei.Deng@CN.NFC.Basic.Hardware,1908341, 2019/04/01,
-//Add for : NFC_BAT_SCL(GPIO40) Electric leakage
-#define MAX_RETRY_COUNT         3
-#define NCI_RESET_CMD_LEN       4
-#define NCI_INIT_CMD_LEN        3
-#define NCI_RESET_RSP_LEN       6
-#define NCI_INIT_RSP_LEN        28
-#define NCI_GET_FW_CMD_LEN       8
-#define NCI_GET_FW_RSP_LEN       14
-//#endif /* VENDOR_EDIT */
-//#ifdef VENDOR_EDIT
-//wenjie.Liu@CN.NFC.Basic.Hardware.1966808, 2019/04/17,
-//Add for :control warnning print
-#define DEBUG_GPIO_SWITCH 0
-//#endif /* VENDOR_EDIT */
 
 struct pn544_dev    {
     wait_queue_head_t   read_wq;
     struct mutex        read_mutex;
-    //#ifdef VENDOR_EDIT
-    //yukun.wang@CN.NFC.Basic.Hardware.1924483, 2019/04/03,
-    //Add for: Add mutex to prevent re-init of dwp_onoff_sema
-    struct mutex        dwp_mutex;
-    //#endif /* VENDOR_EDIT */
     struct i2c_client   *client;
     struct miscdevice   pn544_device;
     unsigned int        ven_gpio;
     unsigned int        firm_gpio;
     unsigned int        irq_gpio;
-    unsigned int        clkreq_gpio;
     unsigned int        ese_pwr_gpio; /* gpio used by SPI to provide power to p61 via NFCC */
 #ifdef ISO_RST
     unsigned int        iso_rst_gpio; /* ISO-RST pin gpio*/
@@ -134,13 +100,6 @@ struct pn544_dev    {
     bool                nfc_ven_enabled; /* stores the VEN pin state powered by Nfc */
     bool                spi_ven_enabled; /* stores the VEN pin state powered by Spi */
     bool                irq_enabled;
-//#ifdef VENDOR_EDIT
-//wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-//Add for :when phone is in sleep,wakeup AP
-    /* NFC_IRQ wake-up state */
-    unsigned int        count_irq;
-    bool                irq_wake_up;
-//#endif /* VENDOR_EDIT */
     spinlock_t          irq_enabled_lock;
     long                nfc_service_pid; /*used to signal the nfc the nfc service */
     chip_pwr_scheme_t   chip_pwr_scheme;
@@ -185,11 +144,7 @@ static void pn544_disable_irq(struct pn544_dev *pn544_dev)
     spin_lock_irqsave(&pn544_dev->irq_enabled_lock, flags);
     if (pn544_dev->irq_enabled) {
         disable_irq_nosync(pn544_dev->client->irq);
-        //#ifndef VENDOR_EDIT
-        //wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-        //Remove for :when phone is in sleep,wakeup AP
-        //disable_irq_wake(pn544_dev->client->irq);
-        //#endif /* VENDOR_EDIT */
+        disable_irq_wake(pn544_dev->client->irq);
         pn544_dev->irq_enabled = false;
     }
     spin_unlock_irqrestore(&pn544_dev->irq_enabled_lock, flags);
@@ -199,24 +154,7 @@ static irqreturn_t pn544_dev_irq_handler(int irq, void *dev_id)
 {
     struct pn544_dev *pn544_dev = dev_id;
 
-    //#ifdef VENDOR_EDIT
-    //wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-    //Add for :when phone is in sleep,wakeup AP
-    unsigned long flags;
-    if (device_may_wakeup(&pn544_dev->client->dev))
-    {
-        pm_wakeup_event(&pn544_dev->client->dev, WAKEUP_SRC_TIMEOUT);
-    }
-    //#endif /* VENDOR_EDIT */
     pn544_disable_irq(pn544_dev);
-
-    //#ifdef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.CardEmulation.1790271, 2019/02/02,
-    //Add for :when phone is in sleep,wakeup AP
-    spin_lock_irqsave(&pn544_dev->irq_enabled_lock, flags);
-    pn544_dev->count_irq++;
-    spin_unlock_irqrestore(&pn544_dev->irq_enabled_lock, flags);
-    //#endif /* VENDOR_EDIT */
     /* HiKey Compilation fix */
     #ifndef HiKey_620_COMPILATION_FIX
     if (sIsWakeLocked == false)
@@ -229,11 +167,7 @@ static irqreturn_t pn544_dev_irq_handler(int irq, void *dev_id)
     #endif
     /* Wake up waiting readers */
     wake_up(&pn544_dev->read_wq);
-    //#ifdef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.CardEmulation.1790271, 2019/02/02,
-    //Add for :when phone is in sleep,wakeup AP
-    printk("%s : IRQ trigger!\n", __func__);
-    //#endif /* VENDOR_EDIT */
+
 
     return IRQ_HANDLED;
 }
@@ -259,18 +193,9 @@ static ssize_t pn544_dev_read(struct file *filp, char __user *buf,
         }
 
         while (1) {
-
-            //#ifndef VENDOR_EDIT
-            //wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-            //Remove for :when phone is in sleep,wakeup AP
-            //enable_irq_wake(pn544_dev->client->irq);
-            //pn544_dev->irq_enabled = true;
-            //enable_irq(pn544_dev->client->irq);
-            //#endif /* VENDOR_EDIT */
-            if (!pn544_dev->irq_enabled) {
-                pn544_dev->irq_enabled = true;
-                enable_irq(pn544_dev->client->irq);
-            }
+            pn544_dev->irq_enabled = true;
+            enable_irq(pn544_dev->client->irq);
+            enable_irq_wake(pn544_dev->client->irq);
             ret = wait_event_interruptible(
                     pn544_dev->read_wq,
                     !pn544_dev->irq_enabled);
@@ -500,14 +425,6 @@ static int release_dwpOnOff_wait(void)
   return 0;
 }
 
-//#ifdef VENDOR_EDIT
-//Weiwei.Deng@CN.NFC.Basic.CardEmulation.1790271, 2019/02/02,
-//Add for :when phone is in sleep,wakeup AP
-static void pn544_init_stat(struct pn544_dev *pn544_dev)
-{
-    pn544_dev->count_irq = 0;
-}
-//#endif /* VENDOR_EDIT */
 static int pn544_dev_open(struct inode *inode, struct file *filp)
 {
     struct pn544_dev *pn544_dev = container_of(filp->private_data,
@@ -515,11 +432,6 @@ static int pn544_dev_open(struct inode *inode, struct file *filp)
             pn544_device);
 
     filp->private_data = pn544_dev;
-    //#ifdef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.CardEmulation.1790271, 2019/02/02,
-    //Add for :when phone is in sleep,wakeup AP
-    pn544_init_stat(pn544_dev);
-    //#endif /* VENDOR_EDIT */
 
     pr_debug("%s : %d,%d\n", __func__, imajor(inode), iminor(inode));
 
@@ -538,6 +450,9 @@ long  pn544_dev_ioctl(struct file *filp, unsigned int cmd,
 {
     pr_err("%s :enter cmd = %u, arg = %ld\n", __func__, cmd, arg);
 
+    pr_err("%s :enter PN544_SET_PWR = %u, arg = %ld\n", __func__, PN544_SET_PWR , arg);
+    pr_err("%s :enter P61_GET_PWR_STATUS = %u, arg = %ld\n", __func__, P61_GET_PWR_STATUS , arg);
+	
     /* Free pass autobahn area, not protected. Use it carefullly. START */
     switch(cmd)
     {
@@ -683,18 +598,7 @@ long  pn544_dev_ioctl(struct file *filp, unsigned int cmd,
                 if (isSignalTriggerReqd && !(current_state & P61_STATE_JCP_DWNLD)){
                     if(pn544_dev->nfc_service_pid){
                         //pr_err("nfc service pid %s   ---- %ld", __func__, pn544_dev->nfc_service_pid);
-                        //#ifndef VENDOR_EDIT
-                        //yukun.wang@CN.NFC.Basic.Hardware.1924483, 2019/04/03,
-                        //Modify for: Add mutex to prevent re-init of dwp_onoff_sema
-                        /*
                         STATUS stat = dwp_OnOff(pn544_dev->nfc_service_pid, P61_STATE_SPI);
-                        */
-                        //#else
-                        STATUS stat;
-                        mutex_lock(&pn544_dev->dwp_mutex);
-                        stat = dwp_OnOff(pn544_dev->nfc_service_pid, P61_STATE_SPI);
-                        mutex_unlock(&pn544_dev->dwp_mutex);
-                        //#endif /* VENDOR_EDIT */
                         if(stat != STATUS_SUCCESS) {
                             pr_err(" %s DWP link activation failed. Returning..", __func__);
                             p61_update_access_state(pn544_dev, P61_STATE_SPI_FAILED, true);
@@ -819,9 +723,8 @@ long  pn544_dev_ioctl(struct file *filp, unsigned int cmd,
                           if(current_state & P61_STATE_SPI_FAILED) {
                               p61_update_access_state(pn544_dev, P61_STATE_SPI_FAILED, false);
                           }
-                          if(current_state & P61_STATE_SPI) {
-                              p61_update_access_state(pn544_dev, P61_STATE_SPI, false);
-                          }
+                          p61_update_access_state(pn544_dev, P61_STATE_SPI,
+                                                  false);
                           if(isSignalTriggerReqd)
                           svdd_sync_onoff(pn544_dev->nfc_service_pid, P61_STATE_SPI_SVDD_SYNC_END);
                        }
@@ -862,9 +765,8 @@ long  pn544_dev_ioctl(struct file *filp, unsigned int cmd,
                           if(current_state & P61_STATE_SPI_FAILED){
                               p61_update_access_state(pn544_dev, P61_STATE_SPI_FAILED, false);
                           }
-                          if(current_state & P61_STATE_SPI) {
-                              p61_update_access_state(pn544_dev, P61_STATE_SPI, false);
-                          }
+                          p61_update_access_state(pn544_dev, P61_STATE_SPI,
+                                                  false);
                           if(isSignalTriggerReqd)
                           svdd_sync_onoff(pn544_dev->nfc_service_pid, P61_STATE_SPI_SVDD_SYNC_END);
                           //pr_err("PN80T legacy ese_pwr_gpio off %s", __func__);
@@ -1352,224 +1254,13 @@ static int pn544_parse_dt(struct device *dev,
         data->irq_gpio = of_get_named_gpio_flags(np,
                                         "gpio_irq", 0, NULL);
 #endif
-    //#ifdef VENDOR_EDIT
-    //wenjie.Liu@CN.NFC.Basic.Hardware.1966808, 2019/04/17,
-    //Add for :control warnning print
-    #if DEBUG_GPIO_SWITCH
     pr_err("%s: %d, %d, %d, %d, %d error:%d\n", __func__,
         data->irq_gpio, data->ven_gpio, data->firm_gpio, data->iso_rst_gpio,
         data->ese_pwr_gpio, errorno);
-    #endif
-    //#endif VENDOR_EDIT
 
     return errorno;
 }
 #endif
-
-
-//#ifdef VENDOR_EDIT
-//Weiwei.Deng@CN.NFC.Basic.Hardware,1908341, 2019/04/01,
-//Add for : NFC_BAT_SCL(GPIO40) Electric leakage
-/**
- * nqx_standby_write()
- * @buf: pointer to data buffer
- * @len:  # of bytes need to transfer
- *
- * write data buffer over I2C and retry
- * if NFCC is in stand by mode
- *
- * Return: # of bytes written or -ve value in case of error
- */
-/*
-static int nqx_standby_write(struct pn544_dev *nqx_dev,
-				const unsigned char *buf, size_t len)
-{
-    int ret = -EINVAL;
-    int retry_cnt;
-
-    for (retry_cnt = 1; retry_cnt <= MAX_RETRY_COUNT; retry_cnt++) {
-        ret = i2c_master_send(nqx_dev->client, buf, len);
-        if (ret < 0) {
-            pr_err("%s: write failed, Maybe in Standby Mode - Retry(%d)\n",__func__, retry_cnt);
-            usleep_range(1000, 1100);
-        } else if (ret == len) {
-            break;
-        }
-    }
-    return ret;
-}
-*/
-/* Check for availability of NQ_ NFC controller hardware */
-static int nfcc_hw_check(struct i2c_client *client, struct pn544_dev *nqx_dev)
-{
-    int ret = 0;
-    #ifndef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.Hardware.1209105, 2019/04/25,
-    //Modify for : send get firmware version
-    int gpio_retry_count = 0;
-    unsigned int enable_gpio = nqx_dev->ven_gpio;
-    char *nci_reset_cmd = NULL;
-    char *nci_init_cmd = NULL;
-    char *nci_init_rsp = NULL;
-    char *nci_reset_rsp = NULL;
-
-    nci_reset_cmd = kzalloc(NCI_RESET_CMD_LEN + 1, GFP_DMA | GFP_KERNEL);
-    if (!nci_reset_cmd) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-    nci_reset_rsp = kzalloc(NCI_RESET_RSP_LEN + 1,  GFP_DMA | GFP_KERNEL);
-    if (!nci_reset_rsp) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-    nci_init_cmd = kzalloc(NCI_INIT_CMD_LEN + 1,  GFP_DMA | GFP_KERNEL);
-    if (!nci_init_cmd) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-    nci_init_rsp = kzalloc(NCI_INIT_RSP_LEN + 1,  GFP_DMA | GFP_KERNEL);
-    if (!nci_init_rsp) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-reset_enable_gpio:
-    /* making sure that the NFCC starts in a clean state. */
-    gpio_set_value(enable_gpio, 0);/* ULPM: Disable */
-    /* hardware dependent delay */
-    usleep_range(10000, 10100);
-    gpio_set_value(enable_gpio, 1);/* HPD : Enable*/
-    /* hardware dependent delay */
-    usleep_range(10000, 10100);
-
-    nci_reset_cmd[0] = 0x20;
-    nci_reset_cmd[1] = 0x00;
-    nci_reset_cmd[2] = 0x01;
-    nci_reset_cmd[3] = 0x00;
-    /* send NCI CORE RESET CMD with Keep Config parameters */
-    ret = i2c_master_send(client, nci_reset_cmd, NCI_RESET_CMD_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_send core reset Error\n", __func__);
-    }
-    /* hardware dependent delay */
-    msleep(30);
-
-    /* Read Response of RESET command */
-    ret = i2c_master_recv(client, nci_reset_rsp, NCI_RESET_RSP_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_recv Error\n", __func__);
-        gpio_retry_count = gpio_retry_count + 1;
-        if (gpio_retry_count < MAX_RETRY_COUNT)
-            goto reset_enable_gpio;
-        goto err_nfcc_hw_check;
-    }
-    nci_init_cmd[0] = 0x20;
-    nci_init_cmd[1] = 0x01;
-    nci_init_cmd[2] = 0x00;
-
-    ret = nqx_standby_write(nqx_dev, nci_init_cmd, NCI_INIT_CMD_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_send failed for Core INIT\n", __func__);
-        goto err_nfcc_core_init_fail;
-    }
-    /* hardware dependent delay */
-    msleep(30);
-    /* Read Response of INIT command */
-    ret = i2c_master_recv(client, nci_init_rsp, NCI_INIT_RSP_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_recv Error\n", __func__);
-        goto err_nfcc_core_init_fail;
-    }
-    gpio_set_value(enable_gpio, 0);
-    goto done;
-
-err_nfcc_core_init_fail:
-    pr_err("%s: err_nfcc_core_init_fail\n",__func__);
-
-err_nfcc_hw_check:
-    ret = -ENXIO;
-    pr_err("%s: - NFCC HW not available\n", __func__);
-
-done:
-    kfree(nci_reset_rsp);
-    kfree(nci_init_rsp);
-    kfree(nci_init_cmd);
-    kfree(nci_reset_cmd);
-#else
-    unsigned int enable_gpio = nqx_dev->ven_gpio;
-    unsigned int firm_gpio = nqx_dev->firm_gpio;
-    char *nci_get_fw_cmd = NULL;
-    char *nci_get_fw_rsp = NULL;
-
-    nci_get_fw_cmd = kzalloc(NCI_GET_FW_CMD_LEN + 1, GFP_DMA | GFP_KERNEL);
-    if (!nci_get_fw_cmd) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-    nci_get_fw_rsp = kzalloc(NCI_GET_FW_RSP_LEN + 1,  GFP_DMA | GFP_KERNEL);
-    if (!nci_get_fw_rsp) {
-        ret = -ENOMEM;
-        goto done;
-    }
-
-    gpio_set_value(firm_gpio, 1);
-    /* hardware dependent delay */
-    usleep_range(10000, 10100);
-    /* making sure that the NFCC starts in a clean state. */
-    gpio_set_value(enable_gpio, 0);/* ULPM: Disable */
-    /* hardware dependent delay */
-    usleep_range(10000, 10100);
-    gpio_set_value(enable_gpio, 1);/* HPD : Enable*/
-    /* hardware dependent delay */
-    usleep_range(10000, 10100);
-
-    nci_get_fw_cmd[0] = 0x00;
-    nci_get_fw_cmd[1] = 0x04;
-    nci_get_fw_cmd[2] = 0xF1;
-    nci_get_fw_cmd[3] = 0x00;
-    nci_get_fw_cmd[4] = 0x00;
-    nci_get_fw_cmd[5] = 0x00;
-    nci_get_fw_cmd[6] = 0x6E;
-    nci_get_fw_cmd[7] = 0xEF;
-
-    /*send get FW Version CMD */
-    ret = i2c_master_send(client, nci_get_fw_cmd, NCI_GET_FW_CMD_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_send get fw version Error\n", __func__);
-        goto err_nfcc_hw_check;
-    }
-    pr_err("%s: raw_fw_get_version success----\n", __func__);
-    /* hardware dependent delay */
-    msleep(30);
-
-    /* Read Response of FW Version CMD */
-    ret = i2c_master_recv(client, nci_get_fw_rsp, NCI_GET_FW_RSP_LEN);
-    if (ret < 0) {
-        pr_err("%s: - i2c_master_recv get fw version Error\n", __func__);
-        goto err_nfcc_hw_check;
-    }
-    gpio_set_value(firm_gpio, 0);
-    gpio_set_value(enable_gpio, 0);
-    ret = 0;
-    goto done;
-
-err_nfcc_hw_check:
-    ret = -ENXIO;
-    pr_err("%s: - NFCC HW not available\n", __func__);
-
-done:
-    kfree(nci_get_fw_rsp);
-    kfree(nci_get_fw_cmd);
-#endif /* VENDOR_EDIT */
-
-    return ret;
-}
-//#endif /* VENDOR_EDIT */
 
 static int pn544_probe(struct i2c_client *client,
         const struct i2c_device_id *id)
@@ -1582,13 +1273,6 @@ static int pn544_probe(struct i2c_client *client,
     platform_data = client->dev.platform_data;
 #else
     struct device_node *node = client->dev.of_node;
-
-    //#ifdef VENDOR_EDIT
-    //Yukun.Wong@CN.NFC.Basic.Hardware, 2019/06/04,
-    //Add for : Avoid probe on non-nfc platform 19301
-    if(get_Operator_Version() == OPERATOR_19301_CARRIER)
-        return -ENODEV;
-    //#endif /* VENDOR_EDIT */
 
     if (node) {
         platform_data = devm_kzalloc(&client->dev,
@@ -1707,11 +1391,6 @@ static int pn544_probe(struct i2c_client *client,
     /* init mutex and queues */
     init_waitqueue_head(&pn544_dev->read_wq);
     mutex_init(&pn544_dev->read_mutex);
-    //#ifdef VENDOR_EDIT
-    //yukun.wang@CN.NFC.Basic.Hardware.1924483, 2019/04/03,
-    //Add for: Add mutex to prevent re-init of dwp_onoff_sema
-    mutex_init(&pn544_dev->dwp_mutex);
-    //#endif /* VENDOR_EDIT */
     sema_init(&ese_access_sema, 1);
     sema_init(&dwp_onoff_release_sema, 0);
     spin_lock_init(&pn544_dev->irq_enabled_lock);
@@ -1737,13 +1416,7 @@ static int pn544_probe(struct i2c_client *client,
     /* request irq.  the irq is set whenever the chip has data available
      * for reading.  it is cleared when all data has been read.
      */
-    //#ifdef VENDOR_EDIT
-    //wenjie.Liu@CN.NFC.Basic.Hardware.1966808, 2019/04/17,
-    //Add for :control warnning print
-    #if DEBUG_GPIO_SWITCH
     pr_err("%s : requesting IRQ %d\n", __func__, client->irq);
-    #endif
-    //#endif VENDOR_EDIT
     pn544_dev->irq_enabled = true;
     ret = request_irq(client->irq, pn544_dev_irq_handler,
             IRQF_TRIGGER_HIGH, client->name, pn544_dev);
@@ -1752,36 +1425,8 @@ static int pn544_probe(struct i2c_client *client,
         goto err_request_irq_failed;
     }
     enable_irq_wake(pn544_dev->client->irq);
-//#ifdef VENDOR_EDIT
-//wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-//Add for :when phone is in sleep,wakeup AP
-    device_init_wakeup(&client->dev, true);
-    device_set_wakeup_capable(&client->dev, true);
-//#endif /* VENDOR_EDIT */
     pn544_disable_irq(pn544_dev);
     i2c_set_clientdata(client, pn544_dev);
-    //#ifdef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.Hardware,1908341, 2019/04/01,
-    //Add for : NFC_BAT_SCL(GPIO40) Electric leakage
-    /*
-     * To be efficient we need to test whether nfcc hardware is physically
-     * present before attempting further hardware initialisation.
-     *
-     */
-    ret = nfcc_hw_check(client, pn544_dev);
-    if (ret < 0) {
-        pr_err("%s: - nfcc_hw_check fail \n", __func__);
-        /* make sure NFCC is not enabled */
-        gpio_set_value(pn544_dev->firm_gpio, 0);
-        gpio_set_value(pn544_dev->ven_gpio, 0);
-        /* We don't think there is hardware switch NFC OFF */
-        //#ifdef VENDOR_EDIT
-        //Weiwei.Deng@CN.NFC.Basic.Hardware,1983368, 2019/04/26,
-        //Del for : do not del the nfc node if nfcc_hw_check fail
-        //goto err_request_irq_failed;
-        //#endif /* VENDOR_EDIT */
-    }
-    //#endif /* VENDOR_EDIT */
 #if HWINFO
     /*
      * This function is used only if
@@ -1795,16 +1440,7 @@ static int pn544_probe(struct i2c_client *client,
     misc_deregister(&pn544_dev->pn544_device);
     err_misc_register:
     mutex_destroy(&pn544_dev->read_mutex);
-    //#ifdef VENDOR_EDIT
-    //yukun.wang@CN.NFC.Basic.Hardware.1924483, 2019/04/03,
-    //Add for: Add mutex to prevent re-init of dwp_onoff_sema
-    mutex_destroy(&pn544_dev->dwp_mutex);
-    //#endif /* VENDOR_EDIT */
-    //#ifndef VENDOR_EDIT
-    //Weiwei.Deng@CN.NFC.Basic.Hardware, 2019/01/14,
-    //Mod for coverity:776320, do not  kfree(pn544_dev) here,free it below err_free_dev
-    //kfree(pn544_dev);
-    //#endif /* VENDOR_EDIT */
+    kfree(pn544_dev);
     err_exit:
     if (pn544_dev->firm_gpio)
         gpio_free(platform_data->firm_gpio);
@@ -1832,11 +1468,6 @@ static int pn544_remove(struct i2c_client *client)
     free_irq(client->irq, pn544_dev);
     misc_deregister(&pn544_dev->pn544_device);
     mutex_destroy(&pn544_dev->read_mutex);
-    //#ifdef VENDOR_EDIT
-    //yukun.wang@CN.NFC.Basic.Hardware.1924483, 2019/04/03,
-    //Add for: Add mutex to prevent re-init of dwp_onoff_sema
-    mutex_destroy(&pn544_dev->dwp_mutex);
-    //#endif /* VENDOR_EDIT */
     gpio_free(pn544_dev->irq_gpio);
     gpio_free(pn544_dev->ven_gpio);
     gpio_free(pn544_dev->ese_pwr_gpio);
@@ -1856,31 +1487,6 @@ static int pn544_remove(struct i2c_client *client)
     return 0;
 }
 
-//#ifdef VENDOR_EDIT
-//wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-//Add for :when phone is in sleep,wakeup AP
-static int pn544_suspend(struct device *device)
-{
-    struct i2c_client *client = to_i2c_client(device);
-    pn544_dev = i2c_get_clientdata(client);
-
-    if (pn544_dev->nfc_ven_enabled && gpio_get_value(pn544_dev->irq_gpio)) {
-        pm_wakeup_event(&pn544_dev->client->dev, WAKEUP_SRC_TIMEOUT);
-        return -1;
-    }
-
-    return 0;
-}
-
-static int pn544_resume(struct device *device)
-{
-    return 0;
-}
-
-static const struct dev_pm_ops nfc_pm_ops = {
-    SET_SYSTEM_SLEEP_PM_OPS(pn544_suspend, pn544_resume)
-};
-//#endif /* VENDOR_EDIT */
 static const struct i2c_device_id pn544_id[] = {
 #if NEXUS5x
         { "pn548", 0 },
@@ -1911,11 +1517,6 @@ static struct i2c_driver pn544_driver = {
 #if DRAGON_NFC
                 .of_match_table = pn544_i2c_dt_match,
 #endif
-                //#ifdef VENDOR_EDIT
-                //wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-                //Add for :when phone is in sleep,wakeup AP
-                .pm = &nfc_pm_ops,
-                //#endif /* VENDOR_EDIT */
         },
 };
 #if HWINFO
@@ -1998,11 +1599,7 @@ static void check_hw_info() {
              * */
             pn544_dev->irq_enabled = true;
             enable_irq(pn544_dev->client->irq);
-            //#ifndef VENDOR_EDIT
-            //wenjie.Liu@CN.NFC.Basic.CardEmulation.1790271, 2019/01/10,
-            //Remove for :when phone is in sleep,wakeup AP
-            //enable_irq_wake(pn544_dev->client->irq);
-            //endif VENDOR_EDIT
+            enable_irq_wake(pn544_dev->client->irq);
             ret = wait_event_interruptible(
                     pn544_dev->read_wq,
                     !pn544_dev->irq_enabled);

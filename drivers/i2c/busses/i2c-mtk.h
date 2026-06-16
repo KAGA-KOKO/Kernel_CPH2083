@@ -37,12 +37,6 @@
 
 #define I2C_DEBUG_FS
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/24, sjc Add for I2C5(high speed mode) duty ratio */
-#define I2C_HS_HOLD_SEL                 (0x1 << 15)
-#define I2C_HS_HOLD_TIME                (0x1 << 2)
-#endif
-
 #define I2C_BUS_ERR			(0x01 << 8)
 #define I2C_IBI				(0x01 << 7)
 #define I2C_DMAERR			(0x01 << 6)
@@ -405,10 +399,6 @@ struct mt_i2c {
 	struct mt_i2c_ext ext_data;
 	const struct mtk_i2c_compatible *dev_comp;
 	struct i2c_info rec_info[I2C_RECORD_LEN];
-#ifdef VENDOR_EDIT
-/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
-	struct pinctrl *pctrl;
-#endif /*VENDOR_EDIT*/
 };
 
 #if defined(CONFIG_MTK_FPGA) || defined(CONFIG_FPGA_EARLY_PORTING)

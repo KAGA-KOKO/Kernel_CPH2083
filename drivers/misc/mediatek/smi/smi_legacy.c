@@ -878,12 +878,7 @@ static s32 smi_debug_bus_hang_detect_k414(const bool gce)
 	if (!ret || busy[SMI_LARB_NUM] < time) {
 		SMIWRN(gce, "%s:SMI MM bus NOT hang\n", __func__);
 		smi_debug_dump_status(gce);
-		#ifdef VENDOR_EDIT
-		/*Yijun.Tan@Camera add for resolve monkey hwt issue 20190403*/
-		/*return 0;*/
-		#else
 		return 0;
-		#endif
 	}
 
 	SMIWRN(gce, "%s:SMI MM bus may hang by M4U/EMI/DVFS\n", __func__);

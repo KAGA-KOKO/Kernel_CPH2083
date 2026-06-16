@@ -1,3 +1,0 @@
-
-source "drivers/input/touchscreen/oppo_touchscreen/hxchipset/hx83102d/Kconfig"
-

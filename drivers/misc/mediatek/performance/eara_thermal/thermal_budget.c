@@ -1782,59 +1782,6 @@ static int gpu_opp_cand_low(int init_opp, int gpu_time, int cpu_time)
 	return __scale_gpu_opp(init_opp, gpu_time, cpu_time);
 }
 
-static int is_limit_in_range(int cpu_limit, int gpu_limit,
-			int vpu_limit, int mdla_limit)
-{
-	int min_cpu, min_gpu;
-#ifdef EARA_THERMAL_VPU_SUPPORT
-	int min_vpu;
-#endif
-#ifdef EARA_THERMAL_MDLA_SUPPORT
-	int min_mdla;
-#endif
-
-	min_cpu = apthermolmt_get_cpu_min_power();
-	min_gpu = apthermolmt_get_gpu_min_power();
-
-	if (cpu_limit <=
-		thr_cobra_tbl->basic_pwr_tbl[0][CPU_OPP_NUM - 1].power_idx
-		|| cpu_limit <= min_cpu) {
-		EARA_THRM_LOGE("CPU limit too low (%d, %d)\n",
-			cpu_limit, min_cpu);
-		return 0;
-	}
-
-	if (gpu_limit <= min_gpu) {
-		EARA_THRM_LOGE("GPU limit too low (%d, %d)\n",
-			gpu_limit, min_gpu);
-		return 0;
-	}
-
-#ifdef EARA_THERMAL_VPU_SUPPORT
-	/* when vpu is not on, limit is always equal to min power */
-	min_vpu = apthermolmt_get_vpu_min_power();
-
-	if (vpu_limit < min_vpu) {
-		EARA_THRM_LOGE("VPU limit too low (%d, %d)\n",
-			vpu_limit, min_vpu);
-		return 0;
-	}
-#endif
-
-#ifdef EARA_THERMAL_MDLA_SUPPORT
-	min_mdla = apthermolmt_get_mdla_min_power();
-
-	if (mdla_limit < min_mdla) {
-		EARA_THRM_LOGE("MDLA limit too low (%d, %d)\n",
-			mdla_limit, min_mdla);
-		return 0;
-	}
-#endif
-
-	return 1;
-
-}
-
 void eara_thrm_pb_enqueue_end(int pid, int gpu_time,
 			int gpu_freq, unsigned long long enq)
 {
@@ -2096,9 +2043,9 @@ void eara_thrm_pb_enqueue_end(int pid, int gpu_time,
 				- g_opp_ratio[best_gpu_opp].vpu_power
 				- g_opp_ratio[best_gpu_opp].mdla_power;
 
-		if (!is_limit_in_range(new_cpu_power, new_gpu_power,
-					g_opp_ratio[best_gpu_opp].vpu_power,
-					g_opp_ratio[best_gpu_opp].mdla_power))
+		if (new_cpu_power <=
+			thr_cobra_tbl->basic_pwr_tbl
+				[0][CPU_OPP_NUM - 1].power_idx)
 			goto CAN_NOT_CONTROL;
 
 		if (stable_count < STABLE_TH) {

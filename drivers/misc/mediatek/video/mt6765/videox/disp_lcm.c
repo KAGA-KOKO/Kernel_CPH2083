@@ -21,13 +21,6 @@
 #include "ddp_manager.h"
 #include "disp_lcm.h"
 
-#ifdef ODM_WT_EDIT
-//Zhenzhen.Wu@ODM_WT.MM.Display.Lcd, 2018/10/1, add LCD HW information
-#include <linux/hardware_info.h>
-extern char Lcm_name[HARDWARE_MAX_ITEM_LONGTH];
-#endif
-
-
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 #include <linux/of.h>
 #endif
@@ -1034,10 +1027,8 @@ void load_lcm_resources_from_DT(struct LCM_DRIVER *lcm_drv)
 		pr_info("LCM set_params not implemented!!!\n");
 }
 #endif
-
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/25 add for lcd devinfo */
-char *hq_lcm_name = 0;
+char *hq_lcm_name=0;
 #endif
 struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 	enum LCM_INTERFACE_ID lcm_id, int is_lcm_inited)
@@ -1056,17 +1047,10 @@ struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 
 	DISPFUNC();
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/25 add for lcd devinfo */
-	hq_lcm_name = plcm_name;
-#endif
+/* Wangxianfei@ODM.Multimedia.LCD  2018/12/10 add for lcd devinfo */
+	hq_lcm_name=plcm_name;
 	DISPERR("plcm_name=%s is_lcm_inited %d\n", plcm_name, is_lcm_inited);
-#ifdef ODM_WT_EDIT
-	//Zhenzhen.Wu@ODM_WT.MM.Display.Lcd, 2018/10/1, add LCD HW information
-	if (is_lcm_inited == 1){
-		strncpy(Lcm_name, plcm_name, strlen(plcm_name) + 1);
-	}
 #endif
-
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 	if (check_lcm_node_from_DT() == 0) {
 		lcm_drv = &lcm_common_drv;
@@ -1091,8 +1075,9 @@ struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 		lcmindex = 0;
 	} else
 #endif
-
+#ifdef ODM_HQ_EDIT
 	DISPERR("_lcm_count=%d\n",_lcm_count());
+#endif
 	if (_lcm_count() == 0) {
 		DISPERR("no lcm driver defined in linux kernel driver\n");
 		return NULL;
@@ -1102,7 +1087,11 @@ struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 
 			isLCMFound = true;
 			isLCMInited = false;
+			#ifdef ODM_HQ_EDIT
 			DISPERR("LCM Name NULL\n");
+			#else
+			DISPCHECK("LCM Name NULL\n");
+			#endif
 		} else {
 			lcm_drv = lcm_driver_list[0];
 			if (strcmp(lcm_drv->name, plcm_name)) {
@@ -1131,7 +1120,9 @@ struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 
 			for (i = 0; i < _lcm_count(); i++) {
 				lcm_drv = lcm_driver_list[i];
+				#ifdef ODM_HQ_EDIT
 				DISPERR("lcm_drv->name=%s,plcm_name=%s\n",lcm_drv->name,plcm_name);
+				#endif
 				if (!strcmp(lcm_drv->name, plcm_name)) {
 					isLCMFound = true;
 					isLCMInited = true;
@@ -1429,23 +1420,6 @@ int disp_lcm_esd_recover(struct disp_lcm_handle *plcm)
 	return -1;
 }
 
-#ifdef ODM_WT_EDIT
-int disp_lcm_shutdown(struct disp_lcm_handle *plcm)
-{
-    struct LCM_DRIVER *lcm_drv = NULL;
-    DISPFUNC();
-    if (_is_lcm_inited(plcm)) {
-        lcm_drv = plcm->drv;
-        if (lcm_drv->shutdown_power) {
-            lcm_drv->shutdown_power();
-        }
-        return 0;
-    }
-    DISPERR("lcm_drv is null\n");
-    return -1;
-}
-#endif
-
 int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 {
 	struct LCM_DRIVER *lcm_drv = NULL;
@@ -1546,7 +1520,7 @@ int disp_lcm_adjust_fps(void *cmdq, struct disp_lcm_handle *plcm, int fps)
 }
 #ifdef ODM_HQ_EDIT
 extern unsigned int esd_recovery_backlight_level;
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/9/21 modified for backlight remapping*/
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/21 modified for backlight remapping*/
 static int backlight_remapping_into_tddic_reg(struct disp_lcm_handle *plcm, int level_brightness){
 	int level_temp, value_a, value_b;
 	int level;
@@ -1593,20 +1567,14 @@ static int backlight_remapping_into_tddic_reg(struct disp_lcm_handle *plcm, int 
 	}
 }
 #endif
-
-#ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/11/1 modified for decreasing the minimum brightness*/
-extern char* saved_command_line;
-#endif
 int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
 	void *handle, int level)
 {
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/9/21 modified for backlight remapping*/
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/21 modified for backlight remapping*/
 	int level_temp;
 #endif
 	struct LCM_DRIVER *lcm_drv = NULL;
-
 	DISPFUNC();
 	if (!_is_lcm_inited(plcm)) {
 		DISPERR("lcm_drv is null\n");
@@ -1617,25 +1585,8 @@ int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
 	if (lcm_drv->set_backlight_cmdq) {
 #ifdef ODM_HQ_EDIT
 	esd_recovery_backlight_level=level;
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/9/21 modified for backlight remapping*/
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/21 modified for backlight remapping*/
 		level_temp = backlight_remapping_into_tddic_reg(plcm, level);
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/11/1 modified for decreasing the minimum brightness*/
-		if (level == 1 || level == 2){
-			if (strstr(saved_command_line, "nt36525b_hdp_dsi_vdo_hlt_al2350") || strstr(saved_command_line, "nt36525b_hdp_dsi_vdo_djn_al2350")){
-				DISPERR(" %s This is novatek, minimum brightness shoule be 6 !!!\n", __func__);
-				level_temp = 6;
-			} else if (strstr(saved_command_line, "ili9881h_hdp_dsi_vdo_inx_al2350") || strstr(saved_command_line, "ili9881h_hdp_dsi_vdo_txd_al2350")){
-				DISPERR(" %s This is ilitek, minimum brightness shoule be 7 !!!\n", __func__);
-				level_temp = 7;
-			/* Zhenzhen@ODM.WT.Multimedia.LCM 2020/3/3 modified for decreasing the minimum brightness*/
-			}else if (strstr(saved_command_line, "hx83102d_hdp_dsi_vdo_hlt")){
-                                 DISPERR(" %s This is hx83102d, minimum brightness shoule be 10 !!!\n", __func__);
-                                 level_temp = 10;
-			}else if (strstr(saved_command_line, "ili9881h_hdp_dsi_vdo_txd")||strstr(saved_command_line, "ili9881h_hdp_dsi_vdo_hlt")){
-                                 DISPERR(" %s This is ilitek, minimum brightness shoule be 10 !!!\n", __func__);
-                                 level_temp = 10;
-                        }
-		}
 		DISPERR("level_temp,level = %d %d\n",level_temp,level);
 		lcm_drv->set_backlight_cmdq(handle, level_temp);
 #else
@@ -1776,31 +1727,6 @@ int disp_lcm_set_lcm_cmd(struct disp_lcm_handle *plcm, void *cmdq_handle,
 	DISPERR("lcm_drv is null\n");
 	return -1;
 }
-
-#ifdef ODM_WT_EDIT
-//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-int disp_lcm_set_lcm_dimming_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level)
-{
-	struct LCM_DRIVER *lcm_drv = NULL;
-
-	DISPFUNC();
-	if (_is_lcm_inited(plcm)) {
-		lcm_drv = plcm->drv;
-		if (lcm_drv->set_dimming_mode_cmdq) {
-			lcm_drv->set_dimming_mode_cmdq(handle, level);
-		} else {
-			DISPERR("FATAL ERROR, lcm_drv->set_dimming_mode_cmdq is null\n");
-			return -1;
-		}
-
-		return 0;
-	}
-
-	DISPERR("lcm_drv is null\n");
-	return -1;
-}
-#endif
-
 #ifdef VENDOR_EDIT
 /* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
 int disp_lcm_oppo_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level)

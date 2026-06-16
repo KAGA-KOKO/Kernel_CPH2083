@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2016 MediaTek Inc.
  *
@@ -322,10 +321,8 @@ static unsigned int m_CurrentPPB;
 
 #ifdef CONFIG_PM_WAKELOCKS
 struct wakeup_source dip_wake_lock;
-struct wakeup_source isp_mdp_wake_lock;
 #else
 struct wake_lock dip_wake_lock;
-struct wakeup_source isp_mdp_wake_lock;
 #endif
 static int g_bWaitLock;
 static unsigned int g_dip1sterr = DIP_GCE_EVENT_NONE;
@@ -786,18 +783,199 @@ static signed int DIP_DumpDIPReg(void)
 	unsigned int dbg_sel = 0, dbg_out = 0, dd = 0;
 	unsigned int smidmacmd = 0, dmaidx = 0;
 	unsigned int fifodmacmd = 0;
-	unsigned int cmdqdebugcmd = 0, cmdqdebugidx = 0;
 #ifdef AEE_DUMP_REDUCE_MEMORY
 	unsigned int offset = 0;
 	uintptr_t OffsetAddr = 0;
 	unsigned int ctrl_start;
-	unsigned int d1a_cq_en;
 #endif
 	/*  */
 	CMDQ_ERR("- E.");
 	CMDQ_ERR("g_bDumpPhyDIPBuf:(0x%x), g_pPhyDIPBuffer:(0x%p)\n",
 		g_bDumpPhyDIPBuf, g_pPhyDIPBuffer);
 	CMDQ_ERR("g_bIonBuf:(0x%x)\n", g_bIonBufferAllocated);
+#ifdef AEE_DUMP_REDUCE_MEMORY
+	if (g_bDumpPhyDIPBuf == MFALSE) {
+		ctrl_start = DIP_RD32(DIP_A_BASE + 0x1000);
+		if (g_bIonBufferAllocated == MFALSE) {
+			if (g_pPhyDIPBuffer != NULL) {
+				CMDQ_ERR("g_pPhyDIPBuffer isn't NULL(0x%pK)\n",
+					g_pPhyDIPBuffer);
+				vfree(g_pPhyDIPBuffer);
+				g_pPhyDIPBuffer = NULL;
+			}
+			g_pPhyDIPBuffer = vmalloc(DIP_REG_RANGE);
+			if (g_pPhyDIPBuffer == NULL)
+				CMDQ_ERR("g_pPhyDIPBuffer kmalloc failed\n");
+
+			if (g_pKWTpipeBuffer != NULL) {
+				CMDQ_ERR("g_pKWTpipeBuffer isn't NULL(0x%pK)\n",
+					g_pKWTpipeBuffer);
+					vfree(g_pKWTpipeBuffer);
+					g_pKWTpipeBuffer = NULL;
+			}
+			g_pKWTpipeBuffer = vmalloc(MAX_ISP_TILE_TDR_HEX_NO);
+			if (g_pKWTpipeBuffer == NULL)
+				CMDQ_ERR("g_pKWTpipeBuffer kmalloc failed\n");
+
+			if (g_pKWCmdqBuffer != NULL) {
+				CMDQ_ERR("g_KWCmdqBuffer isn't NULL(0x%pK)\n",
+					g_pKWCmdqBuffer);
+				vfree(g_pKWCmdqBuffer);
+				g_pKWCmdqBuffer = NULL;
+			}
+			g_pKWCmdqBuffer = vmalloc(MAX_DIP_CMDQ_BUFFER_SIZE);
+			if (g_pKWCmdqBuffer == NULL)
+				CMDQ_ERR("g_KWCmdqBuffer kmalloc failed\n");
+
+			if (g_pKWVirDIPBuffer != NULL) {
+				CMDQ_ERR("g_KWVirDIPBuffer isn't NULL(0x%pK)\n",
+					g_pKWVirDIPBuffer);
+				vfree(g_pKWVirDIPBuffer);
+				g_pKWVirDIPBuffer = NULL;
+			}
+			g_pKWVirDIPBuffer = vmalloc(DIP_REG_RANGE);
+			if (g_pKWVirDIPBuffer == NULL)
+				CMDQ_ERR("g_KWVirDIPBuffer kmalloc failed\n");
+		}
+
+		if (g_pPhyDIPBuffer != NULL) {
+			for (i = 0; i < (DIP_REG_RANGE >> 2); i = i + 4) {
+				g_pPhyDIPBuffer[i] =
+					DIP_RD32(DIP_A_BASE + (i*4));
+				g_pPhyDIPBuffer[i+1] =
+					DIP_RD32(DIP_A_BASE + ((i+1)*4));
+				g_pPhyDIPBuffer[i+2] =
+					DIP_RD32(DIP_A_BASE + ((i+2)*4));
+				g_pPhyDIPBuffer[i+3] =
+					DIP_RD32(DIP_A_BASE + ((i+3)*4));
+			}
+		} else {
+			CMDQ_ERR("g_pPhyDIPBuffer:(0x%pK)\n", g_pPhyDIPBuffer);
+		}
+		g_dumpInfo.tdri_baseaddr = DIP_RD32(DIP_A_BASE + 0x4);
+		g_dumpInfo.imgi_baseaddr = DIP_RD32(DIP_A_BASE + 0x100);
+		g_dumpInfo.dmgi_baseaddr = DIP_RD32(DIP_A_BASE + 0x370);
+		g_tdriaddr = g_dumpInfo.tdri_baseaddr;
+		/*0x15022208, CQ_D1A_CQ_THR0_BASEADDR*/
+		/*0x15022220, CQ_D1A_CQ_THR1_BASEADDR*/
+		/*0x1502222C, CQ_D1A_CQ_THR2_BASEADDR*/
+		if (ctrl_start == 0x1) {
+			g_cmdqaddr = DIP_RD32(DIP_A_BASE + 0x1208);
+		} else if (ctrl_start == 0x02) {
+			g_cmdqaddr = DIP_RD32(DIP_A_BASE + 0x1208 +
+					DIP_CMDQ1_TO_CMDQ0_BASEADDR_OFFSET);
+		} else {
+			for (cmdqidx = 2; cmdqidx < 18; cmdqidx++) {
+				if (ctrl_start & (0x1<<cmdqidx)) {
+					g_cmdqaddr = DIP_RD32(DIP_A_BASE
+						+ 0x1220 +
+						((cmdqidx-1)*
+						DIP_CMDQ_BASEADDR_OFFSET));
+					break;
+				}
+			}
+		}
+		g_dumpInfo.cmdq_baseaddr = g_cmdqaddr;
+
+		if ((ctrl_start  != 0) &&
+			(g_tdriaddr  != 0) &&
+			(g_TpipeBaseAddrInfo.MemPa != 0) &&
+			(g_TpipeBaseAddrInfo.MemVa != NULL) &&
+			(g_pKWTpipeBuffer != NULL)) {
+			/* to get frame tdri baseaddress, */
+			/* otherwise you may get one of the tdr bade addr*/
+			offset = ((g_tdriaddr &
+				(~(g_TpipeBaseAddrInfo.MemSizeDiff-1)))-
+				g_TpipeBaseAddrInfo.MemPa);
+			OffsetAddr = ((uintptr_t)g_TpipeBaseAddrInfo.MemVa)+
+				offset;
+			if (copy_from_user(g_pKWTpipeBuffer,
+				(void __user *)(OffsetAddr),
+				MAX_ISP_TILE_TDR_HEX_NO) != 0) {
+			CMDQ_ERR("cpy tpipe fail. tdriaddr:0x%x\n",
+				g_tdriaddr);
+			CMDQ_ERR("MemVa:0x%lx, MemPa:0x%x, offset:0x%x\n",
+				(uintptr_t)g_TpipeBaseAddrInfo.MemVa,
+				g_TpipeBaseAddrInfo.MemPa,
+				offset);
+			}
+		}
+		CMDQ_ERR("tdraddr:0x%x,MemVa:0x%lx,MemPa:0x%x\n",
+			g_tdriaddr,
+			(uintptr_t)g_TpipeBaseAddrInfo.MemVa,
+			g_TpipeBaseAddrInfo.MemPa);
+		CMDQ_ERR("MemSizeDiff:0x%x,offset:0x%x\n",
+			g_TpipeBaseAddrInfo.MemSizeDiff, offset);
+		CMDQ_ERR("g_pKWTpipeBuffer:0x%pK\n", g_pKWTpipeBuffer);
+
+		if ((ctrl_start  != 0) &&
+			(g_cmdqaddr  != 0) &&
+			(g_CmdqBaseAddrInfo.MemPa != 0) &&
+			(g_CmdqBaseAddrInfo.MemVa != NULL) &&
+			(g_pKWCmdqBuffer != NULL) &&
+			(g_pKWVirDIPBuffer != NULL)) {
+			offset = (g_cmdqaddr-g_CmdqBaseAddrInfo.MemPa);
+			OffsetAddr = ((uintptr_t)g_CmdqBaseAddrInfo.MemVa)+
+				(g_cmdqaddr-g_CmdqBaseAddrInfo.MemPa);
+			if (copy_from_user(g_pKWCmdqBuffer,
+				(void __user *)(OffsetAddr),
+				MAX_DIP_CMDQ_BUFFER_SIZE) != 0) {
+				CMDQ_ERR("cpy cmdq fail. cmdqaddr:0x%x\n",
+					g_cmdqaddr);
+				CMDQ_ERR("MemVa:0x%lx,MemPa:0x%x,offset:0x%x\n",
+					(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
+					g_CmdqBaseAddrInfo.MemPa,
+					offset);
+			}
+			CMDQ_ERR("cmdqidx:0x%x, cmdqaddr:0x%x\n",
+				cmdqidx,
+				g_cmdqaddr);
+			CMDQ_ERR("MemVa:0x%lx,MemPa:0x%x, offset:0x%x\n",
+				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
+				g_CmdqBaseAddrInfo.MemPa,
+				offset);
+			offset = offset+g_CmdqBaseAddrInfo.MemSizeDiff;
+			OffsetAddr = ((uintptr_t)g_CmdqBaseAddrInfo.MemVa) +
+				offset;
+			if (copy_from_user(g_pKWVirDIPBuffer,
+				(void __user *)(OffsetAddr),
+				DIP_REG_RANGE) != 0) {
+				CMDQ_ERR("cpy vir dip fail.\n");
+				CMDQ_ERR("cmdqaddr:0x%x,MVa:0x%lx,MPa:0x%x\n",
+				g_cmdqaddr,
+				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
+				g_CmdqBaseAddrInfo.MemPa);
+				CMDQ_ERR("MSzDiff:0x%x,offset:0x%x\n",
+				g_CmdqBaseAddrInfo.MemSizeDiff,
+				offset);
+
+			}
+			CMDQ_ERR("cmdqaddr:0x%x,MVa:0x%lx,MPa:0x%x\n",
+				g_cmdqaddr,
+				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
+				g_CmdqBaseAddrInfo.MemPa);
+			CMDQ_ERR("MSzDiff:0x%x\n",
+				g_CmdqBaseAddrInfo.MemSizeDiff);
+			CMDQ_ERR("ofset:0x%x,KWCmdBuf:0x%pK,KWTdrBuf:0x%pK\n",
+				offset, g_pKWCmdqBuffer, g_pKWTpipeBuffer);
+		} else {
+			CMDQ_ERR("cmdqadd:0x%x,MVa:0x%lx,MPa:0x%x\n",
+				g_cmdqaddr,
+				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
+				g_CmdqBaseAddrInfo.MemPa);
+			CMDQ_ERR("MSzDiff:0x%x,KWCmdBuf:0x%pK,KWTdrBuf:0x%pK\n",
+				g_CmdqBaseAddrInfo.MemSizeDiff,
+				g_pKWCmdqBuffer,
+				g_pKWTpipeBuffer);
+		}
+		g_bDumpPhyDIPBuf = MTRUE;
+	}
+#endif
+
+	CMDQ_ERR("direct link: g_bDumpPhyDIPBuf:(0x%x), cmdqidx(0x%x)\n",
+		g_bDumpPhyDIPBuf, cmdqidx);
+	CMDQ_ERR("direct link: cmdqaddr(0x%x), tdriaddr(0x%x)\n",
+		g_cmdqaddr, g_tdriaddr);
 
 	CMDQ_ERR("imgsys: 0x1502004C(0x%x)\n",
 		DIP_RD32(DIP_IMGSYS_CONFIG_BASE + 0x4C));
@@ -808,7 +986,7 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_IMGSYS_CONFIG_BASE + 0x208),
 		DIP_RD32(DIP_IMGSYS_CONFIG_BASE + 0x20C));
 
-	/*top control*/
+    /*top control*/
 	CMDQ_ERR("dip: 0x15022000(0x%x)-0x15022004(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1000), DIP_RD32(DIP_A_BASE + 0x1004));
 	CMDQ_ERR("dip: 0x15022010(0x%x)-0x15022014(0x%x)\n",
@@ -824,18 +1002,18 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("dip: 0x15022058(0x%x)-0x15022060(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1058), DIP_RD32(DIP_A_BASE + 0x1060));
 	CMDQ_ERR("dip: 0x15022064(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x1064));
-	/*mdp crop1 and mdp crop2*/
+    /*mdp crop1 and mdp crop2*/
 	CMDQ_ERR("dip: 0x150286C0(0x%x)-0x150286C4(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x76C0), DIP_RD32(DIP_A_BASE + 0x76C4));
 	CMDQ_ERR("crop2: 0x15024B80(0x%x)-0x15024B84(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x3B80), DIP_RD32(DIP_A_BASE + 0x3B84));
 
-	/*imgi and tdri offset address*/
+    /*imgi and tdri offset address*/
 	CMDQ_ERR("dip: 0x15021104(0x%x)-0x15021004(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x0104), DIP_RD32(DIP_A_BASE + 0x0004));
 	CMDQ_ERR("dip: 0x15021008(0x%x)-0x1502100C(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x0008), DIP_RD32(DIP_A_BASE + 0x000C));
-	/*tdr ctrl*/
+    /*tdr ctrl*/
 	CMDQ_ERR("dip: 0x15022060(0x%x)-0x15022064(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1060), DIP_RD32(DIP_A_BASE + 0x1064));
 	CMDQ_ERR("dip: 0x15022068(0x%x)-0x1502206C(0x%x)\n",
@@ -851,7 +1029,7 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("dip: 0x15022090(0x%x)-0x15022094(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1090), DIP_RD32(DIP_A_BASE + 0x1094));
 
-	/*Request and Ready Signal*/
+    /*Request and Ready Signal*/
 	CMDQ_ERR("dip: 0x15022150(0x%x)-0x15022154(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1150), DIP_RD32(DIP_A_BASE + 0x1154));
 	CMDQ_ERR("dip: 0x15022158(0x%x)-0x1502215C(0x%x)\n",
@@ -872,53 +1050,6 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_A_BASE + 0x121C), DIP_RD32(DIP_A_BASE + 0x1220));
 	CMDQ_ERR("dip: 0x15022224(0x%x)-0x1502101C(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x1224), DIP_RD32(DIP_A_BASE + 0x001C));
-
-	d1a_cq_en = DIP_RD32(DIP_A_BASE + 0x1200);
-	d1a_cq_en = d1a_cq_en & 0xEFFFFFFF;
-	DIP_WR32(DIP_A_BASE + 0x1200, d1a_cq_en);
-	cmdqdebugcmd = 0x6;
-	DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-	CMDQ_ERR("thread state:0x%x : dip: 0x15022194(0x%x)\n",
-		cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	cmdqdebugcmd = 0x10006;
-	DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-	CMDQ_ERR("cq state:0x%x : dip: 0x15022194(0x%x)\n",
-		cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	d1a_cq_en = DIP_RD32(DIP_A_BASE + 0x1200);
-	d1a_cq_en = d1a_cq_en | 0x10000000;
-	DIP_WR32(DIP_A_BASE + 0x1200, d1a_cq_en);
-	for (cmdqdebugidx = 0; cmdqdebugidx < 16; cmdqdebugidx++) {
-		cmdqdebugcmd = 0x6;
-		cmdqdebugcmd = cmdqdebugcmd | (cmdqdebugidx << 16);
-		DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-		CMDQ_ERR("cq checksum:0x%x : dip: 0x15022194(0x%x)\n",
-			cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	}
-	d1a_cq_en = DIP_RD32(DIP_A_BASE + 0x1200);
-	DIP_WR32(DIP_A_BASE + 0x1200, (d1a_cq_en | 0x00010000));
-	DIP_WR32(DIP_A_BASE + 0x1200, d1a_cq_en);
-	d1a_cq_en = DIP_RD32(DIP_A_BASE + 0x1200);
-	d1a_cq_en = d1a_cq_en & 0xEFFFFFFF;
-	DIP_WR32(DIP_A_BASE + 0x1200, d1a_cq_en);
-	cmdqdebugcmd = 0x6;
-	DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-	CMDQ_ERR("thread state:0x%x : dip: 0x15022194(0x%x)\n",
-		cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	cmdqdebugcmd = 0x10006;
-	DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-	CMDQ_ERR("cq state:0x%x : dip: 0x15022194(0x%x)\n",
-		cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	d1a_cq_en = DIP_RD32(DIP_A_BASE + 0x1200);
-	d1a_cq_en = d1a_cq_en | 0x10000000;
-	DIP_WR32(DIP_A_BASE + 0x1200, d1a_cq_en);
-	for (cmdqdebugidx = 0; cmdqdebugidx < 16; cmdqdebugidx++) {
-		cmdqdebugcmd = 0x6;
-		cmdqdebugcmd = cmdqdebugcmd | (cmdqdebugidx << 16);
-		DIP_WR32(DIP_A_BASE + 0x1190, cmdqdebugcmd);
-		CMDQ_ERR("cq checksum:0x%x : dip: 0x15022194(0x%x)\n",
-			cmdqdebugcmd, DIP_RD32(DIP_A_BASE + 0x1194));
-	}
-
 
 	/* 0x15022190, DIPCTL_D1A_DIPCTL_DBG_SEL*/
 	/* HUNG-WEN */
@@ -1059,7 +1190,7 @@ static signed int DIP_DumpDIPReg(void)
 		CMDQ_ERR("0x%x : dip: 0x15022194(0x%x)\n",
 			dipdmacmd, DIP_RD32(DIP_A_BASE + 0x1194));
 
-		if (((dmaidx >= 11) && (dmaidx <= 18)) ||
+		if (((dmaidx >= 10) && (dmaidx <= 18)) ||
 			((dmaidx >= 25) && (dmaidx <= 28))) {
 			smidmacmd = 0x00080400;
 			smidmacmd = smidmacmd | dmaidx;
@@ -1192,19 +1323,19 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("img3o  0x15021080(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x80));
 	CMDQ_ERR("img3bo 0x15021084(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x84));
 	CMDQ_ERR("img3Co 0x15021088(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x88));
-	CMDQ_ERR("feo	 0x15021070(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x70));
+	CMDQ_ERR("feo    0x15021070(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x70));
 	CMDQ_ERR("dceso  0x15021054(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x54));
 	CMDQ_ERR("timgo  0x1502103C(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x3C));
-	CMDQ_ERR("imgi	 0x15021024(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x24));
+	CMDQ_ERR("imgi   0x15021024(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x24));
 	CMDQ_ERR("imgbi  0x15021034(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x34));
 	CMDQ_ERR("imgci  0x15021038(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x38));
-	CMDQ_ERR("vipi	 0x15021074(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x74));
+	CMDQ_ERR("vipi   0x15021074(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x74));
 	CMDQ_ERR("vip2i  0x15021078(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x78));
 	CMDQ_ERR("vip3i  0x1502107C(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x7C));
-	CMDQ_ERR("dmgi	 0x15021048(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x48));
-	CMDQ_ERR("depi	 0x1502104C(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x4C));
-	CMDQ_ERR("lcei	 0x15021050(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x50));
-	CMDQ_ERR("ufdi	 0x15021028(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x28));
+	CMDQ_ERR("dmgi   0x15021048(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x48));
+	CMDQ_ERR("depi   0x1502104C(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x4C));
+	CMDQ_ERR("lcei   0x15021050(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x50));
+	CMDQ_ERR("ufdi   0x15021028(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x28));
 	CMDQ_ERR("smx1o  0x15021030(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x30));
 	CMDQ_ERR("smx2o  0x1502105C(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x5C));
 	CMDQ_ERR("smx3o  0x15021064(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x64));
@@ -1215,9 +1346,9 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("smx4i  0x15021040(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x40));
 
 	/* Interrupt Status */
-	CMDQ_ERR("DIPCTL_INT1_STATUSX	0x150220A8(0x%x)\n",
+	CMDQ_ERR("DIPCTL_INT1_STATUSX   0x150220A8(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x10A8));
-	CMDQ_ERR("DIPCTL_INT2_STATUSX	0x150220B8(0x%x)\n",
+	CMDQ_ERR("DIPCTL_INT2_STATUSX   0x150220B8(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x10B8));
 	CMDQ_ERR("DIPCTL_INT3_STATUSX  0x150220C8(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x10C8));
@@ -1386,7 +1517,7 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_A_BASE + 0x7728), DIP_RD32(DIP_A_BASE + 0x772C));
 	CMDQ_ERR("crz: 0x15028730(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x7730));
 
-	/* IMGBI */
+    /* IMGBI */
 	CMDQ_ERR("imgci: 0x15021200(0x%x)-0x15021204(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x0200), DIP_RD32(DIP_A_BASE + 0x0204));
 	CMDQ_ERR("imgci: 0x1502120C(0x%x)-0x15021210(0x%x)\n",
@@ -1397,7 +1528,7 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_A_BASE + 0x021C), DIP_RD32(DIP_A_BASE + 0x0220));
 
 
-	/* IMGCI */
+    /* IMGCI */
 	CMDQ_ERR("imgci: 0x15021230(0x%x)-0x15021234(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x0230), DIP_RD32(DIP_A_BASE + 0x0234));
 	CMDQ_ERR("imgci: 0x1502123C(0x%x)-0x15021240(0x%x)\n",
@@ -1407,7 +1538,7 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("imgci: 0x1502124C(0x%x)-0x15021250(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x024C), DIP_RD32(DIP_A_BASE + 0x0250));
 
-	/* DEPI */
+    /* DEPI */
 	CMDQ_ERR("depi: 0x150213A0(0x%x)-0x150213A4(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x03A0), DIP_RD32(DIP_A_BASE + 0x03A4));
 	CMDQ_ERR("depi: 0x150213AC(0x%x)-0x150213B0(0x%x)\n",
@@ -1418,7 +1549,7 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_A_BASE + 0x03BC), DIP_RD32(DIP_A_BASE + 0x03D0));
 
 
-	/* DMGI */
+    /* DMGI */
 	CMDQ_ERR("dmgi: 0x15021370(0x%x)-0x15021374(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x0370), DIP_RD32(DIP_A_BASE + 0x0374));
 	CMDQ_ERR("dmgi: 0x1502137C(0x%x)-0x15021380(0x%x)\n",
@@ -1428,7 +1559,7 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("dmgi: 0x1502138C(0x%x)-0x15021390(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x038C), DIP_RD32(DIP_A_BASE + 0x0390));
 
-	/* LCE */
+    /* LCE */
 	CMDQ_ERR("lce: 0x15026A00(0x%x)-0x15026A04(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x5A00), DIP_RD32(DIP_A_BASE + 0x5A04));
 	CMDQ_ERR("lce: 0x15026A08(0x%x)-0x15026A0C(0x%x)\n",
@@ -1443,14 +1574,14 @@ static signed int DIP_DumpDIPReg(void)
 		DIP_RD32(DIP_A_BASE + 0x5A28), DIP_RD32(DIP_A_BASE + 0x5A2C));
 	CMDQ_ERR("0x15026A30(0x%x)\n", DIP_RD32(DIP_A_BASE + 0x5A30));
 
-	/* YNR */
+    /* YNR */
 	CMDQ_ERR("ynr: 0x15025700(0x%x)-0x15025704(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x4700), DIP_RD32(DIP_A_BASE + 0x4704));
 
-	/* BNR */
+    /* BNR */
 	CMDQ_ERR("bnr: 0x15023100(0x%x)-0x1502315C(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x2100), DIP_RD32(DIP_A_BASE + 0x215C));
-	/* HUNG-WEN */
+    /* HUNG-WEN */
 	CMDQ_ERR("imgsys:0x15020000(0x%x)\n", DIP_RD32(DIP_IMGSYS_CONFIG_BASE));
 
 	/* NR3D */
@@ -1573,189 +1704,6 @@ static signed int DIP_DumpDIPReg(void)
 	CMDQ_ERR("smt4i: 0x150212EC(0x%x)-0x150212F0(0x%x)\n",
 		DIP_RD32(DIP_A_BASE + 0x02EC), DIP_RD32(DIP_A_BASE + 0x02F0));
 
-
-#ifdef AEE_DUMP_REDUCE_MEMORY
-	if (g_bDumpPhyDIPBuf == MFALSE) {
-		ctrl_start = DIP_RD32(DIP_A_BASE + 0x1000);
-		if (g_bIonBufferAllocated == MFALSE) {
-			if (g_pPhyDIPBuffer != NULL) {
-				CMDQ_ERR("g_pPhyDIPBuffer isn't NULL(0x%pK)\n",
-					g_pPhyDIPBuffer);
-				vfree(g_pPhyDIPBuffer);
-				g_pPhyDIPBuffer = NULL;
-			}
-			g_pPhyDIPBuffer = vmalloc(DIP_REG_RANGE);
-			if (g_pPhyDIPBuffer == NULL)
-				CMDQ_ERR("g_pPhyDIPBuffer kmalloc failed\n");
-
-			if (g_pKWTpipeBuffer != NULL) {
-				CMDQ_ERR("g_pKWTpipeBuffer isn't NULL(0x%pK)\n",
-					g_pKWTpipeBuffer);
-					vfree(g_pKWTpipeBuffer);
-					g_pKWTpipeBuffer = NULL;
-			}
-			g_pKWTpipeBuffer = vmalloc(MAX_ISP_TILE_TDR_HEX_NO);
-			if (g_pKWTpipeBuffer == NULL)
-				CMDQ_ERR("g_pKWTpipeBuffer kmalloc failed\n");
-
-			if (g_pKWCmdqBuffer != NULL) {
-				CMDQ_ERR("g_KWCmdqBuffer isn't NULL(0x%pK)\n",
-					g_pKWCmdqBuffer);
-				vfree(g_pKWCmdqBuffer);
-				g_pKWCmdqBuffer = NULL;
-			}
-			g_pKWCmdqBuffer = vmalloc(MAX_DIP_CMDQ_BUFFER_SIZE);
-			if (g_pKWCmdqBuffer == NULL)
-				CMDQ_ERR("g_KWCmdqBuffer kmalloc failed\n");
-
-			if (g_pKWVirDIPBuffer != NULL) {
-				CMDQ_ERR("g_KWVirDIPBuffer isn't NULL(0x%pK)\n",
-					g_pKWVirDIPBuffer);
-				vfree(g_pKWVirDIPBuffer);
-				g_pKWVirDIPBuffer = NULL;
-			}
-			g_pKWVirDIPBuffer = vmalloc(DIP_REG_RANGE);
-			if (g_pKWVirDIPBuffer == NULL)
-				CMDQ_ERR("g_KWVirDIPBuffer kmalloc failed\n");
-		}
-
-		if (g_pPhyDIPBuffer != NULL) {
-			for (i = 0; i < (DIP_REG_RANGE >> 2); i = i + 4) {
-				g_pPhyDIPBuffer[i] =
-					DIP_RD32(DIP_A_BASE + (i*4));
-				g_pPhyDIPBuffer[i+1] =
-					DIP_RD32(DIP_A_BASE + ((i+1)*4));
-				g_pPhyDIPBuffer[i+2] =
-					DIP_RD32(DIP_A_BASE + ((i+2)*4));
-				g_pPhyDIPBuffer[i+3] =
-					DIP_RD32(DIP_A_BASE + ((i+3)*4));
-			}
-		} else {
-			CMDQ_ERR("g_pPhyDIPBuffer:(0x%pK)\n", g_pPhyDIPBuffer);
-		}
-		g_dumpInfo.tdri_baseaddr = DIP_RD32(DIP_A_BASE + 0x4);
-		g_dumpInfo.imgi_baseaddr = DIP_RD32(DIP_A_BASE + 0x100);
-		g_dumpInfo.dmgi_baseaddr = DIP_RD32(DIP_A_BASE + 0x370);
-		g_tdriaddr = g_dumpInfo.tdri_baseaddr;
-		/*0x15022208, CQ_D1A_CQ_THR0_BASEADDR*/
-		/*0x15022220, CQ_D1A_CQ_THR1_BASEADDR*/
-		/*0x1502222C, CQ_D1A_CQ_THR2_BASEADDR*/
-		if (ctrl_start == 0x1) {
-			g_cmdqaddr = DIP_RD32(DIP_A_BASE + 0x1208);
-		} else if (ctrl_start == 0x02) {
-			g_cmdqaddr = DIP_RD32(DIP_A_BASE + 0x1208 +
-					DIP_CMDQ1_TO_CMDQ0_BASEADDR_OFFSET);
-		} else {
-			for (cmdqidx = 2; cmdqidx < 18; cmdqidx++) {
-				if (ctrl_start & (0x1<<cmdqidx)) {
-					g_cmdqaddr = DIP_RD32(DIP_A_BASE
-						+ 0x1220 +
-						((cmdqidx-1)*
-						DIP_CMDQ_BASEADDR_OFFSET));
-					break;
-				}
-			}
-		}
-		g_dumpInfo.cmdq_baseaddr = g_cmdqaddr;
-		if ((ctrl_start  != 0) &&
-			(g_tdriaddr  != 0) &&
-			(g_TpipeBaseAddrInfo.MemPa != 0) &&
-			(g_TpipeBaseAddrInfo.MemVa != NULL) &&
-			(g_pKWTpipeBuffer != NULL)) {
-			/* to get frame tdri baseaddress, */
-			/* otherwise you may get one of the tdr bade addr*/
-			offset = ((g_tdriaddr &
-				(~(g_TpipeBaseAddrInfo.MemSizeDiff-1)))-
-				g_TpipeBaseAddrInfo.MemPa);
-			OffsetAddr = ((uintptr_t)g_TpipeBaseAddrInfo.MemVa)+
-				offset;
-			if (copy_from_user(g_pKWTpipeBuffer,
-				(void __user *)(OffsetAddr),
-				MAX_ISP_TILE_TDR_HEX_NO) != 0) {
-			CMDQ_ERR("cpy tpipe fail. tdriaddr:0x%x\n",
-				g_tdriaddr);
-			CMDQ_ERR("MemVa:0x%lx, MemPa:0x%x, offset:0x%x\n",
-				(uintptr_t)g_TpipeBaseAddrInfo.MemVa,
-				g_TpipeBaseAddrInfo.MemPa,
-				offset);
-			}
-		}
-		CMDQ_ERR("tdraddr:0x%x,MemVa:0x%lx,MemPa:0x%x\n",
-			g_tdriaddr,
-			(uintptr_t)g_TpipeBaseAddrInfo.MemVa,
-			g_TpipeBaseAddrInfo.MemPa);
-		CMDQ_ERR("MemSizeDiff:0x%x,offset:0x%x\n",
-			g_TpipeBaseAddrInfo.MemSizeDiff, offset);
-		CMDQ_ERR("g_pKWTpipeBuffer:0x%pK\n", g_pKWTpipeBuffer);
-
-		if ((ctrl_start  != 0) &&
-			(g_cmdqaddr  != 0) &&
-			(g_CmdqBaseAddrInfo.MemPa != 0) &&
-			(g_CmdqBaseAddrInfo.MemVa != NULL) &&
-			(g_pKWCmdqBuffer != NULL) &&
-			(g_pKWVirDIPBuffer != NULL)) {
-			offset = (g_cmdqaddr-g_CmdqBaseAddrInfo.MemPa);
-			OffsetAddr = ((uintptr_t)g_CmdqBaseAddrInfo.MemVa)+
-				(g_cmdqaddr-g_CmdqBaseAddrInfo.MemPa);
-			if (copy_from_user(g_pKWCmdqBuffer,
-				(void __user *)(OffsetAddr),
-				MAX_DIP_CMDQ_BUFFER_SIZE) != 0) {
-				CMDQ_ERR("cpy cmdq fail. cmdqaddr:0x%x\n",
-					g_cmdqaddr);
-				CMDQ_ERR("MemVa:0x%lx,MemPa:0x%x,offset:0x%x\n",
-					(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
-					g_CmdqBaseAddrInfo.MemPa,
-					offset);
-			}
-			CMDQ_ERR("cmdqidx:0x%x, cmdqaddr:0x%x\n",
-				cmdqidx,
-				g_cmdqaddr);
-			CMDQ_ERR("MemVa:0x%lx,MemPa:0x%x, offset:0x%x\n",
-				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
-				g_CmdqBaseAddrInfo.MemPa,
-				offset);
-			offset = offset+g_CmdqBaseAddrInfo.MemSizeDiff;
-			OffsetAddr = ((uintptr_t)g_CmdqBaseAddrInfo.MemVa) +
-				offset;
-			if (copy_from_user(g_pKWVirDIPBuffer,
-				(void __user *)(OffsetAddr),
-				DIP_REG_RANGE) != 0) {
-				CMDQ_ERR("cpy vir dip fail.\n");
-				CMDQ_ERR("cmdqaddr:0x%x,MVa:0x%lx,MPa:0x%x\n",
-				g_cmdqaddr,
-				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
-				g_CmdqBaseAddrInfo.MemPa);
-				CMDQ_ERR("MSzDiff:0x%x,offset:0x%x\n",
-				g_CmdqBaseAddrInfo.MemSizeDiff,
-				offset);
-
-			}
-			CMDQ_ERR("cmdqaddr:0x%x,MVa:0x%lx,MPa:0x%x\n",
-				g_cmdqaddr,
-				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
-				g_CmdqBaseAddrInfo.MemPa);
-			CMDQ_ERR("MSzDiff:0x%x\n",
-				g_CmdqBaseAddrInfo.MemSizeDiff);
-			CMDQ_ERR("ofset:0x%x,KWCmdBuf:0x%pK,KWTdrBuf:0x%pK\n",
-				offset, g_pKWCmdqBuffer, g_pKWTpipeBuffer);
-		} else {
-			CMDQ_ERR("cmdqadd:0x%x,MVa:0x%lx,MPa:0x%x\n",
-				g_cmdqaddr,
-				(uintptr_t)g_CmdqBaseAddrInfo.MemVa,
-				g_CmdqBaseAddrInfo.MemPa);
-			CMDQ_ERR("MSzDiff:0x%x,KWCmdBuf:0x%pK,KWTdrBuf:0x%pK\n",
-				g_CmdqBaseAddrInfo.MemSizeDiff,
-				g_pKWCmdqBuffer,
-				g_pKWTpipeBuffer);
-		}
-		g_bDumpPhyDIPBuf = MTRUE;
-	}
-#endif
-
-	CMDQ_ERR("direct link: g_bDumpPhyDIPBuf:(0x%x), cmdqidx(0x%x)\n",
-		g_bDumpPhyDIPBuf, cmdqidx);
-	CMDQ_ERR("direct link: cmdqaddr(0x%x), tdriaddr(0x%x)\n",
-		g_cmdqaddr, g_tdriaddr);
 	CMDQ_ERR("- X.");
 #endif
 	/*  */
@@ -1782,11 +1730,6 @@ static inline void Prepare_Enable_ccf_clock(void)
 
 static inline void Disable_Unprepare_ccf_clock(void)
 {
-	#ifdef VENDOR_EDIT
-	/*Yijun.Tan@Camera add for resolve monkey hwt issue 20190403*/
-	LOG_INF("before clk_disable. dip: 0x15022000(0x%x)\n",
-	DIP_RD32(DIP_A_BASE + 0x1000));
-	#endif
 	clk_disable_unprepare(dip_clk.DIP_IMG_DIP);
 	clk_disable_unprepare(dip_clk.DIP_IMG_LARB5);
 
@@ -4584,14 +4527,10 @@ static signed int DIP_probe(struct platform_device *pDev)
 
 #ifdef CONFIG_PM_WAKELOCKS
 		wakeup_source_init(&dip_wake_lock, "dip_lock_wakelock");
-		wakeup_source_init(&isp_mdp_wake_lock, "isp_mdp_wakelock");
 #else
 		wake_lock_init(&dip_wake_lock,
 			WAKE_LOCK_SUSPEND,
 			"dip_lock_wakelock");
-		wake_lock_init(&isp_mdp_wake_lock,
-			WAKE_LOCK_SUSPEND,
-			"isp_mdp_wakelock");
 #endif
 
 		/* enqueue/dequeue control in ihalpipe wrapper */
@@ -5378,11 +5317,6 @@ int32_t DIP_MDPClockOnCallback(uint64_t engineFlag)
 {
 	/* LOG_DBG("DIP_MDPClockOnCallback"); */
 	/*LOG_DBG("+MDPEn:%d", G_u4DipEnClkCnt);*/
-#ifdef CONFIG_PM_WAKELOCKS
-	__pm_stay_awake(&isp_mdp_wake_lock);
-#else
-	wake_lock(&isp_mdp_wake_lock);
-#endif
 	DIP_EnableClock(MTRUE);
 
 	return 0;
@@ -5448,11 +5382,6 @@ int32_t DIP_MDPClockOffCallback(uint64_t engineFlag)
 {
 	/* LOG_DBG("DIP_MDPClockOffCallback"); */
 	DIP_EnableClock(MFALSE);
-#ifdef CONFIG_PM_WAKELOCKS
-	__pm_relax(&isp_mdp_wake_lock);
-#else
-	wake_unlock(&isp_mdp_wake_lock);
-#endif
 	/*LOG_DBG("-MDPEn:%d", G_u4DipEnClkCnt);*/
 	return 0;
 }

@@ -100,22 +100,12 @@ bool ssusb_u3loop_back_test(struct ssusb_mtk *ssusb)
 void phy_hal_init(struct phy *phy)
 {
 	mtk_phy = phy;
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/02/19, sjc Modify for usb eye test */
 	/*mtu3_phy_init_debugfs(mtk_phy);*/
-#else
-	mtu3_phy_init_debugfs(mtk_phy);
-#endif
 }
 
 void phy_hal_exit(struct phy *phy)
 {
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/02/19, sjc Modify for usb eye test */
 	/*mtu3_phy_exit_debugfs();*/
-#else
-	mtu3_phy_exit_debugfs();
-#endif
 	mtk_phy = NULL;
 }
 

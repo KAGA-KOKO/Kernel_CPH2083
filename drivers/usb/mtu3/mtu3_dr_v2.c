@@ -105,8 +105,9 @@ static bool mtu3_mode_check(enum mtu3_vbus_id_state status)
 	case MTU3_ID_GROUND:
 	case MTU3_ID_FLOAT:
 		/*For host event, keep original behavior so return false*/
-		break;
 	case MTU3_VBUS_VALID:
+		/*For connection event, need check only in cmode case*/
+		break;
 	case MTU3_CMODE_VBUS_VALID:
 		/*Check charger status*/
 #if !defined(CONFIG_USB_MU3D_DRV)
@@ -334,10 +335,6 @@ void ssusb_set_mailbox(struct otg_switch_mtk *otg_sx,
 	struct ssusb_mtk *ssusb =
 		container_of(otg_sx, struct ssusb_mtk, otg_switch);
 	unsigned long flags;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/17, sjc Modify for dr_workq is not ready...*/
-	int i = 0;
-#endif
 
 	mtu3_printk(K_CRIT, "mailbox state(%d)\n", status);
 
@@ -363,23 +360,8 @@ void ssusb_set_mailbox(struct otg_switch_mtk *otg_sx,
 		dev_err(ssusb->dev, "invalid state\n");
 	}
 	spin_unlock_irqrestore(&otg_sx->dr_lock, flags);
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/01/17, sjc Modify for dr_workq is not ready...*/
 	queue_delayed_work(otg_sx->dr_workq,
 			&otg_sx->dr_work, 0);
-#else
-	for (i = 0; i < 20; i++) {
-		if (!otg_sx->dr_workq) {
-			mtu3_printk(K_CRIT, "mtu3 wq not ready\n");
-			msleep(500);
-			continue;
-		} else {
-			queue_delayed_work(otg_sx->dr_workq,
-					&otg_sx->dr_work, 0);
-			return;
-		}
-	}
-#endif /*VENDOR_EDIT*/
 }
 
 static int ssusb_id_notifier(struct notifier_block *nb,

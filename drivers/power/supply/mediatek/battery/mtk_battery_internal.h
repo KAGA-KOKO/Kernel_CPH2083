@@ -33,6 +33,11 @@
 #define FGD_NL_MAGIC 2015060303
 #define FGD_NL_MSG_MAX_LEN 9200
 
+#ifdef ODM_HQ_EDIT
+/* Mengchun.Zhang@ODM.HQ.BSP.CHG.Basic 2019/01/08 Define seconds in 10 minutes*/
+#define TEN_MINUTES 600      /* 10 minutes = 60 * 10 second */
+#endif  /* ODM_HQ_EDIT */
+
 #define UNIT_TRANS_10	10
 
 #define UNIT_TRANS_100	100
@@ -55,7 +60,7 @@
 #define SHUTDOWN_TIME 40
 #define AVGVBAT_ARRAY_SIZE 30
 #define INIT_VOLTAGE 3450
-#define BATTERY_SHUTDOWN_TEMPERATURE 90
+#define BATTERY_SHUTDOWN_TEMPERATURE 60
 
 /* ============================================================ */
 /* typedef and Struct*/
@@ -588,6 +593,13 @@ struct battery_data {
 	/* Add for Battery Service */
 	int BAT_batt_vol;
 	int BAT_batt_temp;
+#ifdef ODM_HQ_EDIT
+/*duanhanxing@ODM.HQ.BSP.CHG/Basic 2018.12.10 add power supply file node*/
+	int BAT_call_mode;
+	int BAT_battery_charging_enabled;
+	int BAT_mmi_charging_enable;
+	struct delayed_work		uisoc_work;
+#endif /*ODM_HQ_EDIT*/
 };
 
 struct BAT_EC_Struct {
@@ -881,6 +893,11 @@ extern int pmic_get_ibus(void);
 extern int pmic_is_bif_exist(void);
 extern int pmic_get_vbus(void);
 extern bool pmic_is_battery_exist(void);
+
+#ifdef ODM_HQ_EDIT
+/*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.14 add check battery present*/
+extern bool battery_present_check(void);
+#endif/*ODM_HQ_EDIT*/
 
 /* usb*/
 extern bool mt_usb_is_device(void);

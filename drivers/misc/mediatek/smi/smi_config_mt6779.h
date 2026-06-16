@@ -258,7 +258,7 @@ struct mtk_smi_pair **smi_scen_pair[SMI_LARB_NUM + 1] = {
 #define SMI_COMM_CONFIG_NUM	6
 struct mtk_smi_pair smi_comm_config_pair[SMI_COMM_CONFIG_NUM] = {
 	{SMI_L1LEN, 0xb}, {SMI_M4U_TH, 0xe100e10}, {SMI_FIFO_TH1, 0x506090a},
-	{SMI_FIFO_TH2, 0x506090a}, {SMI_DCM, 0x4f0}, {SMI_DUMMY, 0x1},
+	{SMI_FIFO_TH2, 0x506090a}, {SMI_DCM, 0x4f1}, {SMI_DUMMY, 0x1},
 };
 
 #define SMI_LARB0_CONFIG_NUM	11

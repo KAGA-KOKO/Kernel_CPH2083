@@ -171,17 +171,14 @@
 				  "ldo3_oc_evt", "ldo5_oc_evt",
 				  "ldo1_pgb_evt", "ldo2_pgb_evt",
 				  "ldo3_pgb_evt", "ldo5_pgb_evt";
-        //#ifdef VENDOR_EDIT
-        /* Dongnan.Wu@BSP.Fingerprint.Basic 2019/03/04, modify for fingerprint power sequence */
-		ldo1_ctrls = [00 c0 01 2d 44];
-        //#endif /* VENDOR_EDIT */
+		ldo1_ctrls = [00 80 01 2d 44];
 		ldo2_ctrls = [00 80 01 2d 44];
 		ldo3_ctrls = [00 80 01 2d a4];
 		//#ifndef VENDOR_EDIT
 		/* tianwen@PSW.BSP.Kernel.Driver, 2018/11/10, Modify for T_card eint, low active change to high active */
-		ldo5_ctrls = [00 80 81 2d a4];
+		//ldo5_ctrls = [00 80 81 2d a4];
 		//#else
-		ldo5_ctrls_p90m = [00 80 01 2d a4];
+		ldo5_ctrls = [00 80 01 2d a4];
 		//#endif /*VENDOR_EDIT*/
 		//#ifndef VENDOR_EDIT
 		/* Long.Liu@PSW.BSP.Fingerprint, 2018/11/19, Modify for ldo1 name used by fingerprint */
@@ -192,10 +189,6 @@
 			regulator-name = "VFP";
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <3600000>;
-            //#ifdef VENDOR_EDIT
-            /* Dongnan.Wu@BSP.Fingerprint.Basic 2019/03/04, modify for fingerprint power sequence */
-			regulator-boot-on;
-            //#endif /* VENDOR_EDIT */
 		};
 		//#ifdef VENDOR_EDIT
 		/* Henry.Chang@Camera..Driver, 2018/11/21, Modify for 18151_AF */

@@ -18,11 +18,11 @@
 static struct step_c_context *step_c_context_obj;
 static struct step_c_init_info *
 	step_counter_init_list[MAX_CHOOSE_STEP_C_NUM] = { 0 };
-#ifdef VENDOR_EDIT
-//zhye@PSW.BSP.Sensor, 2018-01-20, to store original STEP and upload
-static unsigned int step_first_data = 0;
-static uint32_t last_step_counter = 0;
+#ifdef ODM_HQ_EDIT
+/* Huan.Zhang@ODM_HQ.BSP.Sensors.Config, 2018/12/30, report first data 0 for em mode */
+static uint32_t hq_step_counter_record;
 #endif
+
 static void step_c_work_func(struct work_struct *work)
 {
 
@@ -132,11 +132,7 @@ static struct step_c_context *step_c_context_alloc_object(void)
 		pr_err("Alloc step_c object error!\n");
 		return NULL;
 	}
-#ifndef VENDOR_EDIT
 	atomic_set(&obj->delay, 2000);	/*0.5Hz */
-#else
-	atomic_set(&obj->delay, 200); //5Hz
-#endif
 	atomic_set(&obj->wake, 0);
 	INIT_WORK(&obj->report, step_c_work_func);
 	init_timer(&obj->timer);
@@ -250,6 +246,14 @@ static int significant_real_enable(int enable)
 	return err;
 }
 
+#ifdef ODM_HQ_EDIT
+/* Huan.Zhang@ODM_HQ.BSP.Sensors.Config, 2018/12/30, report first data 0 for em mode */
+void hq_report_first_data(void)
+{
+	if(hq_step_counter_record == 0)
+		step_c_data_report(0, 2);
+}
+#endif
 
 static int step_c_real_enable(int enable)
 {
@@ -271,7 +275,10 @@ static int step_c_real_enable(int enable)
 						enable, err);
 				}
 			}
-
+			#ifdef ODM_HQ_EDIT
+			/* Huan.Zhang@ODM_HQ.BSP.Sensors.Config, 2018/12/30, report first data 0 for em mode */
+			hq_report_first_data();
+			#endif
 			pr_debug("step_c real enable\n");
 		}
 	}
@@ -347,11 +354,6 @@ static int step_c_enable_data(int enable)
 				cxt->is_polling_run = true;
 			}
 		}
-#ifdef VENDOR_EDIT
-//zhye@PSW.BSP.Sensor, 2018-01-20, to store original STEP and upload
-		step_first_data = 1;
-		step_c_data_report(last_step_counter, 3);
-#endif
 	}
 	if (enable == 0) {
 		pr_debug("STEP_C disable\n");
@@ -423,14 +425,8 @@ int step_c_enable_nodata(int enable)
 	}
 
 	if (enable == 1)
-	{
 		cxt->is_active_nodata = true;
-#ifdef VENDOR_EDIT
-//zhye@PSW.BSP.Sensor, 2018-01-20, to store original STEP and upload
-		step_first_data = 1;
-		step_c_data_report(last_step_counter, 3);
-#endif
-	}
+
 	if (enable == 0)
 		cxt->is_active_nodata = false;
 	step_c_real_enable(enable);
@@ -961,25 +957,28 @@ int step_c_data_report(uint32_t new_counter, int status)
 	static uint32_t last_step_counter;
 
 	memset(&event, 0, sizeof(struct sensor_event));
-#ifdef VENDOR_EDIT
-//zhye@PSW.BSP.Sensor, 2018-01-20, to store original STEP and upload
-	if ((new_counter > last_step_counter) || (step_first_data == 1)) {
-		if (step_first_data == 1)
-		{
-			new_counter = last_step_counter;
-			step_first_data = 0;
-		}
-		pr_err("step_counter=%d\n",new_counter);
-#else//VENDOR_EDIT
+
 	if (last_step_counter != new_counter) {
-#endif//VENDOR_EDIT
 		event.flush_action = DATA_ACTION;
 		event.handle = ID_STEP_COUNTER;
 		event.word[0] = new_counter;
 		last_step_counter = new_counter;
 		err = sensor_input_event(step_c_context_obj->mdev.minor,
 			&event);
+	#ifdef ODM_HQ_EDIT
+	} else {
+	/* GuJianchao@ODM_HQ.Sensors.SCP.BSP.Sensors.Config,2018/12/27, add data report */
+		event.flush_action = DATA_ACTION;
+		event.handle = ID_STEP_COUNTER;
+		event.word[0] = last_step_counter;
+		err = sensor_input_event(step_c_context_obj->mdev.minor,
+			&event);
+	#endif
 	}
+	#ifdef ODM_HQ_EDIT
+	/* Huan.Zhang@ODM_HQ.BSP.Sensors.Config, 2018/12/30, report first data 0 for em mode */
+	hq_step_counter_record = last_step_counter;
+	#endif
 	return 0;
 }
 

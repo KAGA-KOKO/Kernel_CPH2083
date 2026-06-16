@@ -117,8 +117,6 @@ bool __attribute__ ((weak)) ConditionEnterSuspend(void)
 /********************************************************************/
 void kpd_wakeup_src_setting(int enable)
 {
-#ifndef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/15, Remove for keypad volume up and volume down */
 	int is_fm_radio_playing = 0;
 
 	/* If FM is playing, keep keypad as wakeup source */
@@ -136,15 +134,6 @@ void kpd_wakeup_src_setting(int enable)
 			enable_kpd(0);
 		}
 	}
-#else
-	if (enable == 1) {
-		kpd_print("enable kpd work!\n");
-		enable_kpd(1);
-	} else {
-		kpd_print("disable kpd work!\n");
-		enable_kpd(0);
-	}
-#endif
 }
 
 /********************************************************************/

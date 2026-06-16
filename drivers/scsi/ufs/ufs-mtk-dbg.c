@@ -17,7 +17,6 @@
 
 #define pr_fmt(fmt) "["KBUILD_MODNAME"]" fmt
 
-#include <linux/atomic.h>
 #include <linux/sched.h>
 #include <linux/kthread.h>
 #include <linux/delay.h>
@@ -50,7 +49,6 @@ int ufs_cmd_ptr = MAX_UFS_CMD_HLIST_ENTRY_CNT - 1;
 int ufs_cmd_cnt;
 static spinlock_t ufs_mtk_cmd_dump_lock;
 static int ufs_mtk_is_cmd_dump_lock_init;
-static atomic_t cmd_hist_enabled;
 char ufs_aee_buffer[UFS_AEE_BUFFER_SIZE];
 
 static void ufs_mtk_dbg_dump_feature(struct ufs_hba *hba, struct seq_file *m)
@@ -82,12 +80,7 @@ void ufs_mtk_dbg_add_trace(struct ufs_hba *hba,
 	if (!ufs_mtk_is_cmd_dump_lock_init) {
 		spin_lock_init(&ufs_mtk_cmd_dump_lock);
 		ufs_mtk_is_cmd_dump_lock_init = 1;
-
-		atomic_set(&cmd_hist_enabled, 1);
 	}
-
-	if (!atomic_read(&cmd_hist_enabled))
-		return;
 
 	spin_lock_irqsave(&ufs_mtk_cmd_dump_lock, flags);
 
@@ -120,11 +113,6 @@ void ufs_mtk_dbg_add_trace(struct ufs_hba *hba,
 		if (hba->lrb[tag].cmd && hba->lrb[tag].cmd->request) {
 			ufs_cmd_hlist[ptr].rq =
 				hba->lrb[tag].cmd->request;
-			ufs_cmd_hlist[ptr].crypted =
-				hba->lrb[tag].crypto_en;
-			ufs_cmd_hlist[ptr].keyslot =
-				ufs_cmd_hlist[ptr].crypted ?
-				hba->lrb[tag].crypto_cfgid : 0;
 		}
 	}
 
@@ -254,15 +242,13 @@ void ufs_mtk_dbg_dump_trace(char **buff, unsigned long *size,
 
 		} else {
 			SPREAD_PRINTF(buff, size, m,
-				"%3d-r,%5d,%2d,0x%2x,t=%2d,lun=0x%x,crypt:%d,%d,lba=0x%llx,len=%6d,%llu,\t%llu",
+				"%3d-r,%5d,%2d,0x%2x,t=%2d,lun=0x%x,lba=0x%llx,len=%6d,%llu,\t%llu",
 				ptr,
 				ufs_cmd_hlist[ptr].pid,
 				ufs_cmd_hlist[ptr].event,
 				ufs_cmd_hlist[ptr].opcode,
 				ufs_cmd_hlist[ptr].tag,
 				ufs_cmd_hlist[ptr].lun,
-				ufs_cmd_hlist[ptr].crypted,
-				ufs_cmd_hlist[ptr].keyslot,
 				(long long int)ufs_cmd_hlist[ptr].lba,
 				ufs_cmd_hlist[ptr].transfer_len,
 				(u64)ufs_cmd_hlist[ptr].time,
@@ -432,24 +418,26 @@ static int ufs_help_proc_show(struct seq_file *m, void *v)
 	return 0;
 }
 
+int ufs_g_count;
 /* ========== driver proc interface =========== */
 static int ufs_debug_proc_show(struct seq_file *m, void *v)
 {
-	unsigned long cmd;
+	int cmd = -1;
+	int sscanf_num;
+	int p1, p2, p3, p4, p5, p6, p7, p8;
 
-	seq_printf(m, "ufsdbg: debug command: %s\n", cmd_buf);
+	p1 = p2 = p3 = p4 = p5 = p6 = p7 = p8 = -1;
 
-	if (kstrtoul(cmd_buf, 10, &cmd))
-		cmd = UFS_CMDS_DUMP;
+	cmd_buf[ufs_g_count] = '\0';
+	seq_printf(m, "Debug Command:  %s\n", cmd_buf);
 
-	cmd_buf[0] = '\0';
+	sscanf_num = sscanf(cmd_buf, "%x %x %x %x %x %x %x %x %x", &cmd,
+		&p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8);
+
+	ufs_g_count = 0;
+	cmd_buf[ufs_g_count] = '\0';
 
 	if (cmd == UFS_CMDS_DUMP) {
-		/*
-		 * Default print cmd history for aee:
-		 * JE/NE/ANR/EE/SWT/system api dump
-		 */
-		seq_puts(m, "==== UFS Debug Info ====\n");
 		ufs_mtk_dbg_proc_dump(m);
 	} else if (cmd == UFS_GET_PWR_MODE) {
 		seq_puts(m, "(1:FAST 2:SLOW 4:FAST_AUTO 5:SLOW_AUTO 7:UNCHANGE)\n");
@@ -466,6 +454,14 @@ static int ufs_debug_proc_show(struct seq_file *m, void *v)
 			ufs_mtk_hba->pwr_info.lane_rx);
 	} else if (cmd == UFS_DUMP_HEALTH_DESCRIPTOR) {
 		ufsdbg_dump_health_desc(m);
+
+	} else {
+		/*
+		 * Default print cmd history for aee:
+		 * JE/NE/ANR/EE/SWT/system api dump
+		 */
+		seq_puts(m, "==== ufs debug info for aee ====\n");
+		ufs_mtk_dbg_proc_dump(m);
 	}
 
 	return 0;
@@ -474,38 +470,16 @@ static int ufs_debug_proc_show(struct seq_file *m, void *v)
 static ssize_t ufs_debug_proc_write(struct file *file, const char *buf,
 	size_t count, loff_t *data)
 {
-	unsigned long op;
-	bool handled = false;
+	int ret;
 
-	if (count == 0 || count > 255)
-		return -EINVAL;
-
-	if (copy_from_user(cmd_buf, buf, count))
-		return -EINVAL;
-
-	/*
-	 * Let's handle simple commands here.
-	 * Simple command can be executed immediately
-	 * after command is written and do not need further
-	 * "read" or "cat" anymore.
-	 */
-	cmd_buf[count] = '\0';
-	if (kstrtoul(cmd_buf, 10, &op))
-		return -EINVAL;
-
-	if (op == UFS_CMD_HIST_BEGIN) {
-		atomic_set(&cmd_hist_enabled, 1);
-		pr_info("ufsdbg: cmd history on\n");
-		handled = true;
-	} else if (op == UFS_CMD_HIST_STOP) {
-		atomic_set(&cmd_hist_enabled, 0);
-		pr_info("ufsdbg: cmd history off\n");
-		handled = true;
-	}
-
-	if (handled)
-		cmd_buf[0] = '\0';
-
+	if (count == 0)
+		return -1;
+	if (count > 255)
+		count = 255;
+	ufs_g_count = count;
+	ret = copy_from_user(cmd_buf, buf, count);
+	if (ret < 0)
+		return -1;
 	return count;
 }
 

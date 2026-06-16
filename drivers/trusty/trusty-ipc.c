@@ -1131,7 +1131,7 @@ static const struct file_operations tipc_fops = {
 static struct tipc_virtio_dev *_get_vds(struct tipc_cdev_node *cdn)
 {
 	if (!cdn) {
-		struct tipc_virtio_dev *vds = (struct tipc_virtio_dev *)NULL;
+		struct tipc_virtio_dev *vds;
 
 		mutex_lock(&tipc_devices_lock);
 		if (default_vdev) {

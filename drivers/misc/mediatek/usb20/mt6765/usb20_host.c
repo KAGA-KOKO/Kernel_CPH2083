@@ -29,12 +29,6 @@
 #include "usb20.h"
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
-
-#ifdef ODM_WT_EDIT
-//Xu.Chen@ODM_WT.BSP.Storage.Usb, 2020/01/07, Modify for OTG
-extern void oppo_chg_set_otg_online(bool online);
-#endif /*ODM_WT_EDIT*/
-
 #ifdef CONFIG_MTK_USB_TYPEC
 #ifdef CONFIG_TCPC_CLASS
 #include "tcpm.h"
@@ -98,7 +92,6 @@ static struct pinctrl_state * pinctrl_high;
 static struct pinctrl_state * pinctrl_low;
 static int iddig_pin_state;
 static void otg_request_irq(void);
-static int otg_switch_flage = 0;
 #endif /*ODM_HQ_EDIT*/
 static ktime_t ktime_start, ktime_end;
 
@@ -179,10 +172,6 @@ static void _set_vbus(int is_on)
 		vbus_on = true;
 #ifdef CONFIG_MTK_CHARGER
 #if CONFIG_MTK_GAUGE_VERSION == 30
-#ifdef ODM_WT_EDIT
-//Xu.Chen@ODM_WT.BSP.Storage.Usb, 2020/01/07, Modify for OTG
-		oppo_chg_set_otg_online(true);
-#endif /*ODM_WT_EDIT*/
 		charger_dev_enable_otg(primary_charger, true);
 		charger_dev_set_boost_current_limit(primary_charger, 1500000);
 #else
@@ -198,10 +187,6 @@ static void _set_vbus(int is_on)
 
 #ifdef CONFIG_MTK_CHARGER
 #if CONFIG_MTK_GAUGE_VERSION == 30
-#ifdef ODM_WT_EDIT
-//Xu.Chen@ODM_WT.BSP.Storage.Usb, 2020/01/07, Modify for OTG
-		oppo_chg_set_otg_online(false);
-#endif /*ODM_WT_EDIT*/
 		charger_dev_enable_otg(primary_charger, false);
 #else
 		set_chr_enable_otg(0x0);
@@ -211,7 +196,7 @@ static void _set_vbus(int is_on)
 }
 #ifdef ODM_HQ_EDIT
 #ifdef CONFIG_TCPC_CLASS
-/*yi.zhou@ODM.HQ.BSP.USB 2019.09.23  add TCPC_CLASS control typec code*/
+/*Hanxing.Duan@ODM.HQ.BSP.USB 2018.11.29  add TCPC_CLASS control typec code*/
 static void do_vbus_work(struct work_struct *data)
 {
 	struct mt_usb_work *work =
@@ -325,6 +310,7 @@ static void issue_host_work(int ops, int delay, bool on_st)
 	if (!work) {
 		DBG(0, "work is NULL, directly return\n");
 		return;
+
 	}
 	work->ops = ops;
 	INIT_DELAYED_WORK(&work->dwork, do_host_work);
@@ -483,34 +469,29 @@ void switch_int_to_host(struct musb *musb)
 
 #ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.USB.OTG 2018.12.20 add otg_switch func*/
-extern bool otg_online;
-void otg_switch_mode(bool value)
+extern int otg_switch;
+extern int otg_online;
+void otg_switch_mode(int value)
 {
-	if (value)
+	if (value == 1)
 	{
-		if (otg_switch_flage == 0)
-		{
-			otg_switch_flage = 1;
-			otg_request_irq();
-			iddig_pin_state = __gpio_get_value(iddig_pin);
-			enable_irq(iddig_eint_num);
-		}
+		otg_request_irq();
+		enable_irq(iddig_eint_num);
+		iddig_pin_state = __gpio_get_value(iddig_pin);
 		pr_err("iddig_pin1 = %d\n",iddig_pin_state);
-	} else {
-		if (otg_switch_flage == 1)
+	}
+	else if (value == 0)
+	{
+		disable_irq(iddig_eint_num);
+		if (otg_online == 1)
 		{
-			otg_switch_flage = 0;
-			disable_irq(iddig_eint_num);
-			if (otg_online == 1)
-			{
-				mt_usb_host_disconnect(0);
-				iddig_req_host = false;
-			}
-			free_irq(iddig_eint_num, NULL);
-			pinctrl_select_state(pinctrl,pinctrl_low);
-			iddig_pin_state = __gpio_get_value(iddig_pin);
+			mt_usb_host_disconnect(0);
+			iddig_req_host = false;
 		}
-		pr_err("iddig_pin12 %d  otg_online = %d\n",iddig_pin_state, otg_online);
+		free_irq(iddig_eint_num, NULL);
+		pinctrl_select_state(pinctrl,pinctrl_low);
+		iddig_pin_state = __gpio_get_value(iddig_pin);
+		pr_err("iddig_pin12 = %d\n",iddig_pin_state);
 	}
 }
 #endif /*ODM_HQ_EDIT*/
@@ -766,7 +747,7 @@ static const struct of_device_id otg_iddig_of_match[] = {
 };
 
 #ifdef ODM_HQ_EDIT
-/*yi.zhou@ODM.HQ.BSP.CHG.Basic 2019.09.23 add is_otg file node*/
+/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2018.12.04 add is_otg file node*/
 static ssize_t mt_usb_show_is_otg(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -791,7 +772,6 @@ static void otg_request_irq(void)
 		DBG(0,
 			"request EINT <%d> fail, ret<%d>\n",
 	 		iddig_eint_num, ret);
-		disable_irq(iddig_eint_num);
 		pinctrl_select_state(pinctrl,pinctrl_low);
 		return;
 	}
@@ -841,7 +821,10 @@ static int otg_iddig_probe(struct platform_device *pdev)
 		pr_err("get pinctrl_low fail\n");
 		return -ENXIO;
 	}
-	pinctrl_select_state(pinctrl,pinctrl_low);
+	if (otg_switch == 1)
+		otg_request_irq();
+	else
+		pinctrl_select_state(pinctrl,pinctrl_low);
 #endif /*ODM_HQ_EIDT*/
 	return 0;
 }
@@ -872,18 +855,12 @@ static int iddig_int_init(void)
 void mt_usb_otg_init(struct musb *musb)
 {
 	/* BYPASS OTG function in special mode */
-#ifndef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic KPOC init usb pinctrl*/
 	if (get_boot_mode() == META_BOOT
 #ifdef CONFIG_MTK_KERNEL_POWER_OFF_CHARGING
 			|| get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT
 			|| get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT
 #endif
 	   ) {
-#else /*ODM_HQ_EDIT*/
-	if (get_boot_mode() == META_BOOT) {
-#endif /*ODM_HQ_EDIT*/
-
 #ifdef CONFIG_MTK_USB_TYPEC
 		DBG(0, "with TYPEC in special mode %d, keep going\n",
 			get_boot_mode());

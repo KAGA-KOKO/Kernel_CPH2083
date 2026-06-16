@@ -14,8 +14,6 @@
 #ifndef __CMDQ_ENGINE_H__
 #define __CMDQ_ENGINE_H__
 
-#define SUPPORT_MDP_CAMIN2
-
 enum CMDQ_ENG_ENUM {
 	/* ISP */
 	CMDQ_ENG_WPEI = 0,
@@ -92,8 +90,6 @@ enum CMDQ_ENG_ENUM {
 	CMDQ_ENG_ISP_DMGI_DEPI,		/* 55 */
 	CMDQ_ENG_ISP_IMGCI,		/* 56 */
 	CMDQ_ENG_ISP_TIMGO,		/* 57 */
-
-	CMDQ_ENG_INORDER,		/* 58 */
 
 	CMDQ_MAX_ENGINE_COUNT		/* ALWAYS keep at the end */
 };

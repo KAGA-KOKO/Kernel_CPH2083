@@ -134,9 +134,6 @@
 			output-high;
 		};
 	};
-//#ifdef VENDOR_EDIT
-//Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/03/29, sjc Delete for charging
-/*
 	camera2_vcama_off: camera2_vcama_output_low@gpio195 {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO195__FUNC_GPIO195>;
@@ -149,8 +146,6 @@
 			output-high;
 		};
 	};
-*/
-//#endif VENDOR_EDIT
 	camera2_vcamd_off: camera2_vcamd_output_low@gpio14 {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO14__FUNC_GPIO14>;
@@ -270,10 +265,7 @@
 			"cam0_ldo_vcamd_0", "cam0_ldo_vcamd_1",
 			"cam1_ldo_vcama_0", "cam1_ldo_vcama_1",
 			"cam1_ldo_vcamd_0", "cam1_ldo_vcamd_1",
-//#ifdef VENDOR_EDIT
-//Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/03/29, sjc Delete for charging
-//			"cam2_ldo_vcama_0", "cam2_ldo_vcama_1",
-//#endif
+			"cam2_ldo_vcama_0", "cam2_ldo_vcama_1",
 			"cam2_ldo_vcamd_0", "cam2_ldo_vcamd_1",
 			"cam0_mclk_off",
 			"cam0_mclk_2mA", "cam0_mclk_4mA",
@@ -305,11 +297,8 @@
 	pinctrl-18 = <&camera1_vcama_on>;
 	pinctrl-19 = <&camera1_vcamd_off>;
 	pinctrl-20 = <&camera1_vcamd_on>;
-//#ifdef VENDOR_EDIT
-//Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/03/29, sjc Delete for charging
-//	pinctrl-21 = <&camera2_vcama_off>;
-//	pinctrl-22 = <&camera2_vcama_on>;
-//#endif
+	pinctrl-21 = <&camera2_vcama_off>;
+	pinctrl-22 = <&camera2_vcama_on>;
 	pinctrl-23 = <&camera2_vcamd_off>;
 	pinctrl-24 = <&camera2_vcamd_on>;
 	pinctrl-25 = <&camera0_mclk_off>;

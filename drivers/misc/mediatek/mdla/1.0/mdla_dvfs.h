@@ -16,7 +16,6 @@
 
 #include "mdla.h"
 #include "mdla_ioctl.h"
-#include "apu_dvfs.h"
 #include <linux/of_platform.h>
 #include <linux/seq_file.h>
 
@@ -118,10 +117,6 @@ enum mdlaPowerOnType {
 #define MDLA_REQ_MAX_NUM_PRIORITY 3
 
 extern struct MDLA_OPP_INFO mdla_power_table[MDLA_OPP_NUM];
-extern void dump_debug_status(void);
-extern void __iomem *cksys_base;
-extern unsigned int mt_get_ckgen_freq(unsigned int ID);
-
 int32_t mdla_thermal_en_throttle_cb(uint8_t vmdla_opp, uint8_t mdla_opp);
 int32_t mdla_thermal_dis_throttle_cb(void);
 int mdla_quick_suspend(int core);
@@ -133,10 +128,6 @@ int get_mdla_opp_to_freq(uint8_t step);
 void mdla_put_power(int core);
 int mdla_get_power(int core);
 void mdla_opp_check(int core, uint8_t vmdla_index, uint8_t freq_index);
-#ifdef VENDOR_EDIT
-/*zhen.zeng@Camera, 2019/6/26, Add for AIScene VPU*/
-extern void clear_mdla_opp_keep_flag(void);
-#endif /* VENDOR_EDIT */
 
 #ifndef MTK_MDLA_FPGA_PORTING
 int mdla_init_hw(int core, struct platform_device *pdev);

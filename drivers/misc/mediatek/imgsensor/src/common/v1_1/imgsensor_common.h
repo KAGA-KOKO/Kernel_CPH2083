@@ -17,11 +17,6 @@
 #include "kd_camera_feature.h"
 #include "kd_imgsensor_define.h"
 
-#ifdef VENDOR_EDIT
-/*Henry.Chang@Camera.Driver 20190521 add for multi project using one build*/
-#include <soc/oppo/oppo_project.h>
-#endif
-
 /******************************************************************************
  * Debug configuration
  ******************************************************************************/
@@ -53,9 +48,6 @@ enum IMGSENSOR_RETURN {
 	IMGSENSOR_RETURN_SUCCESS = 0,
 	IMGSENSOR_RETURN_ERROR   = -1,
 };
-#ifdef VENDOR_EDIT
-/*Henry.Chang@Camera.Driver add for Camera ModuleSN 20190505*/
-#define CAMERA_MODULE_SN_LENGTH    (20)
-#endif
+
 #endif
 

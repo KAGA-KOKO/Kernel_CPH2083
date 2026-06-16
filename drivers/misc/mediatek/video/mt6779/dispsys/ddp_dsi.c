@@ -1862,15 +1862,7 @@ void DSI_MIPI_clk_change(enum DISP_MODULE_ENUM module, void *cmdq, int clk)
 	unsigned int prediv    = 0;
 	unsigned int i = DSI_MODULE_to_ID(module);
 
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-	* add for mipi clk change
-	*/
 	DISPMSG("%s,clk=%d\n", __func__, clk);
-	#else
-	pr_err("%s,clk=%d\n", __func__, clk);
-	#endif /*VENDOR_EDIT*/
 
 	if (_is_power_on_status(module)) {
 		if (clk != 0) {
@@ -3424,17 +3416,6 @@ unsigned int DSI_dcs_read_lcm_reg_v2_wrapper_DSI0(UINT8 cmd, UINT8 *buffer,
 	return DSI_dcs_read_lcm_reg_v2(DISP_MODULE_DSI0, NULL, cmd, buffer,
 				       buffer_size);
 }
-
-#ifdef VENDOR_EDIT
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/17,
-* add for lcd serial
-*/
-unsigned int DSI_dcs_read_lcm_reg_v3_wrapper_DSI0(UINT8 cmd, UINT8 *buffer, UINT8 buffer_size)
-{
-	return DSI_dcs_read_lcm_reg_v3(DISP_MODULE_DSI0, cmd, buffer, buffer_size);
-}
-#endif
 
 unsigned int DSI_dcs_read_lcm_reg_v2_wrapper_DSI1(UINT8 cmd, UINT8 *buffer,
 						  UINT8 buffer_size)

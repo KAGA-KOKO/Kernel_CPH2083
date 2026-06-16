@@ -8,7 +8,6 @@
 #include <linux/io.h>
 #include <linux/of.h>
 #include <sec_boot_lib.h>
-#include <linux/syscalls.h>
 
 /////////////////////////////////////////////////////////////
 static struct proc_dir_entry *oppoVersion = NULL;
@@ -21,181 +20,13 @@ static ProjectInfoCDTType projectInfo = {
 	.nPCBVersion	= 0,
 };
 
-#ifdef VENDOR_EDIT
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
-static const char* nfc_feature = "nfc_feature";
-static const char* feature_src = "/vendor/etc/nfc/com.oppo.nfc_feature.xml";
-#endif
-
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-OPPOVERSION oppoversion;
-
-static int getinfo_for_oppoversion(int board_id){
-	int MB = board_id & 0xff;
-	int KB = (board_id >> 10) & 0x3;
-	int PB = (board_id >> 8) & 0x3;
-
-	if(0x0 == PB){
-		strcpy(oppoversion.pcbVersion, "PVT");
-	}else if(0x3 == PB){
-		strcpy(oppoversion.pcbVersion, "DVT");
-	}else if(0x2 == PB){
-		strcpy(oppoversion.pcbVersion, "EVT");
-	}else{
-		strcpy(oppoversion.pcbVersion, "UNKOWN");
-	}
-
-	if(0x2 == KB){
-		strcpy(oppoversion.Kboard, "1");
-	}else if(0x0 == KB){
-		strcpy(oppoversion.Kboard, "0");
-	}else{
-		strcpy(oppoversion.Kboard, "unknow");
-	}
-
-	switch(MB){
-		case 0x00:
-			strcpy(oppoversion.operatorName, "92");
-			strcpy(oppoversion.prjVersion, "19181");
-			strcpy(oppoversion.modemType, "1");
-			strcpy(oppoversion.Mboard, "0000");
-			break;
-		case 0x03:
-			strcpy(oppoversion.operatorName, "92");
-			strcpy(oppoversion.prjVersion, "19181");
-			strcpy(oppoversion.modemType, "1");
-			strcpy(oppoversion.Mboard, "0001");
-			pr_err("Modify board_id : remove mobile customization\n");
-			break;
-		case 0x0c:
-			strcpy(oppoversion.operatorName, "94");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "3");
-			strcpy(oppoversion.Mboard, "0010");
-			break;
-		case 0x0f:
-			strcpy(oppoversion.operatorName, "95");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "4");
-			strcpy(oppoversion.Mboard, "0011");
-			break;
-		case 0x30:
-			strcpy(oppoversion.operatorName, "96");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "5");
-			strcpy(oppoversion.Mboard, "0100");
-			break;
-		case 0x33:
-			strcpy(oppoversion.operatorName, "97");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "6");
-			strcpy(oppoversion.Mboard, "0101");
-			break;
-		case 0x3c:
-			strcpy(oppoversion.operatorName, "98");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "7");
-			strcpy(oppoversion.Mboard, "0110");
-			break;
-		case 0x3f:
-			strcpy(oppoversion.operatorName, "99");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "8");
-			strcpy(oppoversion.Mboard, "0111");
-			break;
-		case 0xc0:
-			strcpy(oppoversion.operatorName, "100");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "9");
-			strcpy(oppoversion.Mboard, "1000");
-			break;
-		case 0xc3:
-			strcpy(oppoversion.operatorName, "101");
-			strcpy(oppoversion.prjVersion, "19581");
-			strcpy(oppoversion.modemType, "10");
-			strcpy(oppoversion.Mboard, "1001");
-			break;
-
-		default:
-			strcpy(oppoversion.operatorName, "unknow");
-			strcpy(oppoversion.prjVersion, "unknow");
-			strcpy(oppoversion.modemType, "unknow");
-			strcpy(oppoversion.Mboard, "unknow");
-			break;
-	}
-	return 0;
-}
-
-static void set_oppoversion_init(void){
-	strcpy(oppoversion.modemType, "unknow");
-	strcpy(oppoversion.pcbVersion, "unknow");
-	strcpy(oppoversion.operatorName, "unknow");
-	strcpy(oppoversion.Kboard, "unknow");
-	strcpy(oppoversion.Mboard, "unknow");
-	strcpy(oppoversion.prjVersion, "unknow");
-}
-
-static unsigned int round_kbytes_to_readable_mbytes(unsigned int k){
-	unsigned int r_size_m = 0;
-	unsigned int in_mega = k/1024;
-
-	if(in_mega > 64*1024){ //if memory is larger than 64G
-		r_size_m = 128*1024; // It should be 128G
-	}else if(in_mega > 32*1024){  //larger than 32G
-		r_size_m = 64*1024; //should be 64G
-	}else if(in_mega > 16*1024){
-		r_size_m = 32*1024;
-	}else if(in_mega > 8*1024){
-		r_size_m = 16*1024;
-	}else if(in_mega > 6*1024){
-		r_size_m = 8*1024;
-	}else if(in_mega > 4*1024){
-		r_size_m = 6*1024;  //RAM may be 6G
-	}else if(in_mega > 3*1024){
-		r_size_m = 4*1024;
-	}else if(in_mega > 2*1024){
-		r_size_m = 3*1024; //RAM may be 3G
-	}else if(in_mega > 1024){
-		r_size_m = 2*1024;
-	}else if(in_mega > 512){
-		r_size_m = 1024;
-	}else if(in_mega > 256){
-		r_size_m = 512;
-	}else if(in_mega > 128){
-		r_size_m = 256;
-	}else{
-		k = 0;
-	}
-	return r_size_m;
-}
-
-#endif
-
-
 static unsigned int init_project_version(void)
 {
 	struct device_node *np = NULL;
 	int ret = 0;
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-	char *ptr;
-#endif
-
     printk("init_project_version start\n");
 	if(format == NULL)
 		format = &projectInfo;
-
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-	ptr = strstr(saved_command_line, "board_id=");
-	if(ptr != 0){
-		ptr += strlen("board_id=");
-		getinfo_for_oppoversion(simple_strtol(ptr, NULL, 10));
-	}else{
-		set_oppoversion_init();
-	}
-#endif
 
 	np = of_find_node_by_name(NULL, "oppo_project");
 	if(!np){
@@ -236,6 +67,7 @@ static unsigned int init_project_version(void)
 	return format->nProject;
 }
 
+
 unsigned int get_project(void)
 {
 	if(format)
@@ -259,16 +91,6 @@ unsigned int get_PCB_Version(void)
 	return 0;
 }
 
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.Board-id, 2019/12/19, Modify Board-id
-unsigned int get_PRJ_Version(void)
-{
-	if(format)
-		return format->nProject;
-	return 0;
-}
-#endif
-
 unsigned int get_Modem_Version(void)
 {
 	if(format)
@@ -286,37 +108,12 @@ unsigned int get_Operator_Version(void)
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
-static int __init update_feature(void)
-{
-	mm_segment_t fs;
-	fs = get_fs();
-	pr_err("update_feature, Operator Version [%d]", get_Operator_Version());
-	set_fs(KERNEL_DS);
-	if (oppoVersion) {
-		if (get_Operator_Version() == OPERATOR_19305_CARRIER) {
-			proc_symlink(nfc_feature, oppoVersion, feature_src);
-		}
-	}
-	set_fs(fs);
-	return 0;
-}
-late_initcall(update_feature);
-#endif
-
 static ssize_t prjVersion_read_proc(struct file *file, char __user *buf,
 		size_t count,loff_t *off)
 {
 	char page[256] = {0};
 	int len = 0;
-
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.Board-id, 2019/12/19, Modify Board-id
-		len = sprintf(page,"%d",get_PRJ_Version());
-#else
-		len = sprintf(page,"%s",oppoversion.prjVersion);
-#endif
+	len = sprintf(page,"%d",get_project());
 
 	if(len > *off)
 		len -= *off;
@@ -341,12 +138,9 @@ static ssize_t pcbVersion_read_proc(struct file *file, char __user *buf,
 {
 	char page[256] = {0};
 	int len = 0;
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.Board-id, 2019/12/19, Modify Board-id
+
 	len = sprintf(page,"%d",get_PCB_Version());
-#else
-	len = sprintf(page,"%s",oppoversion.pcbVersion);
-#endif
+
 	if(len > *off)
 	   len -= *off;
 	else
@@ -371,12 +165,7 @@ static ssize_t operatorName_read_proc(struct file *file, char __user *buf,
 	char page[256] = {0};
 	int len = 0;
 
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.Board-id, 2019/12/19, Modify Board-id
 	len = sprintf(page,"%d",get_Operator_Version());
-#else
-	len = sprintf(page,"%s",oppoversion.operatorName);
-#endif
 
 	if(len > *off)
 	   len -= *off;
@@ -402,12 +191,7 @@ static ssize_t modemType_read_proc(struct file *file, char __user *buf,
 	char page[256] = {0};
 	int len = 0;
 
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.Board-id, 2019/12/19, Modify Board-id
 	len = sprintf(page,"%d",get_Modem_Version());
-#else
-	len = sprintf(page,"%s",oppoversion.modemType);
-#endif
 
 	if(len > *off)
 	   len -= *off;
@@ -455,7 +239,7 @@ static struct file_operations secureType_proc_fops = {
 	.read = secureType_read_proc,
 };
 
-/*Yang.Tan@BSP.Fingerprint.Secure 2018/12/17 Add serialID for fastboot unlock*/
+/*Hongdao@BSP.Fingerprint.Secure 2019/02/15 Add serialID for fastboot unlock*/
 #define SERIALNO_LEN 16
 extern char *saved_command_line;
 static ssize_t serialID_read_proc(struct file *file, char __user *buf,
@@ -478,7 +262,7 @@ static ssize_t serialID_read_proc(struct file *file, char __user *buf,
         else{
                 len = 0;
         }
-
+        pr_err("serialID_read_proc serialno = %s. page = %x off = %d  len = %d  count= %d \n",serialno,page,*off,len,count);
         if (copy_to_user(buf, page, (len < count ? len : count))) {
                 return -EFAULT;
         }
@@ -491,126 +275,6 @@ struct file_operations serialID_proc_fops = {
         .read = serialID_read_proc,
 };
 
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-
-static ssize_t kboard_read_proc(struct file *file, char __user *buf,
-		size_t count,loff_t *off)
-{
-	char page[256] = {0};
-	int len = 0;
-
-	len = sprintf(page,"%s",oppoversion.Kboard);
-
-	if(len > *off)
-		len -= *off;
-	else
-		len = 0;
-
-	if(copy_to_user(buf,page,(len < count ? len : count))){
-		return -EFAULT;
-	}
-	*off += len < count ? len : count;
-	return (len < count ? len : count);
-}
-
-static struct file_operations kboard_proc_fops = {
-	.read = kboard_read_proc,
-	.write = NULL,
-};
-
-static ssize_t mainboard_read_proc(struct file *file, char __user *buf,
-		size_t count,loff_t *off)
-{
-	char page[256] = {0};
-	int len = 0;
-
-	len = sprintf(page,"%s",oppoversion.Mboard);
-
-	if(len > *off)
-		len -= *off;
-	else
-		len = 0;
-
-	if(copy_to_user(buf,page,(len < count ? len : count))){
-		return -EFAULT;
-	}
-	*off += len < count ? len : count;
-	return (len < count ? len : count);
-}
-
-static struct file_operations mainboard_proc_fops = {
-	.read = mainboard_read_proc,
-	.write = NULL,
-};
-
-static ssize_t bootMode_read_proc(struct file *file, char __user *buf,
-                size_t count, loff_t *off)
-{
-        char page[256] = {0};
-        int len = 0;
-        char * ptr;
-
-	ptr = strstr(saved_command_line, "boot_reason=");
-	if(ptr != 0){
-		ptr += strlen("boot_reason=");
-		len = sprintf(page, "%ld", simple_strtol(ptr, NULL, 10));
-	}else{
-		len = sprintf(page, "%s","UNKOWN");
-	}
-        if (len > *off) {
-                len -= *off;
-        }
-        else{
-                len = 0;
-        }
-
-        if (copy_to_user(buf, page, (len < count ? len : count))) {
-                return -EFAULT;
-        }
-
-        *off += len < count ? len : count;
-        return (len < count ? len : count);
-}
-
-struct file_operations bootMode_proc_fops = {
-        .read = bootMode_read_proc,
-};
-
-#define K(x) ((x) << (PAGE_SHIFT - 10))
-
-static ssize_t ramSize_read_proc(struct file *file, char __user *buf,
-		size_t count,loff_t *off)
-{
-	char page[256] = {0};
-	int len = 0;
-	struct sysinfo i;
-	si_meminfo(&i);
-
-	if(round_kbytes_to_readable_mbytes(K(i.totalram)) >= 1024){
-		len = sprintf(page,"%d",round_kbytes_to_readable_mbytes(K(i.totalram))/1024);
-	}else{
-		len = sprintf(page,"%dMB",round_kbytes_to_readable_mbytes(K(i.totalram)));
-	}
-
-	if(len > *off)
-		len -= *off;
-	else
-		len = 0;
-
-	if(copy_to_user(buf,page,(len < count ? len : count))){
-		return -EFAULT;
-	}
-	*off += len < count ? len : count;
-	return (len < count ? len : count);
-}
-
-static struct file_operations ramSize_proc_fops = {
-	.read = ramSize_read_proc,
-	.write = NULL,
-};
-
-#endif
 
 static int __init oppo_project_init(void)
 {
@@ -621,16 +285,8 @@ static int __init oppo_project_init(void)
 	{
 		return ret;
 	}
-        //#ifdef VENDO_EDIT
-        //#Haoran.Zhang@PSW.TECH.OppoFeature.Customize.1881073, 2018/08/15, Add for use avb odm image
-        proc_mkdir("euclid",NULL);
-        proc_mkdir("euclid/custom", NULL);
-        proc_mkdir("euclid/version", NULL);
-        proc_mkdir("euclid/product", NULL);
-        //endif
 
 	oppoVersion =  proc_mkdir("oppoVersion", NULL);
-
 	if(!oppoVersion) {
 		pr_err("can't create oppoVersion proc\n");
 		goto ERROR_INIT_VERSION;
@@ -660,40 +316,12 @@ static int __init oppo_project_init(void)
 		pr_err("create secureType proc failed.\n");
 		goto ERROR_INIT_VERSION;
 	}
-/*Yang.Tan@BSP.Fingerprint.Secure 2018/12/17 Add serialID for fastboot unlock*/
+/*Hongdao.yu@BSP.Fingerprint.Secure 2019/02/15 Add serialID for fastboot unlock*/
 	pentry = proc_create("serialID", S_IRUGO, oppoVersion, &serialID_proc_fops);
 	if(!pentry) {
 		pr_err("create serialID proc failed.\n");
 		goto ERROR_INIT_VERSION;
 	}
-
-#ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.driver.board_id 2019.10.24 modify devinfo*/
-
-pentry = proc_create("kboard", S_IRUGO, oppoVersion, &kboard_proc_fops);
-if(!pentry) {
-	pr_err("create kboard proc failed.\n");
-	goto ERROR_INIT_VERSION;
-}
-pentry = proc_create("mainboard", S_IRUGO, oppoVersion, &mainboard_proc_fops);
-if(!pentry) {
-	pr_err("create mainboard proc failed.\n");
-	goto ERROR_INIT_VERSION;
-}
-pentry = proc_create("bootMode", S_IRUGO, oppoVersion, &bootMode_proc_fops);
-if(!pentry) {
-	pr_err("create bootMode proc failed.\n");
-	goto ERROR_INIT_VERSION;
-}
-pentry = proc_create("ramSize", S_IRUGO, oppoVersion, &ramSize_proc_fops);
-if(!pentry) {
-	pr_err("create ramSize proc failed.\n");
-	goto ERROR_INIT_VERSION;
-}
-
-#endif
-
-
 	return ret;
 ERROR_INIT_VERSION:
 	//remove_proc_entry("oppoVersion", NULL);

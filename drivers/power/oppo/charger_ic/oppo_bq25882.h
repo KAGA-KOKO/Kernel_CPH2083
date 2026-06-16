@@ -405,6 +405,31 @@ extern void bq25882_dump_registers(void);
 extern int bq25882_hardware_init(void);
 
 #ifdef CONFIG_OPPO_CHARGER_MTK
+//extern CHARGER_TYPE mt_charger_type_detection(void);
+extern int mt_power_supply_type_check(void);
+extern bool pmic_chrdet_status(void);
+extern int battery_meter_get_charger_voltage(void);
+extern int charger_pretype_get(void);
+
+extern int get_rtc_spare_fg_value(void);
+extern int set_rtc_spare_fg_value(int val);
+extern int get_rtc_spare_oppo_fg_value(void);
+extern int set_rtc_spare_oppo_fg_value(int val);
+
+extern void mt_usb_connect(void);
+extern void mt_usb_disconnect(void);
+
+extern int mt_get_chargerid_volt (void);
+
+//#ifdef CONFIG_MTK_HAFG_20
+extern void mt_set_chargerid_switch_val(int value);
+extern int mt_get_chargerid_switch_val(void);
+extern int oppo_usb_switch_gpio_gpio_init(void);
+//#endif /* CONFIG_OPPO_CHARGER_MTK */
+
+extern int oppo_battery_meter_get_battery_voltage(void);
+extern bool meter_fg_30_get_battery_authenticate(void);
+
 #else /* CONFIG_OPPO_CHARGER_MTK */
 extern int qpnp_get_battery_voltage(void);
 extern int opchg_get_charger_type(void) ;

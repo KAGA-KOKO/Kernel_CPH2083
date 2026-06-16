@@ -4,8 +4,8 @@
  ** File: switch.h
  ** Description: Source file for Switch class driver
  ** Version :1.0
- ** Date : 2019/09/24
- ** Author: xuyechen@ODM_HQ.Multimedia.audio
+ ** Date : 2018/11/28
+ ** Author: chenxinjiang@ODM_HQ.Multimedia.audio
  ********************************************/
 /*
  *  Switch class driver

@@ -854,7 +854,7 @@ static unsigned int get_booting_start_id(struct ccci_modem *md)
 	LOGGING_MODE mdlog_flag = MODE_IDLE;
 	u32 booting_start_id;
 
-	mdlog_flag = md->mdlg_mode & 0x0000ffff;
+	mdlog_flag = md->mdlg_mode;
 
 	if (md->per_md_data.md_boot_mode != MD_BOOT_MODE_INVALID) {
 		if (md->per_md_data.md_boot_mode == MD_BOOT_MODE_META)
@@ -879,7 +879,6 @@ static unsigned int get_booting_start_id(struct ccci_modem *md)
 			booting_start_id = ((char)mdlog_flag << 8
 							| NORMAL_BOOT_ID);
 	}
-	booting_start_id |= md->mdlg_mode & 0xffff0000;
 
 	CCCI_BOOTUP_LOG(md->index, TAG,
 		"get_booting_start_id 0x%x\n", booting_start_id);

@@ -507,11 +507,6 @@ struct smb1351_charger {
 	/* pinctrl parameters */
 	const char		*pinctrl_state_name;
 	struct pinctrl		*smb_pinctrl;
-	struct i2c_client	*client;
-	struct device		*dev;
-	int				hw_aicl_point;
-	int				sw_aicl_point;
-	atomic_t			charger_suspended;
 };
 
 

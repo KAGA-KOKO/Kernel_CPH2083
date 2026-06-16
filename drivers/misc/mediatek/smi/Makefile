@@ -83,7 +83,6 @@ ccflags-y += -DMMDVFS_HOOK
 ccflags-y += -DDVFSRC_HRT
 ccflags-y += -DBLOCKING_MECHANISM
 ccflags-y += -DMMDVFS_LIMIT
-ccflags-y += -DCHECK_VOLTAGE
 #ccflags-y += -DAEE_CAM_BW_MISMATCH
 obj-y += mmdvfs_mgr_v3.o
 obj-y += mmdvfs_mgr_util.o

@@ -2748,8 +2748,8 @@ static void setDlMtkifSrc(bool enable)
 	}
 }
 
-//xuyechen@ODM_HQ.MM.AudioDriver.Hal, 2019/09/25, add for audio test for headset left channel
 #ifdef ODM_HQ_EDIT
+//chenxinjiang@ODM_HQ.MM.AudioDriver.Hal, 2018/12/08, add for audio test for headset left channel
 static void Audio_AmpHP_Change(int channels, bool enable)
 {
 	pr_info("%s enable = %d\n",__func__, enable);
@@ -2943,7 +2943,7 @@ static int Audio_AmpHPL_Set(struct snd_kcontrol *kcontrol,
 			  struct snd_ctl_elem_value *ucontrol)
 {
 	mutex_lock(&Ana_Ctrl_Mutex);
-	pr_info("%s: ucontrol->value.integer.value[0] = %ld\n",__func__, ucontrol->value.integer.value[0]);
+	pr_info("%s: ucontrol->value.integer.value[0] = %d\n",__func__, ucontrol->value.integer.value[0]);
 
 	if (ucontrol->value.integer.value[0] != 0) {
 		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HEADSETL] = ucontrol->value.integer.value[0];
@@ -3350,12 +3350,8 @@ static int PMIC_REG_CLEAR_Set(struct snd_kcontrol *kcontrol,
 	Ana_Set_Reg(AFE_DCCLK_CFG1, 0x0100, 0xffff);
 	/* phone mic bias */
 	/* Enable MICBIAS0, MISBIAS0 = 1P9V */
-	//#ifndef ODM_WT_EDIT
-	//Yue.Li@ODM_WT.mm.audiodriver.Machine, 2019/12/31, Add for setting micbias0 2.5V
-		//Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
-	//#else
-		Ana_Set_Reg(AUDENC_ANA_CON8, 0x0051, 0xffff);
-	//#endif
+	Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
+
 
 	/* Audio L preamplifier DCC precharge */
 	Ana_Set_Reg(AUDENC_ANA_CON0, 0x0004, 0xffff);
@@ -3998,8 +3994,8 @@ static const struct snd_kcontrol_new Audio_snd_auxadc_controls[] = {
 		       Audio_AuxAdcData_Set),
 };
 static const char *const amp_function[] = { "Off", "On" };
-//xuyechen@ODM_HQ.MM.AudioDriver.Hal, 2019/09/25, add for audio test for headset left channel
 #ifdef ODM_HQ_EDIT
+//chenxinjiang@ODM_HQ.MM.AudioDriver.Hal, 2018/12/08, add for audio test for headset left channel
 static const char *const amp_function_hpl[] = { "Off", "On"};
 #endif /* ODM_HQ_EDIT */
 static const char *const aud_clk_buf_function[] = { "Off", "On" };
@@ -4279,11 +4275,7 @@ static const char * const dctrim_control_state[] = {
 static int pmic_dctrim_control_get(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
-#ifdef ODM_HQ_EDIT
-/*xiangchao.zhong@MM.audio.basic 2019-11-15 for cancel HP calibrated for pop when insert HP to powerup*/
-	dctrim_calibrated = 2;
-#endif
-	pr_info("%s(), dctrim_calibrated = %d\n",
+	pr_debug("%s(), dctrim_calibrated = %d\n",
 		 __func__, dctrim_calibrated);
 	ucontrol->value.integer.value[0] = dctrim_calibrated;
 	return 0;
@@ -4404,8 +4396,8 @@ static const struct soc_enum Audio_DL_Enum[] = {
 			    dctrim_control_state),
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(apply_n12db_setting),
 			    apply_n12db_setting),
-//xuyechen@ODM_HQ.MM.AudioDriver.Hal, 2019/09/25, add for audio test for headset left channel
 #ifdef ODM_HQ_EDIT
+//chenxinjiang@ODM_HQ.MM.AudioDriver.Hal, 2018/12/08, add for audio test for headset left channel
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function_hpl), amp_function_hpl),
 #endif /* ODM_HQ_EDIT */
 };
@@ -4461,8 +4453,8 @@ static const struct snd_kcontrol_new mt6357_snd_controls[] = {
 		     hp_plugged_in_get, hp_plugged_in_set),
 	SOC_ENUM_EXT("Apply_N12DB_Gain", Audio_DL_Enum[14],
 		     apply_n12db_get, apply_n12db_set),
-//xuyechen@ODM_HQ.MM.AudioDriver.Hal, 2019/09/25, add for audio test for headset left channel
 #ifdef ODM_HQ_EDIT
+//chenxinjiang@ODM_HQ.MM.AudioDriver.Hal, 2018/12/08, add for audio test for headset left channel
 	SOC_ENUM_EXT("Audio_Amp_HPL_Switch", Audio_DL_Enum[15], Audio_AmpHPL_Get,
 			 Audio_AmpHPL_Set),
 #endif /* ODM_HQ_EDIT */
@@ -4514,15 +4506,15 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 			if (mCodec_data->mAudio_Ana_Mux
 				[AUDIO_MICSOURCE_MUX_IN_1] == 0) {
 				/* phone mic */
+#ifdef VENDOR_EDIT
+				/* Xiaojun.Lv@PSW.MM.AudioDriver.Machine, 2018/7/13,
+				 * modify for changing micbias vol to 2.5V of main/sub/headset mic */
+				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0051, 0xffff);
+#else /* VENDOR_EDIT */
 				/* Enable MICBIAS0, MISBIAS0 = 1P9V */
-				//#ifndef ODM_WT_EDIT
-				//Yue.Li@ODM_WT.mm.audiodriver.Machine, 2019/12/31, Add for setting micbias0 2.5V
-					//Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
-				//#else
-					Ana_Set_Reg(AUDENC_ANA_CON8, 0x0051, 0xffff);
-				//#endif
-			} else if (mCodec_data->mAudio_Ana_Mux
-					[AUDIO_MICSOURCE_MUX_IN_1] == 1) {
+				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
+#endif /* VENDOR_EDIT */
+			} else if (mCodec_data->mAudio_Ana_Mux[AUDIO_MICSOURCE_MUX_IN_1] == 1) {
 				/* headset mic */
 				/* Enable MICBIAS1, MISBIAS1 = 2P6V */
 				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0001, 0x0001);
@@ -4629,6 +4621,11 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 					[AUDIO_MICSOURCE_MUX_IN_1] == 1) {
 				/* headset mic */
 				/* Disable MICBIAS1 */
+#ifdef VENDOR_EDIT
+				/* Xiaojun.Lv@PSW.MM.AudioDriver.Machine, 2018/7/13,
+				 * modify for changing micbias vol to 2.7V for headset mic not recording */
+				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0071, 0xffff);
+#endif /* VENDOR_EDIT */
 				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0000, 0x0001);
 			}
 			/* LCLDO_ENC remote sense off */
@@ -4670,12 +4667,7 @@ static bool TurnOnADcPowerDmic(int ADCType, bool enable)
 			set_capture_gpio(true);
 			/* mic bias */
 			/* Enable MICBIAS0, MISBIAS0 = 1P9V */
-			//#ifndef ODM_WT_EDIT
-			//Yue.Li@ODM_WT.mm.audiodriver.Machine, 2019/12/31, Add for setting micbias0 2.5V
-				//Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
-			//#else
-				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0051, 0xffff);
-			//#endif
+			Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
 			/* RG_BANDGAPGEN=1'b0 */
 			Ana_Set_Reg(AUDENC_ANA_CON9, 0x0, 0x1 << 12);
 			/* DMIC enable */
@@ -4789,12 +4781,7 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 					break;
 				}
 				/* Enable MICBIAS0, MISBIAS0 = 1P9V */
-				//#ifndef ODM_WT_EDIT
-				//Yue.Li@ODM_WT.mm.audiodriver.Machine, 2019/12/31, Add for setting micbias0 2.5V
-					//Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0x00ff);
-				//#else
-					Ana_Set_Reg(AUDENC_ANA_CON8, 0x0051, 0x00ff);
-				//#endif
+				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0x00ff);
 			} else if (mCodec_data->mAudio_Ana_Mux
 					[AUDIO_MICSOURCE_MUX_IN_1] == 1) {
 				/* headset mic */
@@ -5920,7 +5907,13 @@ void InitCodecDefault(void)
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_MICAMP2] = 3;
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_MICAMP3] = 3;
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_MICAMP4] = 3;
+#ifdef VENDOR_EDIT
+	/* Xiaojun.Lv@PSW.MM.AudioDriver.Machine, 2018/7/13,
+	 * Modify for MTK mistake, miss set AUDIO_ANALOG_VOLUME_HPOUTL's gain */
+	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HPOUTL] = 8;
+#else /* VENDOR_EDIT */
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HPOUTR] = 8;
+#endif /* VENDOR_EDIT */
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HPOUTR] = 8;
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HSOUTL] = 8;
 	mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HSOUTR] = 8;
@@ -5947,12 +5940,6 @@ static void InitGlobalVarDefault(void)
 static struct task_struct *dc_trim_task;
 static int dc_trim_thread(void *arg)
 {
-#ifdef ODM_HQ_EDIT
-/*xiangchao.zhong@MM.audio.basic 2019-11-15 for cancel HP calibrated for pop when insert HP to powerup*/
-	mIsNeedPullDown = false;
-	return 0;
-#endif
-
 #ifdef ANALOG_HPTRIM_FOR_CUST
 	/* Default Pull-down HPL/R to AVSS28_AUD */
 	hp_pull_down(true);

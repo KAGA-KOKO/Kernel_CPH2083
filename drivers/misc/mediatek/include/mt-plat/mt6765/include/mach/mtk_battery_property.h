@@ -87,12 +87,7 @@
 #define DIFF_BAT_TEMP_SETTING 1
 #define DIFF_BAT_TEMP_SETTING_C 10
 #define DISCHARGE_TRACKING_TIME 10
-#ifndef ODM_HQ_EDIT
-/* zhouyi  PSW.BSP.CHG  2019-12-13  mtk fg pursue to full 1% every 10s */
 #define CHARGE_TRACKING_TIME 60
-#else
-#define CHARGE_TRACKING_TIME 10
-#endif
 #define DIFFERENCE_FULLOCV_VTH	1000	/* 0.1mV */
 #define CHARGE_PSEUDO_FULL_LEVEL 8000
 #define FULL_TRACKING_BAT_INT2_MULTIPLY 6
@@ -110,14 +105,8 @@
 #define CALI_CAR_TUNE_AVG_NUM	60
 
 /* Aging Compensation 1*/
-#ifndef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add bq check_charging_enable function*/
 #define AGING_FACTOR_MIN 10
 #define AGING_FACTOR_DIFF 90
-#else /*ODM_HQ_EDIT*/
-#define AGING_FACTOR_MIN 85
-#define AGING_FACTOR_DIFF 10
-#endif /*ODM_HQ_EDIT*/
 #define DIFFERENCE_VOLTAGE_UPDATE 50
 #define AGING_ONE_EN 1
 #define AGING1_UPDATE_SOC 30
@@ -167,8 +156,8 @@
 #define NAFG_RESISTANCE 1500
 
 #define PMIC_SHUTDOWN_SW_EN 1
-#ifdef ODM_HQ_EDIT
-/*WT000695@ODM.BSP.Charger 2019.12.30 modify gauge alg*/
+#ifndef ODM_HQ_EDIT
+/*duanhanxing@ODM.BSP.Charger 2018.12.17 modify gauge alg*/
 #define FORCE_VC_MODE 0	/* 0: mix, 1:Coulomb, 2:voltage */
 #else
 #define FORCE_VC_MODE 1
@@ -213,6 +202,7 @@
 #else
 #define DEFAULT_BATTERY_TMP_WHEN_DISABLE_NAFG -30
 #endif
+
 #define BATTERY_TMP_TO_ENABLE_NAFG -20
 /* #define GM30_DISABLE_NAFG */
 

@@ -39,8 +39,6 @@
 #include <mt-plat/aee.h>
 #include <mtk_qos_sram.h>
 
-#include <linux/regulator/consumer.h>
-
 #if IS_ENABLED(CONFIG_MMPROFILE)
 #include <mmprofile.h>
 #include <mmprofile_function.h>
@@ -50,7 +48,7 @@ struct dvfsrc_mmp_events_t {
 };
 static struct dvfsrc_mmp_events_t dvfsrc_mmp_events;
 #endif
-static struct regulator *vcore_reg_id;
+
 #define AUTOK_ENABLE
 #define TIME_STAMP_SIZE 40
 #define DVFSRC_1600_FLOOR
@@ -211,27 +209,6 @@ static int is_dvfsrc_forced(void)
 	return opp_forced;
 }
 
-int is_dvfsrc_opp_fixed(void)
-{
-	int ret;
-	unsigned long flags;
-
-	if (!is_dvfsrc_enabled())
-		return 1;
-
-	if (!(dvfsrc_read(DVFSRC_BASIC_CONTROL) & 0x100))
-		return 1;
-
-	if (helio_dvfsrc_flag_get() != 0)
-		return 1;
-
-	spin_lock_irqsave(&force_req_lock, flags);
-	ret = is_dvfsrc_forced();
-	spin_unlock_irqrestore(&force_req_lock, flags);
-
-	return ret;
-}
-
 static void dvfsrc_set_force_start(int data)
 {
 	opp_forced = 1;
@@ -332,14 +309,11 @@ u32 dvfsrc_calc_isp_hrt_opp(int data)
 	return dvfsrc_calc_hrt_opp(((data + 29) /  30) * 30);
 }
 
-
 int commit_data(int type, int data, int check_spmfw)
 {
 	int ret = 0;
 	int level = 16, opp = 16;
 	unsigned long flags;
-	int opp_uv;
-	int vcore_uv = 0;
 
 	if (!is_dvfsrc_enabled())
 		return ret;
@@ -381,6 +355,7 @@ int commit_data(int type, int data, int check_spmfw)
 
 		opp = data;
 		level = VCORE_OPP_NUM - data - 1;
+
 		dvfsrc_set_sw_req(level, VCORE_SW_AP_MASK, VCORE_SW_AP_SHIFT);
 
 		if (!is_dvfsrc_forced() && check_spmfw) {
@@ -394,23 +369,6 @@ int commit_data(int type, int data, int check_spmfw)
 					DVFSRC_TIMEOUT);
 		}
 		spin_unlock_irqrestore(&force_req_lock, flags);
-		if (!is_dvfsrc_forced() && check_spmfw) {
-			if (vcore_reg_id) {
-			vcore_uv = regulator_get_voltage(vcore_reg_id);
-			opp_uv = get_vcore_uv_table(opp);
-				if (vcore_uv < opp_uv) {
-					pr_info("DVFS FAIL= %d %d 0x%08x 0x%08x %08x\n",
-					vcore_uv, opp_uv,
-					dvfsrc_read(DVFSRC_CURRENT_LEVEL),
-					dvfsrc_read(DVFSRC_TARGET_LEVEL),
-					spm_get_dvfs_level());
-
-					aee_kernel_warning("DVFSRC",
-						"VCORE failed.",
-						__func__);
-				}
-			}
-		}
 		break;
 	case PM_QOS_SCP_VCORE_REQUEST:
 		spin_lock_irqsave(&force_req_lock, flags);
@@ -947,10 +905,6 @@ int helio_dvfsrc_platform_init(struct helio_dvfsrc *dvfsrc)
 
 	sysfs_merge_group(&dvfsrc->dev->kobj, &priv_dvfsrc_attr_group);
 	dvfsrc->resume = dvfsrc_resume;
-
-	vcore_reg_id = regulator_get(&pdev->dev, "vcore");
-	if (!vcore_reg_id)
-		pr_info("regulator_get vcore_reg_id failed\n");
 
 	return 0;
 }

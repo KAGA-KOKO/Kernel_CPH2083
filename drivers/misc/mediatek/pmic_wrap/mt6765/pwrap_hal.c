@@ -856,7 +856,7 @@ static void _pwrap_enable(void)
 	WRAP_WR32(PMIC_WRAP_INT1_EN, 0xffffd800);
 #elif defined(CONFIG_MACH_MT6765)
 	WRAP_WR32(PMIC_WRAP_INT0_EN, 0xffffffff);
-	WRAP_WR32(PMIC_WRAP_INT1_EN, 0xffffdfff); /* Disable HW Monitor INT */
+	WRAP_WR32(PMIC_WRAP_INT1_EN, 0xffffffff);
 #endif
 }
 
@@ -1727,7 +1727,7 @@ static irqreturn_t mt_pmic_wrap_irq(int irqno, void *dev_id)
 		g_case_flag = 1;
 	}
 
-	if (g_wrap_wdt_irq_count == 10 || g_case_flag == 1)
+	if (g_wrap_wdt_irq_count == 10)
 		WARN_ON(1);
 
 	return IRQ_HANDLED;

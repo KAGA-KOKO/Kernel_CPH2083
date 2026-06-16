@@ -893,31 +893,3 @@ bool mtk_get_loading_base_dvfs_step(int *pi32StepValue)
 	return false;
 }
 EXPORT_SYMBOL(mtk_get_loading_base_dvfs_step);
-/* ------------------------------------------------------------------------ */
-void (*mtk_timer_base_dvfs_margin_fp)(int i32MarginValue) = NULL;
-EXPORT_SYMBOL(mtk_timer_base_dvfs_margin_fp);
-
-bool mtk_timer_base_dvfs_margin(int i32MarginValue)
-{
-	if (mtk_timer_base_dvfs_margin_fp != NULL) {
-		mtk_timer_base_dvfs_margin_fp(i32MarginValue);
-		return true;
-	}
-	return false;
-}
-EXPORT_SYMBOL(mtk_timer_base_dvfs_margin);
-
-int (*mtk_get_timer_base_dvfs_margin_fp)(void) = NULL;
-EXPORT_SYMBOL(mtk_get_timer_base_dvfs_margin_fp);
-
-bool mtk_get_timer_base_dvfs_margin(int *pi32MarginValue)
-{
-	if ((mtk_get_timer_base_dvfs_margin_fp != NULL) &&
-		(pi32MarginValue != NULL)) {
-
-		*pi32MarginValue = mtk_get_timer_base_dvfs_margin_fp();
-		return true;
-	}
-	return false;
-}
-EXPORT_SYMBOL(mtk_get_timer_base_dvfs_margin);

@@ -94,28 +94,14 @@ static inline int tcpci_vbus_level_changed(struct tcpc_device *tcpc_dev)
 {
 	int rv = 0;
 	bool show_msg = true;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Add for log */
-	static u8 pre_vbus_level = 0;
-#endif
 
 #ifdef CONFIG_USB_PD_DIRECT_CHARGE
 	if (tcpc_dev->pd_during_direct_charge && tcpc_dev->vbus_level != 0)
 		show_msg = false;
 #endif	/* CONFIG_USB_PD_DIRECT_CHARGE */
 
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Add for log */
 	if (show_msg)
 		TCPC_INFO("ps_change=%d\r\n", tcpc_dev->vbus_level);
-#else
-	if (show_msg) {
-		if (tcpc_dev->vbus_level != pre_vbus_level) {
-			TCPC_INFO("ps_change=%d <-- %d\r\n", tcpc_dev->vbus_level, pre_vbus_level);
-			pre_vbus_level = tcpc_dev->vbus_level;
-		}
-	}
-#endif /*VENDOR_EDIT*/
 
 	rv = tcpc_typec_handle_ps_change(tcpc_dev, tcpc_dev->vbus_level);
 	if (rv < 0)
@@ -373,10 +359,6 @@ static inline int __tcpci_alert(struct tcpc_device *tcpc_dev)
 	int rv, i;
 	uint32_t alert_status;
 	uint32_t alert_mask;
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Add for log */
-	static uint32_t pre_alert_status = 0;
-#endif
 
 	rv = tcpci_get_alert_status(tcpc_dev, &alert_status);
 	if (rv)
@@ -387,18 +369,8 @@ static inline int __tcpci_alert(struct tcpc_device *tcpc_dev)
 		return rv;
 
 #ifdef CONFIG_USB_PD_DBG_ALERT_STATUS
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Modify for log */
 	if (alert_status != 0)
 		TCPC_INFO("Alert:0x%04x\r\n", alert_status);
-#else
-	if (alert_status != 0) {
-		if (alert_status != pre_alert_status) {
-			TCPC_INFO("Alert:0x%04x <-- 0x%04x\r\n", alert_status, pre_alert_status);
-			pre_alert_status = alert_status;
-		}
-	}
-#endif /*VENDOR_EDIT*/
 #endif /* CONFIG_USB_PD_DBG_ALERT_STATUS */
 
 	tcpci_alert_status_clear(tcpc_dev,

@@ -13,8 +13,3 @@ obj-y	+= oppo_gauge.o
 obj-y	+= oppo_vooc.o
 obj-y	+= oppo_adapter.o
 obj-y	+= oppo_short.o
-
-#shengjiang@ODM.HQ.BSP.CHG.Basic 2019.11.12 add disable ATM hiz mode
-ifeq (yes,$(strip $(HQ_COMPILE_FACTORY_VERSION)))
-   subdir-ccflags-y += -DHQ_COMPILE_FACTORY_VERSION
-endif

@@ -85,12 +85,12 @@ static void mrdump_wd_dram_reserved_mode(bool enabled)
 					pr_notice("%s: DDR reserved mode enabled\n",
 							__func__);
 #ifdef CONFIG_MTK_DFD_INTERNAL_DUMP
-					res = dfd_setup(DFD_BASIC_DUMP);
+					res = dfd_setup();
 					if (res == -1)
-						pr_notice("%s: DFD_BASIC_DUMP disabled\n",
+						pr_notice("%s: DFD disabled\n",
 								__func__);
 					else
-						pr_notice("%s: DFD_BASIC_DUMP enabled\n",
+						pr_notice("%s: DFD enabled\n",
 								__func__);
 #endif
 				} else {

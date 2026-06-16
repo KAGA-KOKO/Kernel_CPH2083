@@ -61,8 +61,11 @@
 #define KTD3136_EXPONENTIAL 1
 #endif /*VENDOR_EDIT*/
 
-//extern long lcd_bl_en_setting(unsigned int value);
+//temp define
 int is_lm3697 = 1;
+//extern long lcd_bl_en_setting(unsigned int value);
+/* LiPing-m@PSW.MM.Display.LCD.Machine 2017/12/29, Add for lcm ic esd recovery backlight */
+extern unsigned int esd_recovery_backlight_level;
 
 #ifndef BUILD_LK
 
@@ -97,8 +100,7 @@ static const struct of_device_id lcm_of_match[] = {
 static int bl_probe(struct i2c_client *client, const struct i2c_device_id *id);
 static int bl_remove(struct i2c_client *client);
 
-/* LiPing-m@PSW.MM.Display.LCD.Machine 2017/12/29, Add for lcm ic esd recovery backlight */
-extern unsigned int esd_recovery_backlight_level;
+
 
 static struct i2c_driver bl_i2c_driver = {
 	.id_table = DeviceId,

@@ -53,11 +53,13 @@ obj-$(CONFIG_ECHO)		+= echo/
 obj-$(CONFIG_VEXPRESS_SYSCFG)	+= vexpress-syscfg.o
 obj-$(CONFIG_CXL_BASE)		+= cxl/
 obj-$(CONFIG_PANEL)             += panel.o
-obj-$(CONFIG_HQ_DEVINFO_SUPPORT) 	+= hqdevinfo/
-#ifdef ODM_HQ_EDIT
-#liujia@ODM.BSP.system  2019/09/24 add for board id
+#ifdef  ODM_HQ_EDIT
+#zhangmengchun@ODM.BSP.system  2018/11/29 add for board id
 obj-$(CONFIG_GET_BOARD_ID) 	+= board_id.o
+#duwenchao@ODM_HQ.BSP.System.devinfo, 2018/12/07 add devinfo fs.
+obj-$(CONFIG_HQ_DEVINFO_SUPPORT) 	+= hqdevinfo/
 #endif #ODM_HQ_EDIT
+
 obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
 obj-$(CONFIG_MEMORY_STATE_TIME)	+= memory_state_time.o
 obj-$(CONFIG_ARCH_MEDIATEK) += mediatek/
@@ -68,12 +70,6 @@ obj-$(CONFIG_OPPO_MOTOR)		+= motor.o
 obj-$(CONFIG_OPPO_MOTOR)		+= oppo_motor/
 #endif
 
-# zhoubugang@oppo.com, 2019/04/22, Add for oiface
-#ifdef VENDOR_EDIT
-obj-y       += schedx.o
-#endif
-#Zhenzhen.Wu@ODM_WT.BSP.Kernel 2019/12/17,Add hardware info for factory
-obj-$(CONFIG_ODM_WT_EDIT)   += hardware_info.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
@@ -91,7 +87,3 @@ OBJCOPYFLAGS_lkdtm_rodata_objcopy.o := \
 targets += lkdtm_rodata.o lkdtm_rodata_objcopy.o
 $(obj)/lkdtm_rodata_objcopy.o: $(obj)/lkdtm_rodata.o FORCE
 	$(call if_changed,objcopy)
-
-#Liang.Zhang@PSW.TECH.BOOTUP, 2018/10/16, Add for kernel monitor boot
-#ifdef HANG_OPPO_ALL
-obj-y += op_bootprof.o

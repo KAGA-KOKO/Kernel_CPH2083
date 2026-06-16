@@ -344,23 +344,7 @@ struct hd_struct *add_partition(struct gendisk *disk, int partno,
 	if (err)
 		goto out_free_info;
 	pdev->devt = devt;
-//#ifdef VENDOR_EDIT
-//runyu.ouyang@BSP.Storage.sdcard, 2019-06-27 add for avoiding sub-device number occupy
-#ifdef CONFIG_MTK_MMC_WP_DEBUG
-//#endif
-	if (!p->policy) {
-		if (disk->fops->check_disk_range_wp) {
-			err = disk->fops->check_disk_range_wp(disk, start, len);
-			if (err > 0)
-				p->policy = 1;
-			else if (err != 0)
-				goto out_free_info;
-		}
-	}
-//#ifdef VENDOR_EDIT
-//runyu.ouyang@BSP.Storage.sdcard, 2019-06-27 add for avoiding sub-device number occupy
-#endif
-//#endif
+
 	/* delay uevent until 'holders' subdir is created */
 	dev_set_uevent_suppress(pdev, 1);
 	err = device_add(pdev);

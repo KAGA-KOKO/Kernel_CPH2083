@@ -92,13 +92,6 @@ extern struct IMGSENSOR_HW_POWER_SEQ platform_power_sequence[];
 extern struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[];
 extern enum IMGSENSOR_RETURN (*hw_open[IMGSENSOR_HW_ID_MAX_NUM])
 					(struct IMGSENSOR_HW_DEVICE **);
-#ifdef VENDOR_EDIT
-/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-extern struct IMGSENSOR_HW_POWER_SEQ platform_power_sequence_19301[];
-extern struct IMGSENSOR_HW_CFG imgsensor_custom_config_19301[];
-/* Feiping.Li@Camera.Drv, 20190717, add for pull-up gc02's avdd when main sensor is powered*/
-void set_gc02m0_flag(enum IMGSENSOR_SENSOR_IDX sensor_idx);
-#endif
 
 
 #endif

@@ -59,7 +59,6 @@
 #include "mdla_dvfs.h"
 #endif
 #endif
-#include "mtk_cooler_setting.h"
 
 /*****************************************************************************
  *  Local switches
@@ -401,10 +400,6 @@ s64 gpu_pwr_lmt_latest_delay;
 unsigned int gpu_pwr_lmt_cnt = 1;
 #endif
 
-
-#if defined(ENALBE_AINR_LIMIT)
-static unsigned long total_ainr_polling_time;
-#endif
 /*=============================================================
  *Local function prototype
  *=============================================================
@@ -1030,28 +1025,6 @@ int tscpu_get_min_gpu_pwr(void)
 }
 EXPORT_SYMBOL(tscpu_get_min_gpu_pwr);
 
-#if defined(THERMAL_VPU_SUPPORT)
-int tscpu_get_min_vpu_pwr(void)
-{
-	if (cl_get_ainr_status() == 1)
-		return MAXIMUM_VPU_POWER;
-	else
-		return MINIMUM_VPU_POWER;
-}
-EXPORT_SYMBOL(tscpu_get_min_vpu_pwr);
-#endif
-
-#if defined(THERMAL_MDLA_SUPPORT)
-int tscpu_get_min_mdla_pwr(void)
-{
-	if (cl_get_ainr_status() == 1)
-		return MAXIMUM_MDLA_POWER;
-	else
-		return MINIMUM_MDLA_POWER;
-}
-EXPORT_SYMBOL(tscpu_get_min_mdla_pwr);
-#endif
-
 #if CONTINUOUS_TM
 /**
  * @brief update cATM+ ttj control loop parameters
@@ -1172,13 +1145,8 @@ static int adjust_gpu_power(int power)
 static int EARA_handled(int total_power)
 {
 #if defined(EARA_THERMAL_SUPPORT)
-	int ret = 0;
+	int ret;
 	int total_power_eara;
-
-
-	if (cl_get_ainr_status() == 1) {/*AINR hint*/
-		total_power = 0;/*let EARA unlimit VPU/MDLA freq*/
-	}
 
 #if defined(THERMAL_VPU_SUPPORT) && defined(THERMAL_MDLA_SUPPORT)
 	if (total_power == 0)
@@ -1386,32 +1354,21 @@ static int P_adaptive(int total_power, unsigned int gpu_loading)
 	tscpu_dprintk("%s cpu %d, gpu %d\n", __func__, cpu_power, gpu_power);
 
 #if defined(THERMAL_VPU_SUPPORT)
-	/*AINR hint*/
-	if (cl_get_ainr_status() == 1) {
-		set_adaptive_vpu_power_limit(0);
-	} else {
-		if (vpu_power != last_vpu_power) {
-			if (vpu_power >= MAXIMUM_VPU_POWER)
-				set_adaptive_vpu_power_limit(0);
-			else
-				set_adaptive_vpu_power_limit(vpu_power);
-		}
+	if (vpu_power != last_vpu_power) {
+		if (vpu_power >= MAXIMUM_VPU_POWER)
+			set_adaptive_vpu_power_limit(0);
+		else
+			set_adaptive_vpu_power_limit(vpu_power);
 	}
-
 	tscpu_dprintk("%s vpu %d\n",
 		__func__, vpu_power);
 #endif
 #if defined(THERMAL_MDLA_SUPPORT)
-	/*AINR hint*/
-	if (cl_get_ainr_status() == 1) {
-		set_adaptive_mdla_power_limit(0);
-	} else {
-		if (mdla_power != last_mdla_power) {
-			if (mdla_power >= MAXIMUM_MDLA_POWER)
-				set_adaptive_mdla_power_limit(0);
-			else
-				set_adaptive_mdla_power_limit(mdla_power);
-		}
+	if (mdla_power != last_mdla_power) {
+		if (mdla_power >= MAXIMUM_MDLA_POWER)
+			set_adaptive_mdla_power_limit(0);
+		else
+			set_adaptive_mdla_power_limit(mdla_power);
 	}
 	tscpu_dprintk("%s mdla %d\n",
 		__func__, mdla_power);
@@ -3408,26 +3365,6 @@ exit:
 #endif
 
 	polling_time = atm_get_timeout_time(atm_curr_maxtj);
-
-#if defined(ENALBE_AINR_LIMIT)
-	if (cl_get_ainr_status() == 1) {/*flag not cleared by AINR*/
-		total_ainr_polling_time =
-			total_ainr_polling_time + polling_time;
-	} else {
-		/*flag is cleared, clear timer*/
-		total_ainr_polling_time = 0;
-	}
-
-	/*count till 10 sec(10000ms) timeout*/
-	if (total_ainr_polling_time >= 10000) {
-		total_ainr_polling_time = 0;
-		cl_set_ainr_status(0);//clear ainr flag
-
-		tscpu_printk("%s ainr: total_ainr_polling_time = 0\n",
-			__func__);
-	}
-
-#endif
 
 #if KRTATM_TIMER == KRTATM_HR
 

@@ -59,12 +59,7 @@ static int memblock_can_resize __initdata_memblock;
 static int memblock_memory_in_slab __initdata_memblock = 0;
 static int memblock_reserved_in_slab __initdata_memblock = 0;
 
-//#ifdef VENDOR_EDIT
-//Wen.Luo@BSP.Kernel.Stability, 2018/11/28, Enable slabtrace for ageing test
-#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_SLUB_DEBUG)
-//#else
-//#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_MTK_ENG_BUILD)
-//#endif
+#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_MTK_ENG_BUILD)
 struct memblock_record memblock_record[MAX_MEMBLOCK_RECORD];
 struct memblock_stack_trace memblock_stack_trace[MAX_MEMBLOCK_RECORD];
 int memblock_reserve_count;
@@ -759,12 +754,7 @@ static int __init_memblock memblock_reserve_region(phys_addr_t base,
 		     (unsigned long long)base + size - 1,
 		     flags, (void *)_RET_IP_);
 
-//#ifdef VENDOR_EDIT
-//Wen.Luo@BSP.Kernel.Stability, 2018/11/28, Enable slabtrace for ageing test
-#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_SLUB_DEBUG)
-//#else
-//#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_MTK_ENG_BUILD)
-//#endif
+#if defined(CONFIG_MTK_MEMCFG) && defined(CONFIG_MTK_ENG_BUILD)
 	if (memblock_reserve_count < MAX_MEMBLOCK_RECORD) {
 		struct stack_trace trace;
 

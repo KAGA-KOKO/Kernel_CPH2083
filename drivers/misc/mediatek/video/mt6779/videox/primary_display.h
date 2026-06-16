@@ -217,9 +217,6 @@ enum mtkfb_power_mode {
 	MTKFB_POWER_MODE_UNKNOWN,
 };
 
-/*mtk71029 add for debug display hang*/
-#define DUMP_MAX_TRACE 8
-
 struct display_primary_path_context {
 	enum DISP_POWER_STATE state;
 	unsigned int lcm_fps;
@@ -264,14 +261,6 @@ struct display_primary_path_context {
 	cmdqBackupSlotHandle dsi_vfp_line;
 	cmdqBackupSlotHandle night_light_params;
 	cmdqBackupSlotHandle hrt_idx_id;
-	cmdqBackupSlotHandle request_mmclk_450;
-	#ifdef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-	* add for fingerprint notify frigger
-	*/
-	cmdqBackupSlotHandle fpd_fence;
-	#endif
 
 
 	int is_primary_sec;
@@ -282,10 +271,6 @@ struct display_primary_path_context {
 	enum mtkfb_power_mode pm;
 	enum mtkfb_power_mode prev_pm;
 	enum lcm_power_state lcm_ps;
-
-	/*mtk71029 add for debug display hang*/
-	unsigned long trace[DUMP_MAX_TRACE];
-	unsigned int trace_len;
 };
 
 static inline char *lcm_power_state_to_string(enum lcm_power_state ps)
@@ -407,8 +392,6 @@ int primary_display_get_original_height(void);
 int primary_display_lcm_ATA(void);
 int primary_display_setbacklight_nolock(unsigned int level);
 int primary_display_setbacklight(unsigned int level);
-int primary_display_set_lcm_hbm(bool en);
-int primary_display_hbm_wait(bool en);
 int primary_display_pause(PRIMARY_DISPLAY_CALLBACK callback,
 			  unsigned int user_data);
 int primary_display_switch_dst_mode(int mode);
@@ -432,16 +415,7 @@ int primary_display_vsync_switch(int method);
 int primary_display_setlcm_cmd(unsigned int *lcm_cmd, unsigned int *lcm_count,
 			       unsigned int *lcm_value);
 int primary_display_mipi_clk_change(unsigned int clk_value);
-
-#ifndef VENDOR_EDIT
-/*
- * Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
- * add for mipi clk change
- */
 int primary_display_ccci_mipi_callback(int en, unsigned int userdata);
-#else
-int primary_display_ccci_mipi_callback(int en, int userdata);
-#endif /*VENDOR_EDIT*/
 
 void _cmdq_insert_wait_frame_done_token_mira(void *handle);
 int primary_display_get_max_layer(void);
@@ -453,16 +427,6 @@ int primary_display_check_test(void);
 void _primary_path_switch_dst_lock(void);
 void _primary_path_switch_dst_unlock(void);
 
-#ifdef VENDOR_EDIT
-/*
-* Yongpeng.Yi@PSW.MM.Display.LCD.Machine, 2018/02/27,
-* add for face fill light node
-*/
-void ffl_set_init(void);
-void ffl_set_enable(unsigned int enable);
-int primary_display_set_aod_mode_nolock(unsigned int mode);
-int notify_display_fpd(bool mode);
-#endif /* VENDOR_EDIT */
 /* AOD */
 enum lcm_power_state primary_display_set_power_state(
 enum lcm_power_state new_state);
@@ -520,12 +484,5 @@ int primary_display_set_scenario(int scenario);
 enum DISP_MODULE_ENUM _get_dst_module_by_lcm(struct disp_lcm_handle *plcm);
 extern void check_mm0_clk_sts(void);
 int primary_display_get_dvfs_last_req(void);
-#ifdef VENDOR_EDIT
-/*
-* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/21,
-* add for fingerprint notify frigger
-*/
-void fpd_notify_check_trig(void);
-#endif
 
 #endif

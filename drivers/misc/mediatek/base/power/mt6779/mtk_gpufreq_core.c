@@ -107,11 +107,6 @@ static void __mt_gpufreq_batt_percent_protect(unsigned int limited_index);
 static void __mt_gpufreq_low_batt_protect(unsigned int limited_index);
 static void __mt_update_gpufreqs_power_table(void);
 static void __mt_gpufreq_update_max_limited_idx(void);
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/08, Add GPU min/max freq limit for scene requirement
-/* update OPP index of limited min freq for hypnus scene protection */
-static void __mt_gpufreq_update_min_limited_idx(void);
-#endif
 static unsigned int __mt_gpufreq_calculate_dds(unsigned int freq_khz,
 		enum g_post_divider_power_enum post_divider_power);
 static void __mt_gpufreq_setup_opp_power_table(int num);
@@ -151,15 +146,15 @@ static unsigned int g_ptpod_opp_idx_table_segment1[] = {
 };
 static unsigned int g_ptpod_opp_idx_table_segment2[] = {
 #ifdef USE_FINE_GRAIN_OPP_TABLE
-	0, 0, 2, 4,
-	6, 9, 11, 13,
-	15, 17, 19, 21,
-	23, 25, 27, 29
+	0, 2, 4, 6,
+	8, 11, 13, 15,
+	17, 19, 21, 23,
+	25, 27, 29, 31
 #else
 	0, 1, 2, 3,
 	4, 5, 6, 7,
 	8, 9, 10, 11,
-	12, 13, 14, 14
+	12, 13, 14, 15
 #endif
 };
 static struct g_opp_table_info g_opp_table_segment1[] = {
@@ -217,217 +212,57 @@ GPUOP(SEG1_GPU_DVFS_FREQ31, SEG1_GPU_DVFS_VOLT31, SEG1_GPU_DVFS_VSRAM5, 15),
 };
 static struct g_opp_table_info g_opp_table_segment2[] = {
 #ifdef USE_FINE_GRAIN_OPP_TABLE
-//GPUOP(SEG2_GPU_DVFS_FREQ0, SEG2_GPU_DVFS_VOLT0, SEG2_GPU_DVFS_VSRAM0, 0),
-//GPUOP(SEG2_GPU_DVFS_FREQ1, SEG2_GPU_DVFS_VOLT1, SEG2_GPU_DVFS_VSRAM1, 1),
-GPUOP(SEG2_GPU_DVFS_FREQ2, SEG2_GPU_DVFS_VOLT2, SEG2_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG2_GPU_DVFS_FREQ3, SEG2_GPU_DVFS_VOLT3, SEG2_GPU_DVFS_VSRAM3, 1),
+GPUOP(SEG2_GPU_DVFS_FREQ0, SEG2_GPU_DVFS_VOLT0, SEG2_GPU_DVFS_VSRAM0, 0),
+GPUOP(SEG2_GPU_DVFS_FREQ1, SEG2_GPU_DVFS_VOLT1, SEG2_GPU_DVFS_VSRAM1, 1),
+GPUOP(SEG2_GPU_DVFS_FREQ2, SEG2_GPU_DVFS_VOLT2, SEG2_GPU_DVFS_VSRAM2, 2),
+GPUOP(SEG2_GPU_DVFS_FREQ3, SEG2_GPU_DVFS_VOLT3, SEG2_GPU_DVFS_VSRAM3, 3),
+GPUOP(SEG2_GPU_DVFS_FREQ4, SEG2_GPU_DVFS_VOLT4, SEG2_GPU_DVFS_VSRAM4, 4),
+GPUOP(SEG2_GPU_DVFS_FREQ5, SEG2_GPU_DVFS_VOLT5, SEG2_GPU_DVFS_VSRAM5, 5),
+GPUOP(SEG2_GPU_DVFS_FREQ6, SEG2_GPU_DVFS_VOLT6, SEG2_GPU_DVFS_VSRAM6, 6),
+GPUOP(SEG2_GPU_DVFS_FREQ7, SEG2_GPU_DVFS_VOLT7, SEG2_GPU_DVFS_VSRAM7, 7),
+GPUOP(SEG2_GPU_DVFS_FREQ8, SEG2_GPU_DVFS_VOLT8, SEG2_GPU_DVFS_VSRAM7, 8),
+GPUOP(SEG2_GPU_DVFS_FREQ9, SEG2_GPU_DVFS_VOLT9, SEG2_GPU_DVFS_VSRAM7, 9),
+GPUOP(SEG2_GPU_DVFS_FREQ10, SEG2_GPU_DVFS_VOLT10, SEG2_GPU_DVFS_VSRAM7, 10),
+GPUOP(SEG2_GPU_DVFS_FREQ11, SEG2_GPU_DVFS_VOLT11, SEG2_GPU_DVFS_VSRAM7, 11),
+GPUOP(SEG2_GPU_DVFS_FREQ12, SEG2_GPU_DVFS_VOLT12, SEG2_GPU_DVFS_VSRAM7, 12),
+GPUOP(SEG2_GPU_DVFS_FREQ13, SEG2_GPU_DVFS_VOLT13, SEG2_GPU_DVFS_VSRAM7, 13),
+GPUOP(SEG2_GPU_DVFS_FREQ14, SEG2_GPU_DVFS_VOLT14, SEG2_GPU_DVFS_VSRAM7, 14),
+GPUOP(SEG2_GPU_DVFS_FREQ15, SEG2_GPU_DVFS_VOLT15, SEG2_GPU_DVFS_VSRAM7, 15),
+GPUOP(SEG2_GPU_DVFS_FREQ16, SEG2_GPU_DVFS_VOLT16, SEG2_GPU_DVFS_VSRAM7, 16),
+GPUOP(SEG2_GPU_DVFS_FREQ17, SEG2_GPU_DVFS_VOLT17, SEG2_GPU_DVFS_VSRAM7, 17),
+GPUOP(SEG2_GPU_DVFS_FREQ18, SEG2_GPU_DVFS_VOLT18, SEG2_GPU_DVFS_VSRAM7, 18),
+GPUOP(SEG2_GPU_DVFS_FREQ19, SEG2_GPU_DVFS_VOLT19, SEG2_GPU_DVFS_VSRAM7, 19),
+GPUOP(SEG2_GPU_DVFS_FREQ20, SEG2_GPU_DVFS_VOLT20, SEG2_GPU_DVFS_VSRAM7, 20),
+GPUOP(SEG2_GPU_DVFS_FREQ21, SEG2_GPU_DVFS_VOLT21, SEG2_GPU_DVFS_VSRAM7, 21),
+GPUOP(SEG2_GPU_DVFS_FREQ22, SEG2_GPU_DVFS_VOLT22, SEG2_GPU_DVFS_VSRAM7, 22),
+GPUOP(SEG2_GPU_DVFS_FREQ23, SEG2_GPU_DVFS_VOLT23, SEG2_GPU_DVFS_VSRAM7, 23),
+GPUOP(SEG2_GPU_DVFS_FREQ24, SEG2_GPU_DVFS_VOLT24, SEG2_GPU_DVFS_VSRAM7, 24),
+GPUOP(SEG2_GPU_DVFS_FREQ25, SEG2_GPU_DVFS_VOLT25, SEG2_GPU_DVFS_VSRAM7, 25),
+GPUOP(SEG2_GPU_DVFS_FREQ26, SEG2_GPU_DVFS_VOLT26, SEG2_GPU_DVFS_VSRAM7, 26),
+GPUOP(SEG2_GPU_DVFS_FREQ27, SEG2_GPU_DVFS_VOLT27, SEG2_GPU_DVFS_VSRAM7, 27),
+GPUOP(SEG2_GPU_DVFS_FREQ28, SEG2_GPU_DVFS_VOLT28, SEG2_GPU_DVFS_VSRAM7, 28),
+GPUOP(SEG2_GPU_DVFS_FREQ29, SEG2_GPU_DVFS_VOLT29, SEG2_GPU_DVFS_VSRAM7, 29),
+GPUOP(SEG2_GPU_DVFS_FREQ30, SEG2_GPU_DVFS_VOLT30, SEG2_GPU_DVFS_VSRAM7, 30),
+GPUOP(SEG2_GPU_DVFS_FREQ31, SEG2_GPU_DVFS_VOLT31, SEG2_GPU_DVFS_VSRAM7, 31),
+#else
+GPUOP(SEG2_GPU_DVFS_FREQ0, SEG2_GPU_DVFS_VOLT0, SEG2_GPU_DVFS_VSRAM0, 0),
+GPUOP(SEG2_GPU_DVFS_FREQ2, SEG2_GPU_DVFS_VOLT2, SEG2_GPU_DVFS_VSRAM2, 1),
 GPUOP(SEG2_GPU_DVFS_FREQ4, SEG2_GPU_DVFS_VOLT4, SEG2_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG2_GPU_DVFS_FREQ5, SEG2_GPU_DVFS_VOLT5, SEG2_GPU_DVFS_VSRAM5, 3),
-GPUOP(SEG2_GPU_DVFS_FREQ6, SEG2_GPU_DVFS_VOLT6, SEG2_GPU_DVFS_VSRAM6, 4),
-GPUOP(SEG2_GPU_DVFS_FREQ7, SEG2_GPU_DVFS_VOLT7, SEG2_GPU_DVFS_VSRAM7, 5),
-GPUOP(SEG2_GPU_DVFS_FREQ8, SEG2_GPU_DVFS_VOLT8, SEG2_GPU_DVFS_VSRAM7, 6),
-GPUOP(SEG2_GPU_DVFS_FREQ9, SEG2_GPU_DVFS_VOLT9, SEG2_GPU_DVFS_VSRAM7, 7),
-GPUOP(SEG2_GPU_DVFS_FREQ10, SEG2_GPU_DVFS_VOLT10, SEG2_GPU_DVFS_VSRAM7, 8),
-GPUOP(SEG2_GPU_DVFS_FREQ11, SEG2_GPU_DVFS_VOLT11, SEG2_GPU_DVFS_VSRAM7, 9),
-GPUOP(SEG2_GPU_DVFS_FREQ12, SEG2_GPU_DVFS_VOLT12, SEG2_GPU_DVFS_VSRAM7, 10),
-GPUOP(SEG2_GPU_DVFS_FREQ13, SEG2_GPU_DVFS_VOLT13, SEG2_GPU_DVFS_VSRAM7, 11),
-GPUOP(SEG2_GPU_DVFS_FREQ14, SEG2_GPU_DVFS_VOLT14, SEG2_GPU_DVFS_VSRAM7, 12),
-GPUOP(SEG2_GPU_DVFS_FREQ15, SEG2_GPU_DVFS_VOLT15, SEG2_GPU_DVFS_VSRAM7, 13),
-GPUOP(SEG2_GPU_DVFS_FREQ16, SEG2_GPU_DVFS_VOLT16, SEG2_GPU_DVFS_VSRAM7, 14),
-GPUOP(SEG2_GPU_DVFS_FREQ17, SEG2_GPU_DVFS_VOLT17, SEG2_GPU_DVFS_VSRAM7, 15),
-GPUOP(SEG2_GPU_DVFS_FREQ18, SEG2_GPU_DVFS_VOLT18, SEG2_GPU_DVFS_VSRAM7, 16),
-GPUOP(SEG2_GPU_DVFS_FREQ19, SEG2_GPU_DVFS_VOLT19, SEG2_GPU_DVFS_VSRAM7, 17),
-GPUOP(SEG2_GPU_DVFS_FREQ20, SEG2_GPU_DVFS_VOLT20, SEG2_GPU_DVFS_VSRAM7, 18),
-GPUOP(SEG2_GPU_DVFS_FREQ21, SEG2_GPU_DVFS_VOLT21, SEG2_GPU_DVFS_VSRAM7, 19),
-GPUOP(SEG2_GPU_DVFS_FREQ22, SEG2_GPU_DVFS_VOLT22, SEG2_GPU_DVFS_VSRAM7, 20),
-GPUOP(SEG2_GPU_DVFS_FREQ23, SEG2_GPU_DVFS_VOLT23, SEG2_GPU_DVFS_VSRAM7, 21),
-GPUOP(SEG2_GPU_DVFS_FREQ24, SEG2_GPU_DVFS_VOLT24, SEG2_GPU_DVFS_VSRAM7, 22),
-GPUOP(SEG2_GPU_DVFS_FREQ25, SEG2_GPU_DVFS_VOLT25, SEG2_GPU_DVFS_VSRAM7, 23),
-GPUOP(SEG2_GPU_DVFS_FREQ26, SEG2_GPU_DVFS_VOLT26, SEG2_GPU_DVFS_VSRAM7, 24),
-GPUOP(SEG2_GPU_DVFS_FREQ27, SEG2_GPU_DVFS_VOLT27, SEG2_GPU_DVFS_VSRAM7, 25),
-GPUOP(SEG2_GPU_DVFS_FREQ28, SEG2_GPU_DVFS_VOLT28, SEG2_GPU_DVFS_VSRAM7, 26),
-GPUOP(SEG2_GPU_DVFS_FREQ29, SEG2_GPU_DVFS_VOLT29, SEG2_GPU_DVFS_VSRAM7, 27),
-GPUOP(SEG2_GPU_DVFS_FREQ30, SEG2_GPU_DVFS_VOLT30, SEG2_GPU_DVFS_VSRAM7, 28),
-GPUOP(SEG2_GPU_DVFS_FREQ31, SEG2_GPU_DVFS_VOLT31, SEG2_GPU_DVFS_VSRAM7, 29),
-#else
-//GPUOP(SEG2_GPU_DVFS_FREQ0, SEG2_GPU_DVFS_VOLT0, SEG2_GPU_DVFS_VSRAM0, 0),
-GPUOP(SEG2_GPU_DVFS_FREQ2, SEG2_GPU_DVFS_VOLT2, SEG2_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG2_GPU_DVFS_FREQ4, SEG2_GPU_DVFS_VOLT4, SEG2_GPU_DVFS_VSRAM4, 1),
-GPUOP(SEG2_GPU_DVFS_FREQ6, SEG2_GPU_DVFS_VOLT6, SEG2_GPU_DVFS_VSRAM6, 2),
-GPUOP(SEG2_GPU_DVFS_FREQ8, SEG2_GPU_DVFS_VOLT8, SEG2_GPU_DVFS_VSRAM7, 3),
-GPUOP(SEG2_GPU_DVFS_FREQ11, SEG2_GPU_DVFS_VOLT11, SEG2_GPU_DVFS_VSRAM7, 4),
-GPUOP(SEG2_GPU_DVFS_FREQ13, SEG2_GPU_DVFS_VOLT13, SEG2_GPU_DVFS_VSRAM7, 5),
-GPUOP(SEG2_GPU_DVFS_FREQ15, SEG2_GPU_DVFS_VOLT15, SEG2_GPU_DVFS_VSRAM7, 6),
-GPUOP(SEG2_GPU_DVFS_FREQ17, SEG2_GPU_DVFS_VOLT17, SEG2_GPU_DVFS_VSRAM7, 7),
-GPUOP(SEG2_GPU_DVFS_FREQ19, SEG2_GPU_DVFS_VOLT19, SEG2_GPU_DVFS_VSRAM7, 8),
-GPUOP(SEG2_GPU_DVFS_FREQ21, SEG2_GPU_DVFS_VOLT21, SEG2_GPU_DVFS_VSRAM7, 9),
-GPUOP(SEG2_GPU_DVFS_FREQ23, SEG2_GPU_DVFS_VOLT23, SEG2_GPU_DVFS_VSRAM7, 10),
-GPUOP(SEG2_GPU_DVFS_FREQ25, SEG2_GPU_DVFS_VOLT25, SEG2_GPU_DVFS_VSRAM7, 11),
-GPUOP(SEG2_GPU_DVFS_FREQ27, SEG2_GPU_DVFS_VOLT27, SEG2_GPU_DVFS_VSRAM7, 12),
-GPUOP(SEG2_GPU_DVFS_FREQ29, SEG2_GPU_DVFS_VOLT29, SEG2_GPU_DVFS_VSRAM7, 13),
-GPUOP(SEG2_GPU_DVFS_FREQ31, SEG2_GPU_DVFS_VOLT31, SEG2_GPU_DVFS_VSRAM7, 14),
+GPUOP(SEG2_GPU_DVFS_FREQ6, SEG2_GPU_DVFS_VOLT6, SEG2_GPU_DVFS_VSRAM6, 3),
+GPUOP(SEG2_GPU_DVFS_FREQ8, SEG2_GPU_DVFS_VOLT8, SEG2_GPU_DVFS_VSRAM7, 4),
+GPUOP(SEG2_GPU_DVFS_FREQ11, SEG2_GPU_DVFS_VOLT11, SEG2_GPU_DVFS_VSRAM7, 5),
+GPUOP(SEG2_GPU_DVFS_FREQ13, SEG2_GPU_DVFS_VOLT13, SEG2_GPU_DVFS_VSRAM7, 6),
+GPUOP(SEG2_GPU_DVFS_FREQ15, SEG2_GPU_DVFS_VOLT15, SEG2_GPU_DVFS_VSRAM7, 7),
+GPUOP(SEG2_GPU_DVFS_FREQ17, SEG2_GPU_DVFS_VOLT17, SEG2_GPU_DVFS_VSRAM7, 8),
+GPUOP(SEG2_GPU_DVFS_FREQ19, SEG2_GPU_DVFS_VOLT19, SEG2_GPU_DVFS_VSRAM7, 9),
+GPUOP(SEG2_GPU_DVFS_FREQ21, SEG2_GPU_DVFS_VOLT21, SEG2_GPU_DVFS_VSRAM7, 10),
+GPUOP(SEG2_GPU_DVFS_FREQ23, SEG2_GPU_DVFS_VOLT23, SEG2_GPU_DVFS_VSRAM7, 11),
+GPUOP(SEG2_GPU_DVFS_FREQ25, SEG2_GPU_DVFS_VOLT25, SEG2_GPU_DVFS_VSRAM7, 12),
+GPUOP(SEG2_GPU_DVFS_FREQ27, SEG2_GPU_DVFS_VOLT27, SEG2_GPU_DVFS_VSRAM7, 13),
+GPUOP(SEG2_GPU_DVFS_FREQ29, SEG2_GPU_DVFS_VOLT29, SEG2_GPU_DVFS_VSRAM7, 14),
+GPUOP(SEG2_GPU_DVFS_FREQ31, SEG2_GPU_DVFS_VOLT31, SEG2_GPU_DVFS_VSRAM7, 15),
 #endif
 };
-static struct g_opp_table_info g_opp_table_segment3[] = {
-#ifdef USE_FINE_GRAIN_OPP_TABLE
-//GPUOP(SEG3_GPU_DVFS_FREQ0, SEG3_GPU_DVFS_VOLT0, SEG3_GPU_DVFS_VSRAM0, 0),
-//GPUOP(SEG3_GPU_DVFS_FREQ1, SEG3_GPU_DVFS_VOLT1, SEG3_GPU_DVFS_VSRAM1, 1),
-GPUOP(SEG3_GPU_DVFS_FREQ2, SEG3_GPU_DVFS_VOLT2, SEG3_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG3_GPU_DVFS_FREQ3, SEG3_GPU_DVFS_VOLT3, SEG3_GPU_DVFS_VSRAM3, 1),
-GPUOP(SEG3_GPU_DVFS_FREQ4, SEG3_GPU_DVFS_VOLT4, SEG3_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG3_GPU_DVFS_FREQ5, SEG3_GPU_DVFS_VOLT5, SEG3_GPU_DVFS_VSRAM4, 3),
-GPUOP(SEG3_GPU_DVFS_FREQ6, SEG3_GPU_DVFS_VOLT6, SEG3_GPU_DVFS_VSRAM4, 4),
-GPUOP(SEG3_GPU_DVFS_FREQ7, SEG3_GPU_DVFS_VOLT7, SEG3_GPU_DVFS_VSRAM4, 5),
-GPUOP(SEG3_GPU_DVFS_FREQ8, SEG3_GPU_DVFS_VOLT8, SEG3_GPU_DVFS_VSRAM4, 6),
-GPUOP(SEG3_GPU_DVFS_FREQ9, SEG3_GPU_DVFS_VOLT9, SEG3_GPU_DVFS_VSRAM4, 7),
-GPUOP(SEG3_GPU_DVFS_FREQ10, SEG3_GPU_DVFS_VOLT10, SEG3_GPU_DVFS_VSRAM4, 8),
-GPUOP(SEG3_GPU_DVFS_FREQ11, SEG3_GPU_DVFS_VOLT11, SEG3_GPU_DVFS_VSRAM4, 9),
-GPUOP(SEG3_GPU_DVFS_FREQ12, SEG3_GPU_DVFS_VOLT12, SEG3_GPU_DVFS_VSRAM4, 10),
-GPUOP(SEG3_GPU_DVFS_FREQ13, SEG3_GPU_DVFS_VOLT13, SEG3_GPU_DVFS_VSRAM4, 11),
-GPUOP(SEG3_GPU_DVFS_FREQ14, SEG3_GPU_DVFS_VOLT14, SEG3_GPU_DVFS_VSRAM4, 12),
-GPUOP(SEG3_GPU_DVFS_FREQ15, SEG3_GPU_DVFS_VOLT15, SEG3_GPU_DVFS_VSRAM4, 13),
-GPUOP(SEG3_GPU_DVFS_FREQ16, SEG3_GPU_DVFS_VOLT16, SEG3_GPU_DVFS_VSRAM4, 14),
-GPUOP(SEG3_GPU_DVFS_FREQ17, SEG3_GPU_DVFS_VOLT17, SEG3_GPU_DVFS_VSRAM4, 15),
-GPUOP(SEG3_GPU_DVFS_FREQ18, SEG3_GPU_DVFS_VOLT18, SEG3_GPU_DVFS_VSRAM4, 16),
-GPUOP(SEG3_GPU_DVFS_FREQ19, SEG3_GPU_DVFS_VOLT19, SEG3_GPU_DVFS_VSRAM4, 17),
-GPUOP(SEG3_GPU_DVFS_FREQ20, SEG3_GPU_DVFS_VOLT20, SEG3_GPU_DVFS_VSRAM4, 18),
-GPUOP(SEG3_GPU_DVFS_FREQ21, SEG3_GPU_DVFS_VOLT21, SEG3_GPU_DVFS_VSRAM4, 19),
-GPUOP(SEG3_GPU_DVFS_FREQ22, SEG3_GPU_DVFS_VOLT22, SEG3_GPU_DVFS_VSRAM4, 20),
-GPUOP(SEG3_GPU_DVFS_FREQ23, SEG3_GPU_DVFS_VOLT23, SEG3_GPU_DVFS_VSRAM4, 21),
-GPUOP(SEG3_GPU_DVFS_FREQ24, SEG3_GPU_DVFS_VOLT24, SEG3_GPU_DVFS_VSRAM4, 22),
-GPUOP(SEG3_GPU_DVFS_FREQ25, SEG3_GPU_DVFS_VOLT25, SEG3_GPU_DVFS_VSRAM4, 23),
-GPUOP(SEG3_GPU_DVFS_FREQ26, SEG3_GPU_DVFS_VOLT26, SEG3_GPU_DVFS_VSRAM4, 24),
-GPUOP(SEG3_GPU_DVFS_FREQ27, SEG3_GPU_DVFS_VOLT27, SEG3_GPU_DVFS_VSRAM4, 25),
-GPUOP(SEG3_GPU_DVFS_FREQ28, SEG3_GPU_DVFS_VOLT28, SEG3_GPU_DVFS_VSRAM4, 26),
-GPUOP(SEG3_GPU_DVFS_FREQ29, SEG3_GPU_DVFS_VOLT29, SEG3_GPU_DVFS_VSRAM4, 27),
-GPUOP(SEG3_GPU_DVFS_FREQ30, SEG3_GPU_DVFS_VOLT30, SEG3_GPU_DVFS_VSRAM4, 28),
-GPUOP(SEG3_GPU_DVFS_FREQ31, SEG3_GPU_DVFS_VOLT31, SEG3_GPU_DVFS_VSRAM4, 29),
-#else
-//GPUOP(SEG3_GPU_DVFS_FREQ0, SEG3_GPU_DVFS_VOLT0, SEG3_GPU_DVFS_VSRAM0, 0),
-GPUOP(SEG3_GPU_DVFS_FREQ2, SEG3_GPU_DVFS_VOLT2, SEG3_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG3_GPU_DVFS_FREQ4, SEG3_GPU_DVFS_VOLT4, SEG3_GPU_DVFS_VSRAM4, 1),
-GPUOP(SEG3_GPU_DVFS_FREQ6, SEG3_GPU_DVFS_VOLT6, SEG3_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG3_GPU_DVFS_FREQ8, SEG3_GPU_DVFS_VOLT8, SEG3_GPU_DVFS_VSRAM4, 3),
-GPUOP(SEG3_GPU_DVFS_FREQ11, SEG3_GPU_DVFS_VOLT11, SEG3_GPU_DVFS_VSRAM4, 4),
-GPUOP(SEG3_GPU_DVFS_FREQ13, SEG3_GPU_DVFS_VOLT13, SEG3_GPU_DVFS_VSRAM4, 5),
-GPUOP(SEG3_GPU_DVFS_FREQ15, SEG3_GPU_DVFS_VOLT15, SEG3_GPU_DVFS_VSRAM4, 6),
-GPUOP(SEG3_GPU_DVFS_FREQ17, SEG3_GPU_DVFS_VOLT17, SEG3_GPU_DVFS_VSRAM4, 7),
-GPUOP(SEG3_GPU_DVFS_FREQ19, SEG3_GPU_DVFS_VOLT19, SEG3_GPU_DVFS_VSRAM4, 8),
-GPUOP(SEG3_GPU_DVFS_FREQ21, SEG3_GPU_DVFS_VOLT21, SEG3_GPU_DVFS_VSRAM4, 9),
-GPUOP(SEG3_GPU_DVFS_FREQ23, SEG3_GPU_DVFS_VOLT23, SEG3_GPU_DVFS_VSRAM4, 10),
-GPUOP(SEG3_GPU_DVFS_FREQ25, SEG3_GPU_DVFS_VOLT25, SEG3_GPU_DVFS_VSRAM4, 11),
-GPUOP(SEG3_GPU_DVFS_FREQ27, SEG3_GPU_DVFS_VOLT27, SEG3_GPU_DVFS_VSRAM4, 12),
-GPUOP(SEG3_GPU_DVFS_FREQ29, SEG3_GPU_DVFS_VOLT29, SEG3_GPU_DVFS_VSRAM4, 13),
-GPUOP(SEG3_GPU_DVFS_FREQ31, SEG3_GPU_DVFS_VOLT31, SEG3_GPU_DVFS_VSRAM4, 14),
-#endif
-};
-static struct g_opp_table_info g_opp_table_segment4[] = {
-#ifdef USE_FINE_GRAIN_OPP_TABLE
-//GPUOP(SEG4_GPU_DVFS_FREQ0, SEG4_GPU_DVFS_VOLT0, SEG4_GPU_DVFS_VSRAM0, 0),
-//GPUOP(SEG4_GPU_DVFS_FREQ1, SEG4_GPU_DVFS_VOLT1, SEG4_GPU_DVFS_VSRAM1, 1),
-GPUOP(SEG4_GPU_DVFS_FREQ2, SEG4_GPU_DVFS_VOLT2, SEG4_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG4_GPU_DVFS_FREQ3, SEG4_GPU_DVFS_VOLT3, SEG4_GPU_DVFS_VSRAM3, 1),
-GPUOP(SEG4_GPU_DVFS_FREQ4, SEG4_GPU_DVFS_VOLT4, SEG4_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG4_GPU_DVFS_FREQ5, SEG4_GPU_DVFS_VOLT5, SEG4_GPU_DVFS_VSRAM5, 3),
-GPUOP(SEG4_GPU_DVFS_FREQ6, SEG4_GPU_DVFS_VOLT6, SEG4_GPU_DVFS_VSRAM6, 4),
-GPUOP(SEG4_GPU_DVFS_FREQ7, SEG4_GPU_DVFS_VOLT7, SEG4_GPU_DVFS_VSRAM7, 5),
-GPUOP(SEG4_GPU_DVFS_FREQ8, SEG4_GPU_DVFS_VOLT8, SEG4_GPU_DVFS_VSRAM7, 6),
-GPUOP(SEG4_GPU_DVFS_FREQ9, SEG4_GPU_DVFS_VOLT9, SEG4_GPU_DVFS_VSRAM7, 7),
-GPUOP(SEG4_GPU_DVFS_FREQ10, SEG4_GPU_DVFS_VOLT10, SEG4_GPU_DVFS_VSRAM7, 8),
-GPUOP(SEG4_GPU_DVFS_FREQ11, SEG4_GPU_DVFS_VOLT11, SEG4_GPU_DVFS_VSRAM7, 9),
-GPUOP(SEG4_GPU_DVFS_FREQ12, SEG4_GPU_DVFS_VOLT12, SEG4_GPU_DVFS_VSRAM7, 10),
-GPUOP(SEG4_GPU_DVFS_FREQ13, SEG4_GPU_DVFS_VOLT13, SEG4_GPU_DVFS_VSRAM7, 11),
-GPUOP(SEG4_GPU_DVFS_FREQ14, SEG4_GPU_DVFS_VOLT14, SEG4_GPU_DVFS_VSRAM7, 12),
-GPUOP(SEG4_GPU_DVFS_FREQ15, SEG4_GPU_DVFS_VOLT15, SEG4_GPU_DVFS_VSRAM7, 13),
-GPUOP(SEG4_GPU_DVFS_FREQ16, SEG4_GPU_DVFS_VOLT16, SEG4_GPU_DVFS_VSRAM7, 14),
-GPUOP(SEG4_GPU_DVFS_FREQ17, SEG4_GPU_DVFS_VOLT17, SEG4_GPU_DVFS_VSRAM7, 15),
-GPUOP(SEG4_GPU_DVFS_FREQ18, SEG4_GPU_DVFS_VOLT18, SEG4_GPU_DVFS_VSRAM7, 16),
-GPUOP(SEG4_GPU_DVFS_FREQ19, SEG4_GPU_DVFS_VOLT19, SEG4_GPU_DVFS_VSRAM7, 17),
-GPUOP(SEG4_GPU_DVFS_FREQ20, SEG4_GPU_DVFS_VOLT20, SEG4_GPU_DVFS_VSRAM7, 18),
-GPUOP(SEG4_GPU_DVFS_FREQ21, SEG4_GPU_DVFS_VOLT21, SEG4_GPU_DVFS_VSRAM7, 19),
-GPUOP(SEG4_GPU_DVFS_FREQ22, SEG4_GPU_DVFS_VOLT22, SEG4_GPU_DVFS_VSRAM7, 20),
-GPUOP(SEG4_GPU_DVFS_FREQ23, SEG4_GPU_DVFS_VOLT23, SEG4_GPU_DVFS_VSRAM7, 21),
-GPUOP(SEG4_GPU_DVFS_FREQ24, SEG4_GPU_DVFS_VOLT24, SEG4_GPU_DVFS_VSRAM7, 22),
-GPUOP(SEG4_GPU_DVFS_FREQ25, SEG4_GPU_DVFS_VOLT25, SEG4_GPU_DVFS_VSRAM7, 23),
-GPUOP(SEG4_GPU_DVFS_FREQ26, SEG4_GPU_DVFS_VOLT26, SEG4_GPU_DVFS_VSRAM7, 24),
-GPUOP(SEG4_GPU_DVFS_FREQ27, SEG4_GPU_DVFS_VOLT27, SEG4_GPU_DVFS_VSRAM7, 25),
-GPUOP(SEG4_GPU_DVFS_FREQ28, SEG4_GPU_DVFS_VOLT28, SEG4_GPU_DVFS_VSRAM7, 26),
-GPUOP(SEG4_GPU_DVFS_FREQ29, SEG4_GPU_DVFS_VOLT29, SEG4_GPU_DVFS_VSRAM7, 27),
-GPUOP(SEG4_GPU_DVFS_FREQ30, SEG4_GPU_DVFS_VOLT30, SEG4_GPU_DVFS_VSRAM7, 28),
-GPUOP(SEG4_GPU_DVFS_FREQ31, SEG4_GPU_DVFS_VOLT31, SEG4_GPU_DVFS_VSRAM7, 29),
-#else
-//GPUOP(SEG4_GPU_DVFS_FREQ0, SEG4_GPU_DVFS_VOLT0, SEG4_GPU_DVFS_VSRAM0, 0),
-GPUOP(SEG4_GPU_DVFS_FREQ2, SEG4_GPU_DVFS_VOLT2, SEG4_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG4_GPU_DVFS_FREQ4, SEG4_GPU_DVFS_VOLT4, SEG4_GPU_DVFS_VSRAM4, 1),
-GPUOP(SEG4_GPU_DVFS_FREQ6, SEG4_GPU_DVFS_VOLT6, SEG4_GPU_DVFS_VSRAM6, 2),
-GPUOP(SEG4_GPU_DVFS_FREQ8, SEG4_GPU_DVFS_VOLT8, SEG4_GPU_DVFS_VSRAM7, 3),
-GPUOP(SEG4_GPU_DVFS_FREQ11, SEG4_GPU_DVFS_VOLT11, SEG4_GPU_DVFS_VSRAM7, 4),
-GPUOP(SEG4_GPU_DVFS_FREQ13, SEG4_GPU_DVFS_VOLT13, SEG4_GPU_DVFS_VSRAM7, 5),
-GPUOP(SEG4_GPU_DVFS_FREQ15, SEG4_GPU_DVFS_VOLT15, SEG4_GPU_DVFS_VSRAM7, 6),
-GPUOP(SEG4_GPU_DVFS_FREQ17, SEG4_GPU_DVFS_VOLT17, SEG4_GPU_DVFS_VSRAM7, 7),
-GPUOP(SEG4_GPU_DVFS_FREQ19, SEG4_GPU_DVFS_VOLT19, SEG4_GPU_DVFS_VSRAM7, 8),
-GPUOP(SEG4_GPU_DVFS_FREQ21, SEG4_GPU_DVFS_VOLT21, SEG4_GPU_DVFS_VSRAM7, 9),
-GPUOP(SEG4_GPU_DVFS_FREQ23, SEG4_GPU_DVFS_VOLT23, SEG4_GPU_DVFS_VSRAM7, 10),
-GPUOP(SEG4_GPU_DVFS_FREQ25, SEG4_GPU_DVFS_VOLT25, SEG4_GPU_DVFS_VSRAM7, 11),
-GPUOP(SEG4_GPU_DVFS_FREQ27, SEG4_GPU_DVFS_VOLT27, SEG4_GPU_DVFS_VSRAM7, 12),
-GPUOP(SEG4_GPU_DVFS_FREQ29, SEG4_GPU_DVFS_VOLT29, SEG4_GPU_DVFS_VSRAM7, 13),
-GPUOP(SEG4_GPU_DVFS_FREQ31, SEG4_GPU_DVFS_VOLT31, SEG4_GPU_DVFS_VSRAM7, 14),
-#endif
-};
-static struct g_opp_table_info g_opp_table_segment5[] = {
-#ifdef USE_FINE_GRAIN_OPP_TABLE
-//GPUOP(SEG5_GPU_DVFS_FREQ0, SEG5_GPU_DVFS_VOLT0, SEG5_GPU_DVFS_VSRAM0, 0),
-//GPUOP(SEG5_GPU_DVFS_FREQ1, SEG5_GPU_DVFS_VOLT1, SEG5_GPU_DVFS_VSRAM1, 1),
-GPUOP(SEG5_GPU_DVFS_FREQ2, SEG5_GPU_DVFS_VOLT2, SEG5_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG5_GPU_DVFS_FREQ3, SEG5_GPU_DVFS_VOLT3, SEG5_GPU_DVFS_VSRAM3, 1),
-GPUOP(SEG5_GPU_DVFS_FREQ4, SEG5_GPU_DVFS_VOLT4, SEG5_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG5_GPU_DVFS_FREQ5, SEG5_GPU_DVFS_VOLT5, SEG5_GPU_DVFS_VSRAM4, 3),
-GPUOP(SEG5_GPU_DVFS_FREQ6, SEG5_GPU_DVFS_VOLT6, SEG5_GPU_DVFS_VSRAM4, 4),
-GPUOP(SEG5_GPU_DVFS_FREQ7, SEG5_GPU_DVFS_VOLT7, SEG5_GPU_DVFS_VSRAM4, 5),
-GPUOP(SEG5_GPU_DVFS_FREQ8, SEG5_GPU_DVFS_VOLT8, SEG5_GPU_DVFS_VSRAM4, 6),
-GPUOP(SEG5_GPU_DVFS_FREQ9, SEG5_GPU_DVFS_VOLT9, SEG5_GPU_DVFS_VSRAM4, 7),
-GPUOP(SEG5_GPU_DVFS_FREQ10, SEG5_GPU_DVFS_VOLT10, SEG5_GPU_DVFS_VSRAM4, 8),
-GPUOP(SEG5_GPU_DVFS_FREQ11, SEG5_GPU_DVFS_VOLT11, SEG5_GPU_DVFS_VSRAM4, 9),
-GPUOP(SEG5_GPU_DVFS_FREQ12, SEG5_GPU_DVFS_VOLT12, SEG5_GPU_DVFS_VSRAM4, 10),
-GPUOP(SEG5_GPU_DVFS_FREQ13, SEG5_GPU_DVFS_VOLT13, SEG5_GPU_DVFS_VSRAM4, 11),
-GPUOP(SEG5_GPU_DVFS_FREQ14, SEG5_GPU_DVFS_VOLT14, SEG5_GPU_DVFS_VSRAM4, 12),
-GPUOP(SEG5_GPU_DVFS_FREQ15, SEG5_GPU_DVFS_VOLT15, SEG5_GPU_DVFS_VSRAM4, 13),
-GPUOP(SEG5_GPU_DVFS_FREQ16, SEG5_GPU_DVFS_VOLT16, SEG5_GPU_DVFS_VSRAM4, 14),
-GPUOP(SEG5_GPU_DVFS_FREQ17, SEG5_GPU_DVFS_VOLT17, SEG5_GPU_DVFS_VSRAM4, 15),
-GPUOP(SEG5_GPU_DVFS_FREQ18, SEG5_GPU_DVFS_VOLT18, SEG5_GPU_DVFS_VSRAM4, 16),
-GPUOP(SEG5_GPU_DVFS_FREQ19, SEG5_GPU_DVFS_VOLT19, SEG5_GPU_DVFS_VSRAM4, 17),
-GPUOP(SEG5_GPU_DVFS_FREQ20, SEG5_GPU_DVFS_VOLT20, SEG5_GPU_DVFS_VSRAM4, 18),
-GPUOP(SEG5_GPU_DVFS_FREQ21, SEG5_GPU_DVFS_VOLT21, SEG5_GPU_DVFS_VSRAM4, 19),
-GPUOP(SEG5_GPU_DVFS_FREQ22, SEG5_GPU_DVFS_VOLT22, SEG5_GPU_DVFS_VSRAM4, 20),
-GPUOP(SEG5_GPU_DVFS_FREQ23, SEG5_GPU_DVFS_VOLT23, SEG5_GPU_DVFS_VSRAM4, 21),
-GPUOP(SEG5_GPU_DVFS_FREQ24, SEG5_GPU_DVFS_VOLT24, SEG5_GPU_DVFS_VSRAM4, 22),
-GPUOP(SEG5_GPU_DVFS_FREQ25, SEG5_GPU_DVFS_VOLT25, SEG5_GPU_DVFS_VSRAM4, 23),
-GPUOP(SEG5_GPU_DVFS_FREQ26, SEG5_GPU_DVFS_VOLT26, SEG5_GPU_DVFS_VSRAM4, 24),
-GPUOP(SEG5_GPU_DVFS_FREQ27, SEG5_GPU_DVFS_VOLT27, SEG5_GPU_DVFS_VSRAM4, 25),
-GPUOP(SEG5_GPU_DVFS_FREQ28, SEG5_GPU_DVFS_VOLT28, SEG5_GPU_DVFS_VSRAM4, 26),
-GPUOP(SEG5_GPU_DVFS_FREQ29, SEG5_GPU_DVFS_VOLT29, SEG5_GPU_DVFS_VSRAM4, 27),
-GPUOP(SEG5_GPU_DVFS_FREQ30, SEG5_GPU_DVFS_VOLT30, SEG5_GPU_DVFS_VSRAM4, 28),
-GPUOP(SEG5_GPU_DVFS_FREQ31, SEG5_GPU_DVFS_VOLT31, SEG5_GPU_DVFS_VSRAM4, 29),
-#else
-//GPUOP(SEG5_GPU_DVFS_FREQ0, SEG5_GPU_DVFS_VOLT0, SEG5_GPU_DVFS_VSRAM0, 0),
-GPUOP(SEG5_GPU_DVFS_FREQ2, SEG5_GPU_DVFS_VOLT2, SEG5_GPU_DVFS_VSRAM2, 0),
-GPUOP(SEG5_GPU_DVFS_FREQ4, SEG5_GPU_DVFS_VOLT4, SEG5_GPU_DVFS_VSRAM4, 1),
-GPUOP(SEG5_GPU_DVFS_FREQ6, SEG5_GPU_DVFS_VOLT6, SEG5_GPU_DVFS_VSRAM4, 2),
-GPUOP(SEG5_GPU_DVFS_FREQ8, SEG5_GPU_DVFS_VOLT8, SEG5_GPU_DVFS_VSRAM4, 3),
-GPUOP(SEG5_GPU_DVFS_FREQ11, SEG5_GPU_DVFS_VOLT11, SEG5_GPU_DVFS_VSRAM4, 4),
-GPUOP(SEG5_GPU_DVFS_FREQ13, SEG5_GPU_DVFS_VOLT13, SEG5_GPU_DVFS_VSRAM4, 5),
-GPUOP(SEG5_GPU_DVFS_FREQ15, SEG5_GPU_DVFS_VOLT15, SEG5_GPU_DVFS_VSRAM4, 6),
-GPUOP(SEG5_GPU_DVFS_FREQ17, SEG5_GPU_DVFS_VOLT17, SEG5_GPU_DVFS_VSRAM4, 7),
-GPUOP(SEG5_GPU_DVFS_FREQ19, SEG5_GPU_DVFS_VOLT19, SEG5_GPU_DVFS_VSRAM4, 8),
-GPUOP(SEG5_GPU_DVFS_FREQ21, SEG5_GPU_DVFS_VOLT21, SEG5_GPU_DVFS_VSRAM4, 9),
-GPUOP(SEG5_GPU_DVFS_FREQ23, SEG5_GPU_DVFS_VOLT23, SEG5_GPU_DVFS_VSRAM4, 10),
-GPUOP(SEG5_GPU_DVFS_FREQ25, SEG5_GPU_DVFS_VOLT25, SEG5_GPU_DVFS_VSRAM4, 11),
-GPUOP(SEG5_GPU_DVFS_FREQ27, SEG5_GPU_DVFS_VOLT27, SEG5_GPU_DVFS_VSRAM4, 12),
-GPUOP(SEG5_GPU_DVFS_FREQ29, SEG5_GPU_DVFS_VOLT29, SEG5_GPU_DVFS_VSRAM4, 13),
-GPUOP(SEG5_GPU_DVFS_FREQ31, SEG5_GPU_DVFS_VOLT31, SEG5_GPU_DVFS_VSRAM4, 14),
-#endif
-};
-
 static const struct of_device_id g_gpufreq_of_match[] = {
 	{ .compatible = "mediatek,mt6779-gpufreq" },
 	{ /* sentinel */ }
@@ -470,10 +305,6 @@ static unsigned int g_fixed_vsram_volt_idx;
 static unsigned int g_fixed_freq;
 static unsigned int g_fixed_volt;
 static unsigned int g_max_limited_idx;
-#ifdef VENDOR_EDIT
-//cuixiaogang@swdp.shanghai, 2017/12/08, Add gpufreq min limit interface
-static unsigned int g_min_limited_idx = INT_MAX;
-#endif
 static unsigned int g_pbm_limited_power;
 static unsigned int g_thermal_protect_power;
 static unsigned int g_DVFS_off_by_ptpod_idx;
@@ -503,10 +334,6 @@ static enum g_post_divider_power_enum g_cur_post_divider_power;
 static DEFINE_MUTEX(mt_gpufreq_lock);
 static DEFINE_MUTEX(mt_gpufreq_power_lock);
 static unsigned int g_limited_idx_array[NUMBER_OF_LIMITED_IDX] = { 0 };
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/08, Add GPU min/max freq limit for scene requirement
-static unsigned int g_limited_min_idx_array[NR_IDX_POWER_MIN_LIMITED] = { INT_MAX };
-#endif
 static bool g_limited_ignore_array[NUMBER_OF_LIMITED_IDX] = { false };
 static void __iomem *g_apmixed_base;
 static void __iomem *g_efuse_base;
@@ -527,89 +354,9 @@ struct mt_gpufreq_power_table_info *pass_gpu_table_to_eara(void)
 	return g_power_table;
 }
 
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/08, Add GPU min/max freq limit for scene requirement
-int mt_gpufreq_scene_protect(unsigned int min_freq, unsigned int max_freq)
-{
-	int i = 0;
-	bool min_done = false;
-	bool max_done = false;
-
-	if (min_freq > max_freq) {
-		gpufreq_perr("@%s: GPU DVFS invalid input min_freq:%u max_freq:%u\n",
-			__func__, min_freq, max_freq);
-		return -EINVAL;
-	}
-
-	mutex_lock(&mt_gpufreq_lock);
-	for (i = 0; i < g_opp_idx_num; i++) {
-		//max freq
-		if (g_opp_table[i].gpufreq_khz <= max_freq && !max_done) {
-			g_limited_idx_array[IDX_SCENE_LIMITED] = i;
-			max_done = true;
-		}
-		//min freq
-		if (g_opp_table[g_opp_idx_num - 1 - i].gpufreq_khz >= min_freq && !min_done) {
-			g_limited_min_idx_array[IDX_SCENE_MIN_LIMITED] = g_opp_idx_num - 1 - i;
-			min_done = true;
-		}
-	}
-
-	if (!max_done)
-		g_limited_idx_array[IDX_SCENE_LIMITED] = 0;
-	if (!min_done)
-		g_limited_min_idx_array[IDX_SCENE_MIN_LIMITED] = g_opp_idx_num - 1;
-
-	// if min freq > max freq
-	if (g_limited_min_idx_array[IDX_SCENE_MIN_LIMITED] <
-		g_limited_idx_array[IDX_SCENE_LIMITED]) {
-		g_limited_idx_array[IDX_SCENE_LIMITED] = g_limited_min_idx_array[IDX_SCENE_MIN_LIMITED];
-	}
-
-	__mt_gpufreq_update_max_limited_idx();
-	__mt_gpufreq_update_min_limited_idx();
-	mutex_unlock(&mt_gpufreq_lock);
-	return 0;
-}
-EXPORT_SYMBOL(mt_gpufreq_scene_protect);
-#endif /* VENDOR_EDIT */
-
 /*
  * API : handle frequency change request
  */
-
-#ifdef VENDOR_EDIT
-//cuixiaogang@SRC.hypnus add support to statistics gpufreq
-static u64 mt_gpufreq_time_in_state[32] = {0};
-unsigned int time_in_state_run = 0;
-u64 prev_switch_time = 0;
-
-static int mt_gpufreq_in_time_proc_show(struct seq_file *m, void *v)
-{
-	int i;
-
-	//gpufreq from high to low
-	for (i = 0; i < g_opp_idx_num; i++) {
-		seq_printf(m, "%llu ", mt_gpufreq_time_in_state[i] / 1000);
-	}
-	seq_printf(m, "\n");
-
-	return 0;
-}
-
-static int mt_gpufreq_opp_list_proc_show(struct seq_file *m, void *v)
-{
-	int i;
-
-	for (i = 0; i < g_opp_idx_num; i++) {
-		seq_printf(m, "%d ", g_opp_table[i].gpufreq_khz);
-	}
-	seq_printf(m, "\n");
-
-	return 0;
-}
-#endif /* VENDOR_EDIT */
-
 unsigned int mt_gpufreq_target(unsigned int idx)
 {
 	unsigned int target_freq;
@@ -617,7 +364,6 @@ unsigned int mt_gpufreq_target(unsigned int idx)
 	unsigned int target_vsram_volt;
 	unsigned int target_idx;
 	unsigned int target_cond_idx;
-	u64 now;
 
 	mutex_lock(&mt_gpufreq_lock);
 
@@ -656,21 +402,6 @@ unsigned int mt_gpufreq_target(unsigned int idx)
 				__func__, target_cond_idx);
 		}
 	}
-
-#ifdef VENDOR_EDIT
-//cuixiaogang@swdp.shanghai, 2018/1/16, Add gpufreq min limit interface
-	//min freq
-	if (g_min_limited_idx != g_opp_idx_num - 1) {
-		if (target_freq < g_opp_table[g_min_limited_idx].gpufreq_khz) {
-			target_freq = g_opp_table[g_min_limited_idx].gpufreq_khz;
-			target_volt = g_opp_table[g_min_limited_idx].gpufreq_volt;
-			target_idx = g_opp_table[g_min_limited_idx].gpufreq_idx;
-			target_cond_idx = g_min_limited_idx;
-			gpufreq_pr_debug("@%s: OPP freq is limited by Thermal/Power/PBM, g_min_limited_idx = %d\n",
-					__func__, target_cond_idx);
-		}
-	}
-#endif /* VENDOR_EDIT */
 
 	/* If /proc command keep OPP freq */
 	if (g_keep_opp_freq_state) {
@@ -739,20 +470,6 @@ unsigned int mt_gpufreq_target(unsigned int idx)
 	}
 	__mt_gpufreq_set(g_cur_opp_freq, target_freq, g_cur_opp_volt,
 		target_volt, g_cur_opp_vsram_volt, target_vsram_volt);
-
-#ifdef VENDOR_EDIT
-//cuixiaogang@SRC.hypnus. add support to statistics gpufreq in time
-	now = local_clock();
-	if (likely(time_in_state_run == 1)) {
-		if (now > prev_switch_time && target_idx < min((unsigned int)32, g_opp_idx_num)) {
-			mt_gpufreq_time_in_state[target_idx] += now - prev_switch_time;
-			prev_switch_time = now;
-		}
-	} else {
-		time_in_state_run = 1;
-		prev_switch_time = now;
-	}
-#endif /* VENDOR_EDIT */
 
 	g_cur_opp_idx = target_idx;
 	g_cur_opp_cond_idx = target_cond_idx;
@@ -998,7 +715,7 @@ mt_gpufreq_update_volt(unsigned int pmic_volt[], unsigned int array_size)
 
 			if (g_ptpod_opp_idx_table
 				== g_ptpod_opp_idx_table_segment2)
-				idx_for_2_itp_pts = 6;
+				idx_for_2_itp_pts = 8;
 			else
 				idx_for_2_itp_pts = 6;
 
@@ -1046,17 +763,6 @@ unsigned int mt_gpufreq_get_dvfs_table_num(void)
 {
 	return g_opp_idx_num;
 }
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/08, Add GPU info for scene requirement.
-EXPORT_SYMBOL(mt_gpufreq_get_dvfs_table_num);
-
-/* API : get OPP table */
-struct g_opp_table_info *mt_gpufreq_get_dvfs_table(void)
-{
-	return g_opp_table;
-}
-EXPORT_SYMBOL(mt_gpufreq_get_dvfs_table);
-#endif /* VENDOR_EDIT */
 
 /* API : get frequency via OPP table index */
 unsigned int mt_gpufreq_get_freq_by_idx(unsigned int idx)
@@ -1146,23 +852,6 @@ unsigned int mt_gpufreq_get_thermal_limit_index(void)
 	return g_max_limited_idx;
 }
 
-#ifdef VENDOR_EDIT
-//cuixiaogang@swdp.shanghai, 2017/12/08, Add gpufreq min limit interface
-unsigned int mt_gpufreq_get_thermal_limit_max_index(void)
-{
-	return mt_gpufreq_get_thermal_limit_index();
-}
-EXPORT_SYMBOL(mt_gpufreq_get_thermal_limit_max_index);
-
-unsigned int mt_gpufreq_get_thermal_limit_min_index(void)
-{
-	gpufreq_pr_debug("@%s: current GPU Thermal/Power/PBM limit min index is %d\n",
-			__func__, g_min_limited_idx);
-	return g_min_limited_idx;
-}
-EXPORT_SYMBOL(mt_gpufreq_get_thermal_limit_min_index);
-#endif /* VENDOR_EDIT */
-
 /*
  * API : get current Thermal/Power/PBM limited OPP table frequency
  */
@@ -1174,17 +863,6 @@ unsigned int mt_gpufreq_get_thermal_limit_freq(void)
 	return g_opp_table[g_max_limited_idx].gpufreq_khz;
 }
 EXPORT_SYMBOL(mt_gpufreq_get_thermal_limit_freq);
-
-#ifdef VENDOR_EDIT
-//cuixiaogang@swdp.shanghai, 2017/12/08, Add gpufreq min limit interface
-unsigned int mt_gpufreq_get_min_limit_freq(void)
-{
-	gpufreq_pr_debug("@%s: current GPU thermal limit freq is %d MHz\n",
-			__func__, g_opp_table[g_min_limited_idx].gpufreq_khz / 1000);
-	return g_opp_table[g_min_limited_idx].gpufreq_khz;
-}
-EXPORT_SYMBOL(mt_gpufreq_get_min_limit_freq);
-#endif /*VENDOR_EDIT */
 
 /*
  * API : get current OPP table conditional index
@@ -1505,32 +1183,6 @@ static int mt_gpufreq_opp_dump_proc_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
-//huxiaokai@shanghai. 2019/6/20. Add max/min freq information proc show
-static int mt_max_freq_proc_show(struct seq_file *m, void *v)
-{
-	int max_gpu_freq;
-	int i;
-
-	i = g_max_limited_idx;
-	max_gpu_freq = g_opp_table[i].gpufreq_khz;
-	seq_printf(m, "%d\n", max_gpu_freq);
-	return 0;
-}
-
-static int mt_min_freq_proc_show(struct seq_file *m, void *v)
-{
-	int min_gpu_freq;
-	int i;
-
-	i = g_min_limited_idx;
-	min_gpu_freq = g_opp_table[i].gpufreq_khz;
-	seq_printf(m, "%d\n", min_gpu_freq);
-	return 0;
-}
-#endif /* VENDOR_EDIT */
-
-
 /*
  * PROCFS : show OPP power table
  */
@@ -1581,10 +1233,6 @@ static int mt_gpufreq_var_dump_proc_show(struct seq_file *m, void *v)
 	seq_printf(m, "g_DVFS_off_by_ptpod_idx = %d\n",
 		g_DVFS_off_by_ptpod_idx);
 	seq_printf(m, "g_max_limited_idx = %d\n", g_max_limited_idx);
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/15, Add GPU min/max freq limit for scene requirement.
-	seq_printf(m, "g_min_limited_idx = %d\n", g_min_limited_idx);
-#endif
 	seq_printf(m, "g_opp_springboard_idx = %d\n", g_opp_springboard_idx);
 	seq_printf(m, "gpu_loading = %d\n", gpu_loading);
 
@@ -1594,15 +1242,6 @@ static int mt_gpufreq_var_dump_proc_show(struct seq_file *m, void *v)
 
 	return 0;
 }
-
-#ifdef VENDOR_EDIT
-//huxiaokai@shanghai. 2019/6/20, Add GPU cur freq information show.
-static int mt_cur_freq_proc_show(struct seq_file *m, void *v)
-{
-	seq_printf(m, "%d\n", g_cur_opp_freq);
-	return 0;
-}
-#endif /* VENDOR_EDIT */
 
 #ifdef MT_GPUFREQ_OPP_STRESS_TEST
 /*
@@ -1918,17 +1557,6 @@ PROC_FOPS_RO(gpufreq_opp_dump);
 PROC_FOPS_RO(gpufreq_power_dump);
 PROC_FOPS_RW(gpufreq_opp_freq);
 PROC_FOPS_RO(gpufreq_var_dump);
-#ifdef VENDOR_EDIT
-//cuixiaogang@SRC.hypnus. add for gpufreq statistics
-PROC_FOPS_RO(gpufreq_in_time);
-PROC_FOPS_RO(gpufreq_opp_list);
-#endif
-#ifdef VENDOR_EDIT
-//huxiaokai@shanghai. add max/min/cur gpufreq information show
-PROC_FOPS_RO(max_freq);
-PROC_FOPS_RO(min_freq);
-PROC_FOPS_RO(cur_freq);
-#endif /* VENDOR_EDIT */
 PROC_FOPS_RW(gpufreq_fixed_freq_volt);
 static int __mt_gpufreq_create_procfs(void)
 {
@@ -1947,19 +1575,6 @@ static int __mt_gpufreq_create_procfs(void)
 		PROC_ENTRY(gpufreq_power_dump),
 		PROC_ENTRY(gpufreq_opp_freq),
 		PROC_ENTRY(gpufreq_var_dump),
-#ifdef VENDOR_EDIT
-//cuixiaogang@SRC.hypnus. add for gpufreq statistics
-		PROC_ENTRY(gpufreq_in_time),
-		PROC_ENTRY(gpufreq_opp_list),
-
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-//huxiaokai@shanghai. hypnus. 2019/6/20. add max/min/cur gpu freq.
-		PROC_ENTRY(max_freq),
-		PROC_ENTRY(min_freq),
-		PROC_ENTRY(cur_freq),
-#endif /* VENDOR_EDIT */
 		PROC_ENTRY(gpufreq_fixed_freq_volt),
 	};
 
@@ -2672,26 +2287,6 @@ static void __mt_gpufreq_update_max_limited_idx(void)
 		__func__, g_max_limited_idx);
 }
 
-#ifdef VENDOR_EDIT
-//cuixiaogang@Swdp.shanghai, 2017/12/08, Add GPU min/max freq limit for scene requirement
-/* update OPP index of limited min freq for hypnus scene protection */
-static void __mt_gpufreq_update_min_limited_idx(void)
-{
-	int i = 0;
-	unsigned limited_idx = g_opp_idx_num - 1;
-
-	for (i = 0; i < NR_IDX_POWER_MIN_LIMITED; i++) {
-		if (g_limited_min_idx_array[i] < limited_idx)
-			limited_idx = g_limited_min_idx_array[i];
-		gpufreq_pr_debug("g_limited_min_idx_array[%d] = %d\n",
-			i, g_limited_min_idx_array[i]);
-	}
-	g_min_limited_idx = limited_idx;
-	gpufreq_pr_debug("Final limit frequency lower bound to id = %d, freq = %d\n",
-			g_min_limited_idx, g_opp_table[g_min_limited_idx].gpufreq_khz);
-}
-#endif
-
 #ifdef MT_GPUFREQ_BATT_OC_PROTECT
 /*
  * limit OPP index for Over Currents (OC) protection
@@ -2842,11 +2437,6 @@ static void __mt_gpufreq_setup_opp_table(struct g_opp_table_info *freqs,
 	g_opp_idx_num = num;
 	g_max_limited_idx = 0;
 
-#ifdef VENDOR_EDIT
-//cuixiaogang@swdp.shanghai, 2017/12/08, Add gpufreq min limit interface
-	g_min_limited_idx = g_opp_idx_num - 1;
-#endif /* VENDOR_EDIT */
-
 	/* of no use on mt6779 */
 	__mt_gpufreq_calculate_springboard_opp_index();
 
@@ -2951,8 +2541,6 @@ static int __mt_gpufreq_pdrv_probe(struct platform_device *pdev)
 	struct device_node *apmixed_node;
 	struct device_node *node;
 	int i;
-	unsigned int efuceSpare4 = 0;
-	unsigned int efucePTPOD14 = 0;
 
 	g_opp_stress_test_state = false;
 	g_DVFS_off_by_ptpod_idx = 0;
@@ -3072,41 +2660,8 @@ static int __mt_gpufreq_pdrv_probe(struct platform_device *pdev)
 #endif /* ifdef MT_GPUFREQ_STATIC_PWR_READY2USE */
 
 	/* setup OPP table by device ID */
-	// 0x11C10050[7:0]
-	// lite: 8'b1110_0000
-	//       8'b0000_0111
-	//       8'b0101_0000
-	//       8'b0000_1010
-	// normal: others
-	efuceSpare4 = get_devinfo_with_index(7); // 0x11C10050
-	efuceSpare4 &= 0xFF;
-
-	// PTPOD14 (0x11C105B8) bit[12]
-	// 0: 0.6V
-	// 1: 0.625V
-	efucePTPOD14 = get_devinfo_with_index(64); // 0x11C105B8
-	efucePTPOD14 &= 0x1000;
-
-	if (efuceSpare4 == 0xE0 || efuceSpare4 == 0x07 ||
-	    efuceSpare4 == 0x50 || efuceSpare4 == 0x0A) {
-		// P90M
-		if (efucePTPOD14) {
-			__mt_gpufreq_setup_opp_table(g_opp_table_segment5,
-				ARRAY_SIZE(g_opp_table_segment5));
-		} else {
-			__mt_gpufreq_setup_opp_table(g_opp_table_segment3,
-				ARRAY_SIZE(g_opp_table_segment3));
-		}
-	} else {
-		if (efucePTPOD14) {
-			__mt_gpufreq_setup_opp_table(g_opp_table_segment4,
-				ARRAY_SIZE(g_opp_table_segment4));
-		} else {
-			__mt_gpufreq_setup_opp_table(g_opp_table_segment2,
-				ARRAY_SIZE(g_opp_table_segment2));
-		}
-	}
-
+	__mt_gpufreq_setup_opp_table(g_opp_table_segment2,
+		ARRAY_SIZE(g_opp_table_segment2));
 	g_ptpod_opp_idx_table = g_ptpod_opp_idx_table_segment2;
 	g_ptpod_opp_idx_num = ARRAY_SIZE(g_ptpod_opp_idx_table_segment2);
 	/* for efuse

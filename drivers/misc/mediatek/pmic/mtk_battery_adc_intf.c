@@ -84,7 +84,7 @@ bool pmic_is_battery_exist(void)
 #endif
 
 #ifndef ODM_HQ_EDIT
-/*yi.zhou@ODM.HQ.BSP.Charger 2019.09.23 modify for disable check battery exist*/
+/*Hanxing.Duan@ODM.HQ.BSP.Charger 2018.11.29 modify for disable check battery exist*/
 	if (temp == 0)
 		is_bat_exist = true;
 	else

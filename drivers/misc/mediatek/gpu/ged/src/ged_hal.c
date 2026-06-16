@@ -49,7 +49,6 @@ static struct dentry* gpsDvfsGpuUtilizationEntry = NULL;
 static struct dentry* gpsFpsUpperBoundEntry = NULL;
 static struct dentry* gpsIntegrationReportReadEntry = NULL;
 static struct dentry *gpsBoostLevelEntry;
-static struct dentry *gpsOppCostsEntry;
 
 #ifdef GED_FDVFS_ENABLE
 static struct dentry *gpsGpuFreqHintEntry;
@@ -59,9 +58,6 @@ static struct dentry *gpsDvfsMarginValueEntry;
 #endif
 #ifdef GED_CONFIGURE_LOADING_BASE_DVFS_STEP
 static struct dentry *gpsLoadingBaseDvfsStepEntry;
-#endif
-#ifdef GED_ENABLE_TIMER_BASED_DVFS_MARGIN
-static struct dentry *gpsTimerBaseDvfsMarginEntry;
 #endif
 
 int tokenizer(char* pcSrc, int i32len, int* pi32IndexArray, int i32NumToken)
@@ -1283,149 +1279,6 @@ const struct seq_operations gsLoadingBaseDvfsStepReadOps = {
 };
 #endif
 
-#ifdef GED_ENABLE_TIMER_BASED_DVFS_MARGIN
-/* ------------------------------------------------------------------------- */
-static ssize_t ged_timer_base_dvfs_margin_write_entry
-(const char __user *pszBuffer, size_t uiCount, loff_t uiPosition, void *pvData)
-{
-#define GED_HAL_DEBUGFS_SIZE 64
-	char acBuffer[GED_HAL_DEBUGFS_SIZE];
-
-	int i32Value;
-
-	if ((uiCount > 0) && (uiCount < GED_HAL_DEBUGFS_SIZE)) {
-		if (ged_copy_from_user(acBuffer, pszBuffer, uiCount) == 0) {
-			acBuffer[uiCount] = '\0';
-			if (kstrtoint(acBuffer, 0, &i32Value) == 0)
-				mtk_timer_base_dvfs_margin(i32Value);
-		}
-	}
-
-	return uiCount;
-}
-//-------------------------------------------------------------------
-static void *ged_timer_base_dvfs_margin_seq_start(struct seq_file *psSeqFile,
-			loff_t *puiPosition)
-{
-	if (*puiPosition == 0)
-		return SEQ_START_TOKEN;
-
-	return NULL;
-}
-//-------------------------------------------------------------------
-static void ged_timer_base_dvfs_margin_seq_stop(struct seq_file *psSeqFile,
-			void *pvData)
-{
-
-}
-//-------------------------------------------------------------------
-static void *ged_timer_base_dvfs_margin_seq_next(struct seq_file *psSeqFile,
-			void *pvData, loff_t *puiPosition)
-{
-	return NULL;
-}
-//-------------------------------------------------------------------
-static int ged_timer_base_dvfs_margin_seq_show(struct seq_file *psSeqFile,
-			void *pvData)
-{
-	if (pvData != NULL) {
-		int i32DvfsMarginValue;
-
-	if (false == mtk_get_timer_base_dvfs_margin(&i32DvfsMarginValue)) {
-		i32DvfsMarginValue = 0;
-		seq_puts(psSeqFile,
-			"call mtk_get_timer_base_dvfs_margin false\n");
-	}
-
-	seq_printf(psSeqFile, "%d\n", i32DvfsMarginValue);
-	}
-
-	return 0;
-}
-/* --------------------------------------------------------------- */
-const struct seq_operations gsTimerBaseDvfsMarginReadOps = {
-	.start = ged_timer_base_dvfs_margin_seq_start,
-	.stop = ged_timer_base_dvfs_margin_seq_stop,
-	.next = ged_timer_base_dvfs_margin_seq_next,
-	.show = ged_timer_base_dvfs_margin_seq_show,
-};
-#endif
-
-
-/* -------------------------------------------------------------------------- */
-uint64_t reset_base_us;
-static ssize_t ged_dvfs_opp_cost_write_entry
-(const char __user *pszBuffer, size_t uiCount, loff_t uiPosition, void *pvData)
-{
-#define GED_HAL_DEBUGFS_SIZE 64
-	char acBuffer[GED_HAL_DEBUGFS_SIZE];
-
-	int i32Value;
-
-	if ((uiCount > 0) && (uiCount < GED_HAL_DEBUGFS_SIZE)) {
-		if (ged_copy_from_user(acBuffer, pszBuffer, uiCount) == 0) {
-			acBuffer[uiCount] = '\0';
-			if (kstrtoint(acBuffer, 0, &i32Value) == 0) {
-				ged_dvfs_reset_opp_cost(i32Value);
-				reset_base_us = ged_get_time();
-				reset_base_us = reset_base_us >> 10;
-			}
-		}
-	}
-
-	return uiCount;
-}
-//-------------------------------------------------------------------
-static void *ged_dvfs_opp_cost_seq_start(struct seq_file *psSeqFile,
-			loff_t *puiPosition)
-{
-	if (*puiPosition == 0)
-		return SEQ_START_TOKEN;
-
-	return NULL;
-}
-//-------------------------------------------------------------------
-static void ged_dvfs_opp_cost_seq_stop(struct seq_file *psSeqFile,
-			void *pvData)
-{
-
-}
-//-------------------------------------------------------------------
-static void *ged_dvfs_opp_cost_seq_next(struct seq_file *psSeqFile,
-			void *pvData, loff_t *puiPosition)
-{
-	return NULL;
-}
-//-------------------------------------------------------------------
-static int ged_dvfs_opp_cost_seq_show(struct seq_file *psSeqFile,
-			void *pvData)
-{
-	if (pvData != NULL) {
-		int i;
-		unsigned int ui32FreqLevelCount;
-		uint64_t curTS_us;
-		uint64_t *report;
-
-		curTS_us = ged_get_time();
-		curTS_us = curTS_us >> 10;
-		report = ged_dvfs_query_opp_cost(reset_base_us, curTS_us);
-		mtk_custom_get_gpu_freq_level_count(&ui32FreqLevelCount);
-		for (i = 0; i < ui32FreqLevelCount; i++)
-			seq_printf(psSeqFile, "%llu, ", report[i]);
-		seq_printf(psSeqFile, "--%llu [%llu]\n", report[32], curTS_us);
-	}
-
-	return 0;
-}
-/* --------------------------------------------------------------- */
-const struct seq_operations gsDvfsOppCostsReadOps = {
-	.start = ged_dvfs_opp_cost_seq_start,
-	.stop = ged_dvfs_opp_cost_seq_stop,
-	.next = ged_dvfs_opp_cost_seq_next,
-	.show = ged_dvfs_opp_cost_seq_show,
-};
-
-
 static struct notifier_block ged_fb_notifier;
 
 static int ged_fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
@@ -1759,36 +1612,6 @@ GED_ERROR ged_hal_init(void)
 		goto ERROR;
 	}
 #endif
-
-#ifdef GED_ENABLE_TIMER_BASED_DVFS_MARGIN
-			/* Control the timer base gpu freq margin */
-	err = ged_debugFS_create_entry(
-			"timer_base_dvfs_margin",
-			gpsHALDir,
-			&gsTimerBaseDvfsMarginReadOps,
-			ged_timer_base_dvfs_margin_write_entry,
-			NULL,
-			&gpsTimerBaseDvfsMarginEntry);
-
-	if (unlikely(err != GED_OK)) {
-		GED_LOGE("ged: failed to create tb dvfs_margin entry!\n");
-		goto ERROR;
-	}
-#endif
-	/* Report Opp Cost */
-	err = ged_debugFS_create_entry(
-			"opp_logs",
-			gpsHALDir,
-			&gsDvfsOppCostsReadOps,
-			ged_dvfs_opp_cost_write_entry,
-			NULL,
-			&gpsOppCostsEntry);
-
-	if (unlikely(err != GED_OK)) {
-		GED_LOGE(
-		"ged: failed to create opp_logs entry!\n");
-		goto ERROR;
-	}
 
 	/* Report Integration Status */
 	err = ged_debugFS_create_entry(

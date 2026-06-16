@@ -119,7 +119,6 @@ enum {
 extern int is_qos_enabled(void);
 extern int is_dvfsrc_enabled(void);
 extern int is_opp_forced(void);
-extern int is_dvfsrc_opp_fixed(void);
 extern int dvfsrc_get_emi_bw(int type);
 extern int get_vcore_dvfs_level(void);
 extern void mtk_spmfw_init(int dvfsrc_en, int skip_check);
@@ -147,7 +146,6 @@ extern void get_spm_reg(char *p);
 extern void spm_dvfs_pwrap_cmd(int pwrap_cmd, int pwrap_vcore);
 extern int helio_dvfsrc_platform_init(struct helio_dvfsrc *dvfsrc);
 extern u32 spm_get_dvfs_level(void);
-extern u32 spm_get_dvfs_final_level(void);
 extern u32 spm_get_pcm_reg9_data(void);
 extern void dvfsrc_set_power_model_ddr_request(unsigned int level);
 /* met profile function */

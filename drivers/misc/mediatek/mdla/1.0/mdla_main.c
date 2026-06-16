@@ -22,7 +22,6 @@
 #include "mdla_ion.h"
 #include "mdla_trace.h"
 #include "mdla_dvfs.h"
-#include <mt-plat/mtk_chip.h>
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -86,9 +85,6 @@ u32 mdla_e1_detect_timeout = MDLA_POLLING_LATENCY;
 u32 mdla_e1_detect_count;
 u32 mdla_poweroff_time = MDLA_POWEROFF_TIME_DEFAULT;
 u32 async_cmd_id;
-u32 mdla_hw_version;
-#define HW_VER_E1 (0xca00)
-#define HW_VER_E2 (0xca01)
 
 static void *infracfg_ao_top;
 void *apu_conn_top;
@@ -296,8 +292,6 @@ static const char *mdla_get_reason_str(int res)
 static void mdla_reset(int res)
 {
 	const char *str = mdla_get_reason_str(res);
-	u64 deadline = get_jiffies_64() + msecs_to_jiffies(mdla_timeout);
-	int dump = 0;
 
 	pr_info("%s: MDLA RESET: %s(%d)\n", __func__,
 		str, res);
@@ -310,11 +304,6 @@ static void mdla_reset(int res)
 	while ((reg_read(infracfg_ao_top, INFRA_TOPAXI_PROTECTEN_MCU_STA1) &
 		VPU_CORE2_PROT_STEP1_0_ACK_MASK) !=
 		VPU_CORE2_PROT_STEP1_0_ACK_MASK) {
-		if (dump == 0 && time_after64(get_jiffies_64(), deadline)) {
-			dump_debug_status();
-			mdla_dump_reg();
-			dump = 1;
-		}
 	}
 
 	// Reset
@@ -398,9 +387,6 @@ static void mdla_start_power_off(struct work_struct *work)
  */
 static void mdla_command_done(void)
 {
-	/* Update PMU register before power down*/
-	mdla_trace_iter();
-
 	mutex_lock(&power_lock);
 	mdla_profile_stop(1);
 	if (mdla_poweroff_time) {
@@ -659,7 +645,6 @@ static int mdlactl_init(void)
 	mdla_power_status = 0;
 	mdla_e1_detect_count = 0;
 	async_cmd_id = 0;
-	mdla_hw_version = mt_get_chip_hw_ver();
 
 	// Try to dynamically allocate a major number for the device
 	//  more difficult but worth it
@@ -812,10 +797,6 @@ static int hw_e1_timeout_detect(void)
 {
 	u32 ste_debug_if_1;
 
-	/* HW E1 or not */
-	if (mdla_hw_version != HW_VER_E1)
-		return 0;
-
 	ste_debug_if_1 = mdla_reg_read(0x0EA8);
 	if (((ste_debug_if_1&0x1C0) != 0x0 &&
 			(ste_debug_if_1&0x3) == 0x3)) {
@@ -852,13 +833,12 @@ process_command:
 	max_cmd_id = 0;
 	id = ce.count;
 
+	mdla_timeout_debug("%s: max_cmd_id: %d id: %d\n",
+			__func__, max_cmd_id, id);
 
 	mdla_power_on(&ce);
 	ce.poweron_t = sched_clock();
 	ce.req_start_t = sched_clock();
-
-	mdla_timeout_debug("%s: count: %d, boost: %d\n",
-		__func__, ce.count, ce.boost_value);
 
 	/* Fill HW reg */
 	mdla_process_command(&ce);
@@ -867,12 +847,12 @@ process_command:
 	while (max_cmd_id < id && time_before64(get_jiffies_64(), deadline)) {
 		unsigned long wait_event_timeouts;
 
-		if (mdla_hw_version == HW_VER_E1)
+		if (cfg_timer_en)
 			wait_event_timeouts =
-				msecs_to_jiffies(mdla_e1_detect_timeout);
+				usecs_to_jiffies(cfg_period);
 		else
 			wait_event_timeouts =
-				msecs_to_jiffies(mdla_timeout);
+				msecs_to_jiffies(mdla_e1_detect_timeout);
 
 		wait_for_completion_interruptible_timeout(&command_done,
 				wait_event_timeouts);
@@ -884,6 +864,7 @@ process_command:
 		}
 	}
 	ce.req_end_t = sched_clock();
+	mdla_trace_iter();
 
 	wt->id = id;
 
@@ -892,7 +873,6 @@ process_command:
 	else { // Command timeout
 		mdla_timeout_debug("%s: command: %u, max_cmd_id: %u deadline:%llu, jiffies: %lu\n",
 				__func__, id, max_cmd_id, deadline, jiffies);
-		dump_debug_status();
 		mdla_dump_reg();
 		mdla_dump_ce(&ce);
 		mdla_reset_lock(REASON_TIMEOUT);

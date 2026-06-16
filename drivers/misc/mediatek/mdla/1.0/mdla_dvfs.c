@@ -21,7 +21,6 @@
 
 #include <linux/types.h>
 #include <linux/uaccess.h>
-#include <linux/clk-provider.h>
 
 #ifndef MTK_MDLA_FPGA_PORTING
 #define ENABLE_PMQOS
@@ -219,7 +218,6 @@ static struct regulator *vmdla_reg_id;
 
 static int mdla_init_done;
 static uint8_t segment_max_opp;
-static uint8_t segment_index;
 
 /* static function prototypes */
 static int mdla_boot_up(int core);
@@ -229,12 +227,7 @@ static bool mdla_update_lock_power_parameter
 static bool mdla_update_unlock_power_parameter
 	(struct mdla_lock_power *mdla_lock_power);
 static uint8_t mdla_boost_value_to_opp(uint8_t boost_value);
-#ifdef VENDOR_EDIT
-//qinyonghui@Swdp.shanghai, 2019/02/12, export mdla power interface
-int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power);
-#else
 static int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power);
-#endif
 
 static inline int Map_MDLA_Freq_Table(int freq_opp)
 {
@@ -243,16 +236,10 @@ static inline int Map_MDLA_Freq_Table(int freq_opp)
 	switch (freq_opp) {
 	case 0:
 	default:
-		if (segment_index == SEGMENT_95)
-			freq_value = 884;
-		else
-			freq_value = 788;
+		freq_value = 788;
 		break;
 	case 1:
-		if (segment_index == SEGMENT_95)
-			freq_value = 788;
-		else
-			freq_value = 700;
+		freq_value = 700;
 		break;
 	case 2:
 		freq_value = 624;
@@ -334,16 +321,10 @@ static int mdla_set_clock_source(struct clk *clk, uint8_t step)
 
 	switch (step) {
 	case 0:
-		if (segment_index == SEGMENT_95)
-			clk_src = clk_top_adsppll_d4;
-		else
-			clk_src = clk_top_mmpll_d4;
+		clk_src = clk_top_mmpll_d4;
 		break;
 	case 1:
-		if (segment_index == SEGMENT_95)
-			clk_src = clk_top_mmpll_d4;
-		else
-			clk_src = clk_top_adsppll_d4;
+		clk_src = clk_top_adsppll_d4;
 		break;
 	case 2:
 		clk_src = clk_top_univpll_d2;
@@ -486,46 +467,6 @@ static int mdla_get_hw_vcore_opp(int core)
 }
 #endif
 
-
-#define CLK_CFG_2               (cksys_base + 0x040)
-#define CLK_CFG_3               (cksys_base + 0x050)
-void dump_debug_status(void)
-{
-	u32 val[5];
-
-	mt_get_ckgen_freq(1);
-	val[0] = mt_get_ckgen_freq(10);
-
-	mt_get_ckgen_freq(1); // dummy
-	val[1] = mt_get_ckgen_freq(11);
-
-	mt_get_ckgen_freq(1); // dummy
-	val[2] = mt_get_ckgen_freq(12);
-
-	mt_get_ckgen_freq(1); // dummy
-	val[3] = mt_get_ckgen_freq(13);
-
-	mt_get_ckgen_freq(1); // dummy
-	val[4] = mt_get_ckgen_freq(14);
-
-	mdla_timeout_debug("%s: CFG_2: 0x%08x\n",
-		__func__, clk_readl(CLK_CFG_2));
-	mdla_timeout_debug("%s: CFG_3: 0x%08x\n",
-		__func__, clk_readl(CLK_CFG_3));
-	mdla_timeout_debug(
-		"%s: con=%d, vpu0=%d, vpu1=%d, mdla=%d, vcore=%d\n",
-		__func__, val[0], val[1], val[2], val[3], val[4]);
-	mdla_timeout_debug("%s: opps.dsp.index = %d\n",
-		__func__, opps.dsp.index);
-	mdla_timeout_debug("%s: opps.mdlacore.index = %d\n",
-		__func__, opps.mdlacore.index);
-	mdla_timeout_debug("%s: opps.ipu_if.index = %d\n",
-		__func__, opps.ipu_if.index);
-	mdla_timeout_debug("%s: 0x19380000: 0x%08x\n",
-		__func__, mdla_cfg_read(0x0));
-
-}
-
 int mdla_get_bw(void)
 {
 	struct qos_bound *bound = get_qos_bound();
@@ -548,18 +489,6 @@ int mdla_get_lat(void)
 	mdla_dvfs_debug("[mdla] cmd latency=%d\n", lat);
 	return lat;
 }
-
-#ifdef VENDOR_EDIT
-/*zhen.zeng@Camera, 2019/6/26, Add for AIScene VPU*/
-void clear_mdla_opp_keep_flag(void)
-{
-      mutex_lock(&opp_mutex);
-      opp_keep_flag = false;
-      mutex_unlock(&opp_mutex);
-      mdla_dvfs_debug("%s, now opp_keep_flag = %d\n", __func__, opp_keep_flag);
-}
-EXPORT_SYMBOL(clear_mdla_opp_keep_flag);
-#endif /* VENDOR_EDIT */
 
 int mdla_get_opp(void)
 {
@@ -598,16 +527,10 @@ int get_mdla_opp_to_freq(uint8_t step)
 
 	switch (step) {
 	case 0:
-		if (segment_index == SEGMENT_95)
-		freq = 884;
-		else
 		freq = 788;
 		break;
 	case 1:
-		if (segment_index == SEGMENT_95)
-			freq = 788;
-		else
-			freq = 700;
+		freq = 700;
 		break;
 	case 2:
 		freq = 606;
@@ -931,27 +854,13 @@ static void get_segment_from_efuse(void)
 	segment = get_devinfo_with_index(7) & 0xFF;
 	switch (segment) {
 	case 0x7://segment p90M 5mode
-		segment_max_opp = 0;
-		segment_index = SEGMENT_90M;
+		segment_max_opp = 5;
 		break;
 	case 0xE0://segment p90M 6mode 525M
-		segment_max_opp = 0;
-		segment_index = SEGMENT_90M;
-		break;
-	case 0x20://p95
-	case 0x4:
-	case 0x60:
-	case 0x6:
-	case 0x10:
-	case 0x8:
-	case 0x90:
-	case 0x9:
-		segment_max_opp = 0;
-		segment_index = SEGMENT_95;
+		segment_max_opp = 5;
 		break;
 	default: //segment p90
 		segment_max_opp = 0;
-		segment_index = SEGMENT_90;
 		break;
 	}
 	mdla_dvfs_debug("mdla segment_max_opp %d\n", segment_max_opp);
@@ -1398,10 +1307,6 @@ static bool mdla_change_opp(int core, int type)
 	}
 
 out:
-#ifdef VENDOR_EDIT
-#else
-	apu_get_power_info();
-#endif
 	return true;
 #endif
 }
@@ -1924,8 +1829,6 @@ mdla_dvfs_debug("[mdla_%d] adjust(%d,%d) result vmdla=%d\n",
 
 out:
 	mdla_trace_tag_end();
-	if (mdla_klog & MDLA_DBG_DVFS)
-		apu_get_power_info();
 	is_power_on[core] = true;
 	force_change_vcore_opp[core] = false;
 	force_change_vmdla_opp[core] = false;
@@ -2084,18 +1987,8 @@ out:
 	vvpu_vmdla_vcore_checker();
 
 	is_power_on[core] = false;
-	if (!is_power_debug_lock) {
+	if (!is_power_debug_lock)
 		opps.mdlacore.index = 15;
-		opps.dsp.index = 9;
-		opps.ipu_if.index = 9;
-		}
-
-      #ifdef VENDOR_EDIT
-      /*zhen.zeng@Camera, 2019/6/26, Add for AIScene VPU*/
-      mdla_dvfs_debug("[mdla_%d] notify vpu to clear opp keep flag\n", core);
-      clear_vpu_opp_keep_flag();
-      #endif /* VENDOR_EDIT */
-
 	mdla_dvfs_debug("[mdla_%d] dis_rc -\n", core);
 	return ret;
 #endif
@@ -2250,8 +2143,6 @@ int mdla_get_power(int core)
 		}
 	}
 	LOG_DBG("[mdla_%d/%d] gp -\n", core, power_counter[core]);
-	if (mdla_klog & MDLA_DBG_DVFS)
-		apu_get_power_info();
 	enable_apu_bw(0);
 	enable_apu_bw(1);
 	enable_apu_bw(2);
@@ -2619,9 +2510,9 @@ int mdla_init_hw(int core, struct platform_device *pdev)
 			opps.index = 5; /* user space usage*/
 			opps.vcore.index = 1;
 			opps.vmdla.index = 1;
-			opps.dsp.index = 9;
+			opps.dsp.index = 5;
 			opps.ipu_if.index = 9;
-			opps.mdlacore.index = 9;
+			opps.mdlacore.index = 3;
 #undef DEFINE_APU_OPP
 #undef DEFINE_APU_STEP
 
@@ -3348,12 +3239,7 @@ bool mdla_update_max_opp(struct mdla_lock_power *mdla_lock_power)
 	return ret;
 }
 
-#ifdef VENDOR_EDIT
-//qinyonghui@Swdp.shanghai, 2019/02/12, export mdla power interface
-int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power)
-#else
 static int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power)
-#endif
 {
 	int ret = -1;
 	int i, core = -1;
@@ -3369,7 +3255,7 @@ static int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power)
 	if (core >= MTK_MDLA_USER || core < 0) {
 		LOG_ERR("wrong core index (0x%x/%d/%d)",
 			mdla_lock_power->core, core, MTK_MDLA_USER);
-		ret = -1;
+		ret = false;
 		mutex_unlock(&power_lock_mutex);
 		return ret;
 	}
@@ -3392,12 +3278,8 @@ static int mdla_lock_set_power(struct mdla_lock_power *mdla_lock_power)
 	}
 #endif
 	mutex_unlock(&power_lock_mutex);
-	return 0;
+	return ret;
 }
-#ifdef VENDOR_EDIT
-//qinyonghui@Swdp.shanghai, 2019/02/12, export mdla power interface
-EXPORT_SYMBOL(mdla_lock_set_power);
-#endif
 
 static int mdla_unlock_set_power(struct mdla_lock_power *mdla_lock_power)
 {
@@ -3570,7 +3452,6 @@ int mdla_dvfs_cmd_start(struct command_entry *ce)
 	ret = mdla_get_power(0);
 
 	if (ret) {
-		apu_get_power_info();
 		LOG_ERR("[mdla] fail to get power!\n");
 		return ret;
 	}

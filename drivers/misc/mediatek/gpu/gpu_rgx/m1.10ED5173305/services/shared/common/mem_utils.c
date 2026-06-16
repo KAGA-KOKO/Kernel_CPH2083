@@ -58,31 +58,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 void DeviceMemCopy(void *pvDst, const void *pvSrc, size_t uSize);
 void DeviceMemSet(void *pvDst, unsigned char ui8Value, size_t uSize);
 
-/* The attribute "vector_size" will generate floating point instructions
- * and use FPU registers. In kernel OS, the FPU registers might be corrupted
- * when CPU is doing context switch because FPU registers are not expected to
- * be stored.
- * GCC enables compiler option, -mgeneral-regs-only, by default.
- * This option restricts the generated code to use general registers only
- * so that we don't have issues on that.
- */
-#if defined(__KERNEL__) && defined(__clang__)
-
-#include <stdint.h>
-
-#define DEVICE_MEMSETCPY_NON_VECTOR_KM
-#define BITS_PER_BYTE (8)
-
-typedef __uint128_t uint128_t;
-
-typedef struct
-{
-	uint128_t ui128DataFields[2];
-}
-uint256_t;
-
-#endif
-
 /* This file is only intended to be used on platforms which use GCC or Clang,
  * due to its requirement on __attribute__((vector_size(n))), typeof() and
  * __SIZEOF__ macros.
@@ -111,18 +86,8 @@ uint256_t;
 # error Cannot handle DEVICE_MEMSETCPY_ALIGN_IN_BYTES < sizeof(long)
 typedef unsigned long block_t;
 #elif __SIZEOF_LONG__ <= DEVICE_MEMSETCPY_ALIGN_IN_BYTES
-# if defined(DEVICE_MEMSETCPY_NON_VECTOR_KM)
-#  if DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 8
-    typedef uint64_t block_t;
-#  elif DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 16
-    typedef uint128_t block_t;
-#  elif DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 32
-    typedef uint256_t block_t;
-#  endif
-# else
 typedef unsigned int block_t
 	__attribute__((vector_size(DEVICE_MEMSETCPY_ALIGN_IN_BYTES)));
-# endif
 # if defined(__arm64__) || defined(__aarch64__)
 #  if   DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 8
 #   define DEVICE_MEMSETCPY_ARM64
@@ -154,18 +119,8 @@ typedef unsigned int block_t
 #    define LDP "ldp"
 #    define STP "stp"
 #   endif
-#   if defined(DEVICE_MEMSETCPY_NON_VECTOR_KM)
-#    if DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 8
- typedef uint32_t block_half_t;
-#    elif DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 16
- typedef uint64_t block_half_t;
-#    elif DEVICE_MEMSETCPY_ALIGN_IN_BYTES == 32
- typedef uint128_t block_half_t;
-#    endif
-#   else
  typedef unsigned int block_half_t
 	__attribute__((vector_size(DEVICE_MEMSETCPY_ALIGN_IN_BYTES / 2)));
-#   endif
 #  endif
 # endif
 #endif
@@ -267,7 +222,7 @@ __attribute__((visibility("hidden")))
 void DeviceMemSet(void *pvDst, unsigned char ui8Value, size_t uSize)
 {
 	volatile char *pcDst = pvDst;
-//#if defined(CLANG_WORKAROUND)
+  #if defined(CLANG_WORKAROUND)
 	size_t uPreambleBytes;
 
 	size_t uDstUnaligned = (size_t)pcDst % sizeof(block_t);
@@ -286,28 +241,18 @@ void DeviceMemSet(void *pvDst, unsigned char ui8Value, size_t uSize)
 	if (uSize >= sizeof(block_t))
 	{
 		volatile block_t *pDst = (block_t *)pcDst;
-                size_t i, uSize;
-#if defined(DEVICE_MEMSETCPY_NON_VECTOR_KM)
-                block_half_t bValue = 0;
-
-                uSize = sizeof(block_half_t) / sizeof(ui8Value);
-                for (i = 0; i < uSize; i++)
-                {
-                    bValue |= (block_half_t)ui8Value << ((uSize - i - 1) * BITS_PER_BYTE);
-                }
-#else
-# if defined(DEVICE_MEMSETCPY_ARM64)
+#if defined(DEVICE_MEMSETCPY_ARM64)
 		block_half_t bValue = {0};
-# else
+#else
 		block_t bValue= {0};
 # endif
-		uSize = sizeof(bValue) / sizeof(unsigned int);
-		for (i = 0; i < uSize; i++)
+		size_t i;
+
+		for (i = 0; i < sizeof(bValue) / sizeof(unsigned int); i++)
 			bValue[i] = ui8Value << 24U |
 			            ui8Value << 16U |
 			            ui8Value <<  8U |
 			            ui8Value;
-#endif
 
 		NSHLD();
 
@@ -329,7 +274,7 @@ void DeviceMemSet(void *pvDst, unsigned char ui8Value, size_t uSize)
 
 		pcDst = (char *)pDst;
 	}
-//#endif
+#endif
 	while (uSize)
 	{
 		*pcDst++ = ui8Value;

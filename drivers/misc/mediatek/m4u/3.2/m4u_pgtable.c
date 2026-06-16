@@ -223,7 +223,7 @@ int m4u_get_pte_info(struct m4u_domain_t *domain,
 	pte_info->pa = pa;
 	pte_info->size = size;
 	pte_info->valid = valid;
-	return valid;
+	return 0;
 }
 
 typedef void *(m4u_pte_fn_t) (struct m4u_pte_info_t *pte_info, void *data);
@@ -272,13 +272,12 @@ void *m4u_for_each_pte(struct m4u_domain_t *domain,
 
 /* dump pte info for mva, no matter it's valid or not */
 /* this function doesn't lock pgtable lock. */
-int m4u_dump_pte_nolock(struct m4u_domain_t *domain,
+void m4u_dump_pte_nolock(struct m4u_domain_t *domain,
 		unsigned int mva)
 {
 	struct m4u_pte_info_t pte_info;
-	int valid = 0;
 
-	valid = m4u_get_pte_info(domain, mva, &pte_info);
+	m4u_get_pte_info(domain, mva, &pte_info);
 
 	__m4u_print_pte(&pte_info, NULL);
 
@@ -289,8 +288,6 @@ int m4u_dump_pte_nolock(struct m4u_domain_t *domain,
 		m4u_get_pte_info(domain, mva, &pte_info);
 		__m4u_print_pte(&pte_info, NULL);
 	}
-
-	return valid;
 }
 
 void m4u_dump_pte(struct m4u_domain_t *domain, unsigned int mva)
@@ -1117,7 +1114,7 @@ int m4u_check_free_pte(struct m4u_domain_t *domain,
 
 	pte = imu_pte_map(pgd);
 	for (i = 0; i < IMU_PTRS_PER_PTE; i++) {
-		if (imu_pte_val(pte[i]) != 0)
+		if (imu_pte_val(*pte) != 0)
 			break;
 	}
 	if (i == IMU_PTRS_PER_PTE) {

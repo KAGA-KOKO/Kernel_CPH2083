@@ -1480,7 +1480,7 @@ static int bq24190_driver_probe(struct i2c_client *client, const struct i2c_devi
     charger_ic = chip;
 	chip->client = client;
     chip->dev = &client->dev;
-    reg = bq24190_check_registers();
+    bq24190_check_registers();
 	if (reg < 0) {
 		return -ENODEV;
 	}
@@ -1561,7 +1561,7 @@ static int bq24190_resume(struct device *dev)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if (sleep_time < 1) {
+	if (sleep_time < 0) {
 		sleep_time = 0;
 	}
 	chg_err(" resume_sec:%ld,sleep_time:%ld\n\n",resume_tm_sec,sleep_time);
@@ -1607,7 +1607,7 @@ static int bq24190_resume(struct i2c_client *client)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if (sleep_time < 1) {
+	if (sleep_time < 0) {
 		sleep_time = 0;
 	}
 	oppo_chg_soc_update_when_resume(sleep_time);

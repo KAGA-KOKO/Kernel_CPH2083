@@ -254,16 +254,6 @@ enum{
 #define CAMSYS_REG_CG_CON                      (ISP_CAMSYS_CONFIG_BASE + 0x0000)
 #define CAMSYS_REG_CG_SET                      (ISP_CAMSYS_CONFIG_BASE + 0x0004)
 #define CAMSYS_REG_CG_CLR                      (ISP_CAMSYS_CONFIG_BASE + 0x0008)
-#define CAMSYS_REG_HALT1_EN                    (ISP_CAMSYS_CONFIG_BASE + 0x0350)
-#define CAMSYS_REG_HALT2_EN                    (ISP_CAMSYS_CONFIG_BASE + 0x0354)
-#define CAMSYS_REG_HALT3_EN                    (ISP_CAMSYS_CONFIG_BASE + 0x0358)
-#define CAMSYS_REG_HALT4_EN                    (ISP_CAMSYS_CONFIG_BASE + 0x035C)
-#define CAMSYS_REG_HALT1_SEC_EN                (ISP_CAMSYS_CONFIG_BASE + 0x0360)
-#define CAMSYS_REG_HALT2_SEC_EN                (ISP_CAMSYS_CONFIG_BASE + 0x0364)
-#define CAMSYS_REG_HALT3_SEC_EN                (ISP_CAMSYS_CONFIG_BASE + 0x0368)
-#define CAMSYS_REG_HALT4_SEC_EN                (ISP_CAMSYS_CONFIG_BASE + 0x036C)
-
-
 
 #define CAM_REG_CTL_EN(module)                  (isp_devs[module].regs + 0x0004)
 #define CAM_REG_CTL_EN2(module)                 (isp_devs[module].regs + 0x0008)
@@ -414,7 +404,6 @@ enum{
 #define CAM_REG_IMGO_XSIZE(module)              (isp_devs[module].regs + 0x472C)
 #define CAM_REG_IMGO_YSIZE(module)              (isp_devs[module].regs + 0x4730)
 
-#define CAM_REG_IMGO_DRS(module)                (isp_devs[module].regs + 0x4728)
 #define CAM_REG_IMGO_CON(module)                (isp_devs[module].regs + 0x4738)
 #define CAM_REG_IMGO_CON2(module)               (isp_devs[module].regs + 0x473C)
 #define CAM_REG_IMGO_CON3(module)               (isp_devs[module].regs + 0x4740)
@@ -423,139 +412,115 @@ enum{
 #define CAM_REG_RRZO_XSIZE(module)              (isp_devs[module].regs + 0x480C)
 #define CAM_REG_RRZO_YSIZE(module)              (isp_devs[module].regs + 0x4810)
 
-#define CAM_REG_RRZO_DRS(module)                (isp_devs[module].regs + 0x4808)
 #define CAM_REG_RRZO_CON(module)                (isp_devs[module].regs + 0x4818)
 #define CAM_REG_RRZO_CON2(module)               (isp_devs[module].regs + 0x481C)
 #define CAM_REG_RRZO_CON3(module)               (isp_devs[module].regs + 0x4820)
 
-#define CAM_REG_PDO_DRS(module)                 (isp_devs[module].regs + 0x4168)
 #define CAM_REG_PDO_CON(module)                 (isp_devs[module].regs + 0x4178)
 #define CAM_REG_PDO_CON2(module)                (isp_devs[module].regs + 0x417C)
 #define CAM_REG_PDO_CON3(module)                (isp_devs[module].regs + 0x4180)
 
-#define CAM_REG_TSFSO_DRS(module)               (isp_devs[module].regs + 0x42C8)
 #define CAM_REG_TSFSO_CON(module)               (isp_devs[module].regs + 0x42D8)
 #define CAM_REG_TSFSO_CON2(module)              (isp_devs[module].regs + 0x42DC)
 #define CAM_REG_TSFSO_CON3(module)              (isp_devs[module].regs + 0x42E0)
 
-#define CAM_REG_AAO_DRS(module)                 (isp_devs[module].regs + 0x43A8)
 #define CAM_REG_AAO_CON(module)                 (isp_devs[module].regs + 0x43B8)
 #define CAM_REG_AAO_CON2(module)                (isp_devs[module].regs + 0x43BC)
 #define CAM_REG_AAO_CON3(module)                (isp_devs[module].regs + 0x43C0)
 
-#define CAM_REG_AFO_DRS(module)                 (isp_devs[module].regs + 0x4418)
 #define CAM_REG_AFO_CON(module)                 (isp_devs[module].regs + 0x4428)
 #define CAM_REG_AFO_CON2(module)                (isp_devs[module].regs + 0x442C)
 #define CAM_REG_AFO_CON3(module)                (isp_devs[module].regs + 0x4430)
 
-#define CAM_REG_FLKO_DRS(module)                (isp_devs[module].regs + 0x4488)
 #define CAM_REG_FLKO_CON(module)                (isp_devs[module].regs + 0x4498)
 #define CAM_REG_FLKO_CON2(module)               (isp_devs[module].regs + 0x449C)
 #define CAM_REG_FLKO_CON3(module)               (isp_devs[module].regs + 0x44A0)
 
-
-#define CAM_REG_LTMSO_DRS(module)               (isp_devs[module].regs + 0x44F8)
 #define CAM_REG_LTMSO_CON(module)               (isp_devs[module].regs + 0x4508)
 #define CAM_REG_LTMSO_CON2(module)              (isp_devs[module].regs + 0x450C)
 #define CAM_REG_LTMSO_CON3(module)              (isp_devs[module].regs + 0x4510)
 
-#define CAM_REG_LCESO_DRS(module)               (isp_devs[module].regs + 0x4568)
 #define CAM_REG_LCESO_CON(module)               (isp_devs[module].regs + 0x4578)
 #define CAM_REG_LCESO_CON2(module)              (isp_devs[module].regs + 0x457C)
 #define CAM_REG_LCESO_CON3(module)              (isp_devs[module].regs + 0x4580)
 
-#define CAM_REG_RSSO_DRS(module)                (isp_devs[module].regs + 0x4648)
+
 #define CAM_REG_RSSO_CON(module)                (isp_devs[module].regs + 0x4658)
 #define CAM_REG_RSSO_CON2(module)               (isp_devs[module].regs + 0x465C)
 #define CAM_REG_RSSO_CON3(module)               (isp_devs[module].regs + 0x4660)
 
-#define CAM_REG_LMVO_DRS(module)                (isp_devs[module].regs + 0x46B8)
 #define CAM_REG_LMVO_CON(module)                (isp_devs[module].regs + 0x46C8)
 #define CAM_REG_LMVO_CON2(module)               (isp_devs[module].regs + 0x46CC)
 #define CAM_REG_LMVO_CON3(module)               (isp_devs[module].regs + 0x46D0)
 
-#define CAM_REG_UFEO_DRS(module)                (isp_devs[module].regs + 0x4798)
+
 #define CAM_REG_UFEO_CON(module)                (isp_devs[module].regs + 0x47A8)
 #define CAM_REG_UFEO_CON2(module)               (isp_devs[module].regs + 0x47AC)
 #define CAM_REG_UFEO_CON3(module)               (isp_devs[module].regs + 0x47B0)
 
-#define CAM_REG_UFGO_DRS(module)                (isp_devs[module].regs + 0x4878)
 #define CAM_REG_UFGO_CON(module)                (isp_devs[module].regs + 0x4888)
 #define CAM_REG_UFGO_CON2(module)               (isp_devs[module].regs + 0x488C)
 #define CAM_REG_UFGO_CON3(module)               (isp_devs[module].regs + 0x4890)
 
-#define CAM_REG_YUVO_DRS(module)                (isp_devs[module].regs + 0x48E8)
+
 #define CAM_REG_YUVO_CON(module)                (isp_devs[module].regs + 0x48F8)
 #define CAM_REG_YUVO_CON2(module)               (isp_devs[module].regs + 0x48FC)
 #define CAM_REG_YUVO_CON3(module)               (isp_devs[module].regs + 0x4900)
 
-#define CAM_REG_YUVBO_DRS(module)               (isp_devs[module].regs + 0x4958)
 #define CAM_REG_YUVBO_CON(module)               (isp_devs[module].regs + 0x4968)
 #define CAM_REG_YUVBO_CON2(module)              (isp_devs[module].regs + 0x496C)
 #define CAM_REG_YUVBO_CON3(module)              (isp_devs[module].regs + 0x4970)
 
-#define CAM_REG_YUVCO_DRS(module)               (isp_devs[module].regs + 0x49C8)
 #define CAM_REG_YUVCO_CON(module)               (isp_devs[module].regs + 0x49D8)
 #define CAM_REG_YUVCO_CON2(module)              (isp_devs[module].regs + 0x49DC)
 #define CAM_REG_YUVCO_CON3(module)              (isp_devs[module].regs + 0x49E0)
 
-#define CAM_REG_CRZO_DRS(module)                (isp_devs[module].regs + 0x4A38)
 #define CAM_REG_CRZO_CON(module)                (isp_devs[module].regs + 0x4A48)
 #define CAM_REG_CRZO_CON2(module)               (isp_devs[module].regs + 0x4A4C)
 #define CAM_REG_CRZO_CON3(module)               (isp_devs[module].regs + 0x4A50)
 
-#define CAM_REG_CRZBO_DRS(module)               (isp_devs[module].regs + 0x4AA8)
 #define CAM_REG_CRZBO_CON(module)               (isp_devs[module].regs + 0x4AB8)
 #define CAM_REG_CRZBO_CON2(module)              (isp_devs[module].regs + 0x4ABC)
 #define CAM_REG_CRZBO_CON3(module)              (isp_devs[module].regs + 0x4AC0)
 
-#define CAM_REG_CRZO_R2_DRS(module)             (isp_devs[module].regs + 0x4B18)
 #define CAM_REG_CRZO_R2_CON(module)             (isp_devs[module].regs + 0x4B28)
 #define CAM_REG_CRZO_R2_CON2(module)            (isp_devs[module].regs + 0x4B2C)
 #define CAM_REG_CRZO_R2_CON3(module)            (isp_devs[module].regs + 0x4B30)
 
-#define CAM_REG_CRZBO_R2_DRS(module)            (isp_devs[module].regs + 0x4B88)
 #define CAM_REG_CRZBO_R2_CON(module)            (isp_devs[module].regs + 0x4B98)
 #define CAM_REG_CRZBO_R2_CON2(module)           (isp_devs[module].regs + 0x4B9C)
 #define CAM_REG_CRZBO_R2_CON3(module)           (isp_devs[module].regs + 0x4BA0)
 
-#define CAM_REG_RSSO_R2_DRS(module)             (isp_devs[module].regs + 0x4BF8)
 #define CAM_REG_RSSO_R2_CON(module)             (isp_devs[module].regs + 0x4C08)
 #define CAM_REG_RSSO_R2_CON2(module)            (isp_devs[module].regs + 0x4C0C)
 #define CAM_REG_RSSO_R2_CON3(module)            (isp_devs[module].regs + 0x4C10)
 
-#define CAM_REG_RAWI_R2_DRS(module)             (isp_devs[module].regs + 0x4108)
 #define CAM_REG_RAWI_R2_CON(module)             (isp_devs[module].regs + 0x4118)
 #define CAM_REG_RAWI_R2_CON2(module)            (isp_devs[module].regs + 0x411C)
 #define CAM_REG_RAWI_R2_CON3(module)            (isp_devs[module].regs + 0x4120)
 #define CAM_REG_RAWI_R2_CON4(module)            (isp_devs[module].regs + 0x4128)
 
-#define CAM_REG_UFDI_R2_DRS(module)             (isp_devs[module].regs + 0x4268)
 #define CAM_REG_UFDI_R2_CON(module)             (isp_devs[module].regs + 0x4278)
 #define CAM_REG_UFDI_R2_CON2(module)            (isp_devs[module].regs + 0x427C)
 #define CAM_REG_UFDI_R2_CON3(module)            (isp_devs[module].regs + 0x4280)
 #define CAM_REG_UFDI_R2_CON4(module)            (isp_devs[module].regs + 0x4288)
 
-#define CAM_REG_PDI_DRS(module)                 (isp_devs[module].regs + 0x4138)
 #define CAM_REG_PDI_CON(module)                 (isp_devs[module].regs + 0x4148)
 #define CAM_REG_PDI_CON2(module)                (isp_devs[module].regs + 0x414C)
 #define CAM_REG_PDI_CON3(module)                (isp_devs[module].regs + 0x4150)
 #define CAM_REG_PDI_CON4(module)                (isp_devs[module].regs + 0x4158)
 
 #define CAM_REG_BPCI_ADDR(module)               (isp_devs[module].regs + 0x41D0)
-#define CAM_REG_BPCI_DRS(module)                (isp_devs[module].regs + 0x41D8)
 #define CAM_REG_BPCI_CON(module)                (isp_devs[module].regs + 0x41E8)
 #define CAM_REG_BPCI_CON2(module)               (isp_devs[module].regs + 0x41EC)
 #define CAM_REG_BPCI_CON3(module)               (isp_devs[module].regs + 0x41F0)
 #define CAM_REG_BPCI_CON4(module)               (isp_devs[module].regs + 0x41F8)
 
-#define CAM_REG_BPCI_R2_DRS(module)             (isp_devs[module].regs + 0x4208)
 #define CAM_REG_BPCI_R2_CON(module)             (isp_devs[module].regs + 0x4218)
 #define CAM_REG_BPCI_R2_CON2(module)            (isp_devs[module].regs + 0x421C)
 #define CAM_REG_BPCI_R2_CON3(module)            (isp_devs[module].regs + 0x4220)
 #define CAM_REG_BPCI_R2_CON4(module)            (isp_devs[module].regs + 0x4228)
 
-#define CAM_REG_LSCI_DRS(module)                (isp_devs[module].regs + 0x4298)
 #define CAM_REG_LSCI_CON(module)                (isp_devs[module].regs + 0x42A8)
 #define CAM_REG_LSCI_CON2(module)               (isp_devs[module].regs + 0x42AC)
 #define CAM_REG_LSCI_CON3(module)               (isp_devs[module].regs + 0x42B0)

@@ -70,14 +70,9 @@
 	};
 	vibrator0:vibrator@0 {
 		compatible = "mediatek,vibrator";
-		/*
 		vib_timer = <25>;
 		vib_limit = <9>;
 		vib_vol= <9>;
-		*/
-		vib_timer = <30>; /*xing.xiong@BSP.Kernel.Driver, 2018/12/08, Add for vibrator*/
-		vib_limit = <0>;
-		vib_vol= <11>;
 	};
 
 	usb_c_pinctrl:usb_c_pinctrl {
@@ -103,15 +98,13 @@
 	};
 /*VENDOR_EDIT keypad end*/
 
-//#ifdef VENDOR_EDIT
-/*Fei.Mo@PSW.BSP.Sensor, 2017/12/18, Add for sensor calibration paramaters */
-	oppo_sensor:oppo_sensor {
-	};
-//#endif /*VENDOR_EDIT*/
-
 /*VNDOR_EDIT oppo project start */
 /*xing.xiong@BSP.Kernel.Debug, 2018/11/15, Add for oppo project & devinfo*/
 	oppo_project:oppo_project {
+		nProject = <0>;
+		nModem = <0>;
+		nOperator = <0>;
+		nPCBVersion = <0>;
 	};
 
 	oppo_devinfo:oppo_devinfo {
@@ -298,7 +291,7 @@
 
     mode1_gpio: mode1_gpio {
         pins_cmd_dat {
-            pinmux = <PINMUX_GPIO15__FUNC_GPIO15>;
+            pinmux = <PINMUX_GPIO16__FUNC_GPIO16>;
 			slew-rate = <1>;
             bias-disable;
 			output-low;
@@ -311,18 +304,17 @@
 	status = "okay";
 	compatible = "oppo-motor";
 	hall-irq-pos = <170>;
-	delay-cycle = <14 14 14>; //ms
-	slow-delay-cycle = <28 28 28>; //ms
-	full-speed-param = <65 15500>;
-	up-speed-param = <5 15500>;
-	down-speed-param = <2 156250>;
-	nodetect-speed-param = <15 15500>;
-	slow-full-speed-param = <65 31250>;
-	slow-up-speed-param = <5 104166>;
-	slow-down-speed-param = <2 156250>;
-	slow-nodetect-speed-param = <15 104166>;
+	motor-retard-pos = <430>;
+	detect-delay = <10>;//10ms
+	distance = <83>;//8.3mm
+	speed-up-distance = <15>;//0.5mm
+	speed-down-distance = <2>;//0.2mm
+	brake-speed = <156250>;
+	pulse-speed = <12000>;
+	md-speed = <12000>;
 	stop-neg-point = <3>;
 	stop-pos-point = <3>;
+	hall-data-sign = <0>;//1 represent positive ,0 represent negative
 };
 
 &motor_drv {
@@ -450,79 +442,6 @@
 		};
 	};
 };
-
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.Feature, 2019/01/22,
- * modify for d4 */
-&spi5 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	dbmd4_spi:dbmd4_interface@0 {
-		compatible = "dspg,dbmd4-spi";
-		reg = <0>;
-		spi-max-frequency = <1000000>;
-		read-chunk-size  = <0x2000>;    /* 16*16*16*16*2 bytes   */
-		write-chunk-size = <0x40000>;   /* 1000 bytes */
-		dma_min_buffer_size = <0>;
-		status = "okay";
-	};
-};
-
-&dbmdx {
-
-		reset-gpio = <&pio 100 0x0>; /* GPX1.3 */
-		sv-gpio = <&pio 84 0x0>; /* GPX1.5 */
-		wakeup-gpio = <&pio 85 0x0>; /* GPA0.1 */
-
-		auto_buffering = <1>;
-		multi-interface-support = <1>;
-		cd-interfaces = <&dbmd4_spi >;
-		va-interfaces = <0 0 0 0>;
-		feature-va; /* enable VA */
-		va-firmware-name = "dbmd4_va_fw.bin";
-		va-config = <0x800C2400
-			     0x80290020
-			     0x802210A0
-			     0x80330056
-			     0x80091400
-			     0x80158E8E
-			     0x8018000A
-			     0x801b0020
-			     0x80230000
-			     0x801A0012
-			     0x80108000
-			     0x8aab0040
-			     0x805004B0
-			     0x805104B0
-			     0x8016000C
-			     0x80410001
-			     0x8060611a
-			     0x8061fd62
-			     0x80626aaa
-			     0x8063fb0c>;
-		va-speeds = <0x0000 460800  0 960000
-			     0x0000 2000000 0 4800000
-			     0x0000 3000000 0 4800000>;
-		va-mic-config = <0xa011 0x1044 0x0008>;
-		va-mic-mode = <0>;
-		master-clk-rate = <32768>;
-		/* constant-clk-rate = <32768>; */
-		firmware_id = <0xdbd4>;
-		use_gpio_for_wakeup = <1>; /* Use wakeup gpio */
-		wakeup_set_value = <0>;  /* Value to write to wakeup gpio */
-		auto_detection = <1>;
-		detection_buffer_channels = <0>;
-		min_samples_chunk_size = <128>;
-		pcm_streaming_mode = <1>;
-		boot_options = <0x200>; /* Verify chip id */
-		amodel_options = <0x4>;
-		send_uevent_on_detection = <1>;
-		send_uevent_after_buffering = <0>;
-		detection_after_buffering = <0>;
-		va_backlog_length = <0x780>;
-		va_advanced_options = <0x1D>; /* Split Passphrase/Buf, Send det and buf events, Send event after passphrase */
-		va_passphrase_margins = <0x00320640>;
-};
 //#endif /* VENDOR_EDIT */
 
 /* TOUCH start */
@@ -630,7 +549,6 @@
                 fw_edge_limit_support;
                 black_gesture_support;
                 charger_pump_support;
-                headset_pump_support;
                 //spurious_fingerprint_support;
                 //lcd_trigger_fp_check;
                 black_gesture_test_support;
@@ -639,8 +557,6 @@
                 lcd_trigger_load_tp_fw_support;
                 smart_gesture_support;
                 fw_update_app_support;
-                pressure_report_support;
-                freq_hop_simulate_support;
 
 	    /*
 		*Virtual Key Config:
@@ -942,62 +858,20 @@
 	 * eint deb(debounce0, debounce1, debounce2, debounce3), inv_debounce
 	 */
 	headset-mode-setting = <0x500 0x500 1 0x1f0
-				0x2000 0x800 0x2000 0x44
-				0x0 0x7
-				0x5 0x9 0x9 0xd 0xe>;
+				0x800 0x800 0x20 0x44
+				0x4 0x1
+				0x5 0x3 0x3 0x5 0xe>;
 	accdet-plugout-debounce = <1>;
 	/*1:ACC mode, 2:low cost without in bias, 6:low cost with in bias*/
 	accdet-mic-mode = <2>;
 	/*0--MD_MAX--UP_MAX--DW_MAX*/
-
-	//#ifdef VENDOR_EDIT
-	//Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2018/01/22, Modify for support headset key
-	headset-three-key-threshold = <0 82 170 306>;
-	//#else /* VENDOR_EDIT */
-	//headset-three-key-threshold = <0 80 220 400>;
-	//#endif /* VENDOR_EDIT */
+	headset-three-key-threshold = <0 80 220 400>;
 	headset-three-key-threshold-CDD = <0 121 192 600>;
 	/*0--MD_MAX--VOICE_MAX--UP_MAX--DW_MAX*/
 	headset-four-key-threshold = <0 58 121 192 400>;
 
-//#ifdef VENDOR_EDIT
-//Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/01/01, add for moisture detection
-	/* moisture HW mode config start. Enable moisture detection or not
-	 * default use HW mode for moisture detection
-	 */
-	moisture_detect_enable = <1>;
-//#endif /* VENDOR_EDIT */
 	/* select VTH to 2v and 500k, use internal resitance */
 	eint_use_ext_res = <0>;
-//#ifdef VENDOR_EDIT
-//Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/01/01, add for moisture detection
-	/* enable eint detection mode, if moisture detection enable
-	 * eint_detect_mode = moisture_detect_mode;otherwise, select
-	 * eint_detect_mode = 4 as DEFAULT
-	 */
-	eint_detect_mode = <5>;
-	/* enable moisture detection mode, if moisture detection enable
-	 * eint_detect_mode = moisture_detect_mode
-	 */
-	moisture_detect_mode = <5>;
-	/* select 0: 2.8V; 1: 2.4V; 2: 2V; 3: VTH=MVTH(VTH2) */
-	moisture_comp_vth = <2>;
-	/* vref2 voltage for different water impedance */
-	moisture_comp_vref2 = <0>;
-	/* moisture HW mode config end */
-
-	/* moisture SW mode config start, use external resister or not.
-	 * DEFAULT NOT NEED
-	 */
-	moisture_use_ext_res = <0>;
-	/* moisture external resister ohm, SW mode by auxadc */
-	moisture-external-r = <2000000>;
-	/* moisture internal resister ohm, SW mode by auxadc */
-	moisture-internal-r = <47000>;
-	/* moisture of water resister ohm, SW mode by auxadc*/
-	moisture-water-r = <10000>;
-	/* moisture SW mode config end */
-//#endif /* VENDOR_EDIT */
 	status = "okay";
 };
 /* accdet end */
@@ -1133,8 +1007,8 @@
 	};
 	camera0_mclk_off: camera0_mclk_gpio_mode@gpio117 {
 		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO117__FUNC_GPIO117>;
-			drive-strength = <1>;
+			pinmux = <PINMUX_GPIO117__FUNC_CMMCLK1>;
+			drive-strength = <MTK_DRIVE_4mA>;
 		};
 	};
 	camera0_mclk_2mA: camera0_mclk_2mA@gpio117 {
@@ -1164,7 +1038,7 @@
 	camera1_mclk_off: camera1_mclk_gpio_mode@gpio120 {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO120__FUNC_GPIO120>;
-			drive-strength = <1>;
+			drive-strength = <MTK_DRIVE_4mA>;
 		};
 	};
 	camera1_mclk_2mA: camera1_mclk_2mA@gpio120 {
@@ -1193,8 +1067,8 @@
 	};
 	camera2_mclk_off: camera2_mclk_gpio_mode@gpio116 {
 		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO116__FUNC_GPIO116>;
-			drive-strength = <1>;
+			pinmux = <PINMUX_GPIO116__FUNC_CMMCLK0>;
+			drive-strength = <MTK_DRIVE_4mA>;
 		};
 	};
 	camera2_mclk_2mA: camera2_mclk_2mA@gpio116 {
@@ -1543,42 +1417,39 @@
 	qcom,input_current_calling_ma = <1500>;
 
 	qcom,iterm_disabled = <0>;
-	qcom,iterm_ma = <205>;
-	qcom,recharge-mv = <115>;
+	qcom,iterm_ma = <200>;
+	qcom,recharge-mv = <100>;
 
-	qcom,batt_capacity_mah = <4000>; /*typical capacity*/
-	//qcom,batt_capacity_mah = <3900>; /*rated capacity*/
+	qcom,batt_capacity_mah = <3900>;
 
 	qcom,removed_bat_decidegc = <190>;  /* < -19C */
 
-	qcom,cold_bat_decidegc = <20>;  /* -3C ~ 0C */
+	qcom,cold_bat_decidegc = <170>;  /* -3C ~ 0C */
 	qcom,temp_cold_vfloat_mv = <3980>;
-	qcom,temp_cold_fastchg_current_ma = <360>;
+	qcom,temp_cold_fastchg_current_ma = <330>;
 
 	qcom,little_cold_bat_decidegc = <0>;	/* 0C ~ 5C */
-	qcom,temp_little_cold_vfloat_mv = <4385>;
-	qcom,temp_little_cold_fastchg_current_ma_high = <1850>;
-	qcom,temp_little_cold_fastchg_current_ma_low = <1100>;
-	qcom,temp_little_cold_fastchg_current_ma = <1100>;
+	qcom,temp_little_cold_vfloat_mv = <4370>;
+	qcom,temp_little_cold_fastchg_current_ma = <555>;
 
 	qcom,cool_bat_decidegc = <50>;	/* 5C ~ 12C */
-	qcom,temp_cool_vfloat_mv = <4385>;
-	qcom,temp_cool_fastchg_current_ma_high = <2100>;
-	qcom,temp_cool_fastchg_current_ma_low = <1850>;
+	qcom,temp_cool_vfloat_mv = <4370>;
+	qcom,temp_cool_fastchg_current_ma_high = <945>;
+	qcom,temp_cool_fastchg_current_ma_low = <555>;
 
 	qcom,little_cool_bat_decidegc = <120>;	/* 12C ~ 16C */
-	qcom,temp_little_cool_vfloat_mv = <4385>;
-	qcom,temp_little_cool_fastchg_current_ma = <2100>;
+	qcom,temp_little_cool_vfloat_mv = <4370>;
+	qcom,temp_little_cool_fastchg_current_ma = <1725>;
 
 	qcom,normal_bat_decidegc = <160>;	/* 16C ~ 45C */
-	qcom,temp_normal_fastchg_current_ma = <2100>;
-	qcom,temp_normal_vfloat_mv = <4385>;
+	qcom,temp_normal_fastchg_current_ma = <2000>;
+	qcom,temp_normal_vfloat_mv = <4370>;
 
 	qcom,warm_bat_decidegc = <480>;		/* 45C ~ 53C */ /*8pin Bat Vooc project need add 3 degree C*/
-	qcom,temp_warm_vfloat_mv = <4130>;
-	qcom,temp_warm_fastchg_current_ma = <1100>;
+	qcom,temp_warm_vfloat_mv = <4080>;
+	qcom,temp_warm_fastchg_current_ma = <945>;
 
-	qcom,hot_bat_decidegc = <530>;  /* > 53C */
+	qcom,hot_bat_decidegc = <930>;  /* > 53C */
 
 	qcom,non_standard_vfloat_mv = <3980>;
 	qcom,non_standard_fastchg_current_ma = <512>;
@@ -1589,11 +1460,11 @@
 	qcom,short_c_bat_vfloat_sw_limit = <3750>;
 
 	qcom,cold_vfloat_sw_limit = <3930>;
-	qcom,little_cold_vfloat_sw_limit = <4335>;
-	qcom,cool_vfloat_sw_limit = <4335>;
-	qcom,little_cool_vfloat_sw_limit = <4335>;
-	qcom,normal_vfloat_sw_limit = <4335>;
-	qcom,warm_vfloat_sw_limit = <4080>;
+	qcom,little_cold_vfloat_sw_limit = <4320>;
+	qcom,cool_vfloat_sw_limit = <4320>;
+	qcom,little_cool_vfloat_sw_limit = <4320>;
+	qcom,normal_vfloat_sw_limit = <4320>;
+	qcom,warm_vfloat_sw_limit = <4030>;
 	qcom,non_standard_vfloat_sw_limit = <3930>;
 
 	qcom,max_chg_time_sec = <36000>;
@@ -1602,42 +1473,36 @@
 	qcom,vbatt_full_thr = <4400>;
 	qcom,vbatt_hv_thr = <4500>;
 
-	qcom,vfloat_step_mv = <10>;
+	qcom,vfloat_step_mv = <16>;
 	qcom,non_standard_vfloat_over_sw_limit = <3980>;
 	qcom,cold_vfloat_over_sw_limit = <3980>;
 	qcom,little_cold_vfloat_over_sw_limit = <4390>;
 	qcom,cool_vfloat_over_sw_limit = <4390>;
 	qcom,little_cool_vfloat_over_sw_limit = <4390>;
 	qcom,normal_vfloat_over_sw_limit = <4390>;
-	qcom,warm_vfloat_over_sw_limit = <4130>;
+	qcom,warm_vfloat_over_sw_limit = <4080>;
 
 	qcom,vbatt_power_off = <3300>;
 	qcom,vbatt_soc_1 = <3410>;
 	qcom,vooc_project = <1>;
 	qcom,vbatt_num = <1>;
 
-	qcom,normal_vterm_hw_inc = <150>;
-	qcom,non_normal_vterm_hw_inc = <10>;
+	qcom,normal_vterm_hw_inc = <18>;
+	qcom,non_normal_vterm_hw_inc = <18>;
 
-	qcom,ff1_normal_fastchg_ma = <1088>;
-	qcom,ffc2_normal_fastchg_ma = <780>;/*16C~35c*/
-	qcom,ffc2_temp_warm_decidegc = <350>;
-	qcom,ffc2_warm_fastchg_ma = <840>;/*35C~40c*/
-	qcom,ffc2_temp_high_decidegc = <400>;
-	qcom,ffc2_temp_low_decidegc = <120>;
-	qcom,ff1_exit_step_ma = <488>;
-	qcom,ff1_warm_exit_step_ma = <418>;
-	qcom,ffc2_exit_step_ma = <180>;
-	qcom,ffc2_warm_exit_step_ma = <170>;
+	qcom,overchg_normal_fastchg_ma = <700>;/*16C~35c*/
+	qcom,overchg_temp_warm_decidegc = <350>;
+	qcom,overchg_warm_fastchg_ma = <750>;/*35C~40c*/
+	qcom,overchg_temp_high_decidegc = <400>;
 
-	qcom,ffc_normal_vfloat_sw_limit = <4430>;
-	qcom,ffc_temp_normal_vfloat_mv = <4500>;
-	qcom,ffc_normal_vfloat_over_sw_limit = <4500>;
+	qcom,overchg_normal_vfloat_sw_limit = <4450>;
+	qcom,overchg_temp_normal_vfloat_mv = <4500>;
+	qcom,overchg_normal_vfloat_over_sw_limit = <4500>;
 
-	qcom,default_iterm_ma = <205>;
-	qcom,default_temp_normal_fastchg_current_ma = <2100>;
-	qcom,default_normal_vfloat_sw_limit = <4335>;
-	qcom,default_temp_normal_vfloat_mv = <4385>;
+	qcom,default_iterm_ma = <200>;
+	qcom,default_temp_normal_fastchg_current_ma = <2000>;
+	qcom,default_normal_vfloat_sw_limit = <4320>;
+	qcom,default_temp_normal_vfloat_mv = <4370>;
 	qcom,default_normal_vfloat_over_sw_limit = <4390>;
 
 	//for control:
@@ -1648,7 +1513,6 @@
 	qcom,chg_ctrl_by_lcd;
 	qcom,chg_ctrl_by_camera;
 	qcom,sw_vfloat_over_protect_enable;
-	qcom,ffc_support;
 
 	//GPIO config:
 	qcom,chargerid_switch-gpio = <&pio 195 0x00>;
@@ -1663,7 +1527,7 @@
 		reg = <0x55 0>;
 		qcom,modify-soc-smooth;
 	};
-/*
+
 	n76e_fastcg@52{
 		status = "okay";
 		compatible = "oppo,n76e-fastcg";
@@ -1698,15 +1562,14 @@
 		qcom,charging_clock-gpio 			= <&pio 74 0x00>;
 		qcom,charging_data-gpio 			= <&pio 73 0x00>;
 	};
-*/
+
 	stm8s_fastcg@26{
 		status = "okay";
 		compatible = "oppo,stm8s-fastcg";
 		reg = <0x26 0>;
-		qcom,vooc-low-temp = <120>;
 		qcom,oppo_batt_4400mv;
-		qcom,vooc_fw_update_newmethod;
-		qcom,vooc-fw-type = <7>;
+		//qcom,vooc_fw_update_newmethod;
+		qcom,vooc-fw-type = <5>;
 
 		pinctrl-names = "switch1_act_switch2_act", "switch1_sleep_switch2_sleep",
 						"switch1_act_switch3_act", "switch1_sleep_switch3_sleep",
@@ -1839,37 +1702,6 @@
 	};
 };
 
-//#ifdef VENDOR_EDIT
-//Jianchao.Shi@PSW.BSP.CHG.Basic, 2018/10/11, sjc Add for chargerid
-&apuart0 {
-	pinctrl-names = "uart0_rx_gpio",
-			"uart0_tx_gpio";
-	pinctrl-0 = <&uart0_rx_gpio_input>;
-	pinctrl-1 = <&uart0_tx_gpio_input>;
-	status = "okay";
-};
-
-&pio {
-	uart0_rx_gpio_input:uart0_rx_gpio@gpio53 {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO53__FUNC_GPIO53>;
-			input-enable;
-			slew-rate = <0>;
-			bias-disable;
-		};
-	};
-	uart0_tx_gpio_input:uart0_tx_gpio@gpio54 {
-		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO54__FUNC_GPIO54>;
-			input-enable;
-			slew-rate = <0>;
-			bias-disable;
-		};
-	};
-};
-//#endif
-//#endif /* VENDOR_EDIT */
-
 //ifdef VENDOR_EDIT
 /* Long.Liu@PSW.BSP.Fingerprint.Basic, 2018/11/19, Add for FPC driver baseon trustonic tee */
 &pio {
@@ -1945,16 +1777,15 @@
 //ifdef VENDOR_EDIT
 /* Long.Liu@PSW.BSP.Fingerprint.Basic, 2018/11/19, Add for FPC driver baseon trustonic tee */
 /* fpc spi */
-/*Because it is not compatible with 18151-fpc and 18073-silead now.So temporarily block*/
-/*&fpc_spi{
+
+&fpc_spi{
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_cs_set_cfg>,<&spi0_clk_set_cfg>,<&spi0_miso_set_cfg>,<&spi0_mosi_set_cfg>;
 	status = "okay";
-};*/
+};
 
 /* fpc GPIO standardization */
-/*Because it is not compatible with 18151-fpc and 18073-silead now.So temporarily block*/
-/*&pio {
+&pio {
 	fpc_reset_default: fpc_reset_default {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO107__FUNC_GPIO107>;
@@ -1978,7 +1809,7 @@
 	vdd_io-supply = <&mt_pmic_vfp_ldo_reg>;
 	pinctrl-0 = <&fpc_reset_default>,<&fpc_irq_default>;
 	status = "okay";
-};*/
+};
 
 /*the id config to project dts.*/
 &pio{

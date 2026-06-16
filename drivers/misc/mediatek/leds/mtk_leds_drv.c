@@ -75,7 +75,7 @@ static int debug_enable_led = 1;
 #endif
 
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/10/8 modified for 2048 steps backlight */
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/6 modified for 2048 steps backlight */
 #define MT_LED_INTERNAL_LEVEL_BIT_CNT 11
 #else
 #define MT_LED_INTERNAL_LEVEL_BIT_CNT 10
@@ -86,7 +86,7 @@ static int debug_enable_led = 1;
  *****************************************************************************/
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
 #ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/10/8 modified for 2048 steps backlight */
+/* wangxianfei@ODM.HQ.Multimedia.LCM 2018/12/6 modified for 2048 steps backlight */
 #define LED_INTERNAL_LEVEL_BIT_CNT 11
 #else
 #define LED_INTERNAL_LEVEL_BIT_CNT 10
@@ -433,18 +433,18 @@ int backlight_brightness_set(int level)
 		    mt_mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
 					   level);
 	} else {
-#ifndef VENDOR_EDIT
-/*
-Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
-modify for multibits backlight.
-*/
+		#ifndef VENDOR_EDIT
+		/*
+		Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
+		modify for multibits backlight.
+		*/
 		return mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
 					   (level >>
 					   (MT_LED_INTERNAL_LEVEL_BIT_CNT -
 					     8)));
-#else
+		#else
 		return mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],level);
-#endif
+		#endif
 	}
 
 }

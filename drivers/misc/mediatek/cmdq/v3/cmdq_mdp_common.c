@@ -94,20 +94,11 @@ uint32_t translatePort(uint32_t engineId)
 	case CMDQ_ENG_MDP_WROT1:
 		return SMI_PORT_MDP_WROT1_R;
 	}
-
-	if (engineId != CMDQ_ENG_MDP_CAMIN
-#ifdef SUPPORT_MDP_CAMIN2
-		&& engineId != CMDQ_ENG_MDP_CAMIN2
-#endif
-		)
-		CMDQ_ERR("pmqos invalid engineId %d\n", engineId);
+	CMDQ_ERR("pmqos invalid engineId %d\n", engineId);
 	return 0;
 }
 struct mm_qos_request *getRequest(uint32_t thread_id, uint32_t port)
 {
-	if (port == 0)
-		return NULL;
-
 	switch (port) {
 	case SMI_PORT_MDP_RDMA0:
 		return &mdp_rdma0_request[thread_id];
@@ -951,7 +942,6 @@ static s32 cmdq_mdp_consume_handle(void)
 	u32 index;
 	bool acquired = false;
 	struct CmdqCBkStruct *callback = cmdq_core_get_group_cb();
-	bool force_inorder = false;
 
 	/* operation for tasks_wait list need task mutex */
 	mutex_lock(&mdp_task_mutex);
@@ -965,23 +955,9 @@ static s32 cmdq_mdp_consume_handle(void)
 		/* operations for thread list need thread lock */
 		mutex_lock(&mdp_thread_mutex);
 
-		if (force_inorder && handle->force_inorder) {
-			mutex_unlock(&mdp_thread_mutex);
-			CMDQ_LOG(
-				"skip force inorder handle:0x%p engine:0x%llx\n",
-				handle, handle->engineFlag);
-			continue;
-		}
-
 		handle->thread = cmdq_mdp_find_free_thread(handle);
 		if (handle->thread == CMDQ_INVALID_THREAD) {
 			/* no available thread, keep wait */
-			if (handle->force_inorder) {
-				CMDQ_LOG(
-					"begin force inorder handle:0x%p engine:0x%llx\n",
-					handle, handle->engineFlag);
-				force_inorder = true;
-			}
 			mutex_unlock(&mdp_thread_mutex);
 			CMDQ_MSG(
 				"fail to get thread handle:0x%p engine:0x%llx\n",
@@ -1153,7 +1129,6 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	struct task_private *private;
 	s32 err;
 	u32 copy_size;
-	const u64 inorder_mask = 1ll << CMDQ_ENG_INORDER;
 
 	CMDQ_TRACE_FORCE_BEGIN("%s\n", __func__);
 
@@ -1163,12 +1138,9 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 	handle->secStatus = NULL;
 	cmdq_mdp_setup_sec(desc, handle);
 
-	handle->engineFlag = desc->engineFlag & ~inorder_mask;
+	handle->engineFlag = desc->engineFlag;
 	handle->pkt->priority = desc->priority;
 	cmdq_mdp_store_debug(desc, handle);
-
-	if (desc->engineFlag & inorder_mask)
-		handle->force_inorder = true;
 
 	private = (struct task_private *)CMDQ_U32_PTR(desc->privateData);
 	if (private)
@@ -1196,9 +1168,6 @@ s32 cmdq_mdp_flush_async(struct cmdqCommandStruct *desc, bool user_space,
 			return err;
 		}
 	}
-
-	if (!cmdq_core_check_pkt_valid(handle->pkt))
-		return -EFAULT;
 
 	if (desc->regRequest.count &&
 			desc->regRequest.count <= CMDQ_MAX_DUMP_REG_COUNT &&
@@ -2254,7 +2223,7 @@ static void cmdq_mdp_begin_task_virtual(struct cmdqRecStruct *handle,
 				getRequest(thread_id,
 				target_pmqos->qos2_isp_port[i]);
 			DP_BANDWIDTH(target_pmqos->qos2_isp_bandwidth[i],
-				total_pixel,
+				target_pmqos->mdp_total_pixel,
 				act_throughput,
 				isp_curr_bandwidth);
 			mm_qos_set_request(request, isp_curr_bandwidth,
@@ -2552,7 +2521,7 @@ static void cmdq_mdp_end_task_virtual(struct cmdqRecStruct *handle,
 				target_pmqos->qos2_isp_port[i]);
 
 			DP_BANDWIDTH(target_pmqos->qos2_isp_bandwidth[i],
-				curr_pixel_size,
+				target_pmqos->mdp_total_pixel,
 				act_throughput,
 				isp_curr_bandwidth);
 			mm_qos_set_request(

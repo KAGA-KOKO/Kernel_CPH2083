@@ -911,17 +911,12 @@ void base_ops_set_phase(struct eem_det *det, enum eem_phase phase)
 
 	case EEM_PHASE_INIT02:
 		eem_debug("EEM_SET_PHASE02\n ");
-		/* check if DCVALUES is minus and set DCVOFFSETIN to zero */
-		if ((det->DCVOFFSETIN & 0x8000) || (eem_devinfo.FT_PGM <= 2)
-			|| (eem_devinfo.FT_PGM == 9)
-			|| (eem_devinfo.FT_PGM == 10))
-			det->DCVOFFSETIN = 0;
-
 		eem_write(EEMINTEN, 0x00005f01);
 
 		eem_write(EEM_INIT2VALS,
-			((det->AGEVOFFSETIN << 16) & 0xffff0000) |
-			(det->DCVOFFSETIN & 0xffff));
+			  ((det->AGEVOFFSETIN << 16) & 0xffff0000) |
+			  ((eem_devinfo.FT_PGM <= 2) ? 0 :
+			   det->DCVOFFSETIN & 0xffff));
 
 		/* enable EEM INIT measurement */
 		eem_write(EEMEN, 0x00000005 | SEC_MOD_SEL);
@@ -1446,22 +1441,17 @@ static void get_volt_table_in_thread(struct eem_det *det)
 		/* Check temperature and decide set high volt or not */
 		if (ndet->isTempInv || ndet->isHighTemp) {
 			/* Add low temp offset for each bank if temp inverse */
-			ndet->isAddExtra = ADD_EXTRA;
-#if 0
+			low_temp_offset = ndet->low_temp_off;
+
 			if (ndet->isAddExtra == ADD_EXTRA)
 				goto skip_update;
 			else
 				ndet->isAddExtra = ADD_EXTRA;
-#endif
 		} else {
-			ndet->isAddExtra = NO_EXTRA;
-#if 0
 			if (ndet->isAddExtra)
 				ndet->isAddExtra = NO_EXTRA;
 			else
 				goto skip_update;
-#endif
-
 		}
 	} else {
 		if (ndet->isTempInv) {
@@ -1498,18 +1488,6 @@ static void get_volt_table_in_thread(struct eem_det *det)
 				+ (100 - 1)) / 100),
 				ndet->DVTFIXED) - ndet->DVTFIXED;
 		}
-
-		if (ndet->isAddExtra == ADD_EXTRA) {
-#if ENABLE_LOO
-			if ((ndet->loo_role != NO_LOO_BANK) && (i < 8)) {
-				highdet = id_to_eem_det(ndet->loo_couple);
-				low_temp_offset = highdet->low_temp_off;
-			} else
-#endif
-				low_temp_offset = ndet->low_temp_off;
-		}
-
-
 		switch (ndet->ctrl_id) {
 		case EEM_CTRL_L:
 			ndet->volt_tbl_pmic[i] = min(
@@ -1677,9 +1655,7 @@ static void get_volt_table_in_thread(struct eem_det *det)
 	if (0 == (ndet->disabled % 2))
 		ndet->ops->set_volt(ndet);
 
-#if 0
 skip_update:
-#endif
 
 #if ENABLE_LOO
 	if (det->loo_role != NO_LOO_BANK)
@@ -2235,6 +2211,10 @@ static inline void handle_init01_isr(struct eem_det *det)
 	 */
 	 /* hw bug, workaround */
 	det->DCVOFFSETIN = ~(eem_read(EEM_DCVALUES) & 0xffff) + 1;
+	/* check if DCVALUES is minus and set DCVOFFSETIN to zero */
+
+	if (det->DCVOFFSETIN & 0x8000)
+		det->DCVOFFSETIN = 0;
 
 	det->AGEVOFFSETIN = eem_read(EEM_AGEVALUES) & 0xffff;
 
@@ -3046,43 +3026,21 @@ static void eem_dconfig_set_det(struct eem_det *det, struct device_node *node)
 			else
 				final_init01_flag |= BIT(det_id);
 
-			switch (det_id) {
-			case EEM_DET_L:
-			case EEM_DET_CCI:
-				if (HAS_FEATURE(det, FEA_INIT02) == 0)
-					eem_update_init2_volt_to_upower
-					(det, det->volt_tbl_orig);
-				break;
-			case EEM_DET_B:
-				if (HAS_FEATURE(det, FEA_INIT02) == 0) {
-					eem_update_init2_volt_to_upower
-					(det, det->volt_tbl_orig);
-				}
-				break;
-			case EEM_DET_GPU:
 #if ENABLE_LOO
-				/* Change GPU Low_bank & High_bank */
+			/* Change GPU Low_bank, also change High_bank */
+			if (det_id == EEM_DET_GPU) {
 				highdet = id_to_eem_det(EEM_DET_GPU_HI);
 				highdet->features = doe_initmon & 0x6;
-#endif
-				break;
-			default:
-				break;
 			}
-
+#endif
 		}
 	}
 
 	if (!rc2)
 		det->volt_clamp = doe_clamp;
 
-	if ((!rc3) && (doe_offset != 0xFF)) {
-		if (doe_offset < 1000)
-			det->volt_offset = doe_offset;
-		else
-			det->volt_offset = 0 - (doe_offset - 1000);
-	}
-
+	if ((!rc3) && (doe_offset != 0xFF))
+		det->volt_offset = doe_offset;
 
 }
 #endif

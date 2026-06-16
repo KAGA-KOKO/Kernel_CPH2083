@@ -307,13 +307,6 @@ int sysctl_tcp_info_print __read_mostly = -1;
 EXPORT_SYMBOL(sysctl_tcp_info_print);
 #endif /* VENDOR_EDIT */
 
-#ifdef VENDOR_EDIT
-//Mengqing.Zhao@PSW.CN.WiFi.Network.internet.1394484, 2019/04/02,
-//add for: When find TCP SYN-ACK Timestamp value error, just do not use Timestamp
-int sysctl_tcp_ts_control[2] __read_mostly = {0,0};
-EXPORT_SYMBOL(sysctl_tcp_ts_control);
-#endif /* VENDOR_EDIT */
-
 /*
  * Current number of TCP sockets.
  */

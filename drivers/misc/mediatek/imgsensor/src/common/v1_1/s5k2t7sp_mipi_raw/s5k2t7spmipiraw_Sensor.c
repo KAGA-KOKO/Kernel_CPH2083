@@ -54,6 +54,7 @@
 #include "s5k2t7spmipiraw_Sensor.h"
 
 #define MULTI_WRITE 1
+static kal_uint16 s5k2t7_shutter_initialize;
 
 #if MULTI_WRITE
 static const int I2C_BUFFER_LEN = 1020; /*trans# max is 255, each 4 bytes*/
@@ -245,6 +246,7 @@ static struct imgsensor_struct imgsensor = {
 	/* sensor need support LE, SE with HDR feature */
 	.ihdr_mode = KAL_FALSE,
 	.i2c_write_id = 0x20,	/* record current sensor's i2c write id */
+	.AE_binning_type = BINNING_NONE,
 
 };
 
@@ -472,6 +474,13 @@ static void set_shutter(kal_uint16 shutter)
 	unsigned long flags;
 
 	spin_lock_irqsave(&imgsensor_drv_lock, flags);
+	if (s5k2t7_shutter_initialize == 0) {
+		if (imgsensor.AE_binning_type == BINNING_AVERAGED)
+			shutter = shutter/2;
+		else if (imgsensor.AE_binning_type == BINNING_SUMMED)
+			shutter = shutter/4;
+		s5k2t7_shutter_initialize = 1;
+	}
 	imgsensor.shutter = shutter;
 	spin_unlock_irqrestore(&imgsensor_drv_lock, flags);
 
@@ -2072,6 +2081,15 @@ static kal_uint32 control(enum MSDK_SCENARIO_ID_ENUM scenario_id,
 		preview(image_window, sensor_config_data);
 		return ERROR_INVALID_SCENARIO_ID;
 	}
+	s5k2t7_shutter_initialize = 0;
+	if (read_cmos_sensor_8(0x0900) & 0x1) {
+		/*0x0902 = 0:averaged, 1:summed, 2:bayer weighting*/
+		if (read_cmos_sensor_8(0x0902) & 0x1)
+			imgsensor.AE_binning_type = BINNING_SUMMED;
+		else
+			imgsensor.AE_binning_type = BINNING_AVERAGED;
+	} else
+		imgsensor.AE_binning_type = BINNING_NONE;
 	return ERROR_NONE;
 }				/* control() */
 
@@ -2685,20 +2703,14 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 		streaming_control(KAL_TRUE);
 		break;
 	case SENSOR_FEATURE_GET_BINNING_TYPE:
-		switch (*(feature_data + 1)) {
-		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
-			*feature_return_para_32 = 1; /*BINNING_NONE*/
-			break;
-		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-		case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
-		case MSDK_SCENARIO_ID_SLIM_VIDEO:
-		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-		default:
-			*feature_return_para_32 = 2; /*BINNING_AVERAGED*/
-			break;
-		}
-		pr_debug("SENSOR_FEATURE_GET_BINNING_TYPE AE_binning_type:%d,\n",
-			*feature_return_para_32);
+		pr_debug("SENSOR_FEATURE_GET_BINNING_TYPE: %d\n",
+				imgsensor.AE_binning_type);
+		if (imgsensor.AE_binning_type == BINNING_SUMMED)
+			*feature_return_para_32 = 4; /*return ratio*/
+		else if (imgsensor.AE_binning_type == BINNING_AVERAGED)
+			*feature_return_para_32 = 2;
+		else
+			*feature_return_para_32 = 1;
 		*feature_para_len = 4;
 		break;
 	case SENSOR_FEATURE_GET_TEMPERATURE_VALUE:

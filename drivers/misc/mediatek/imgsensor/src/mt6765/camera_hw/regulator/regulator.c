@@ -19,14 +19,6 @@
 #include <linux/rcupdate.h>
 #include <linux/sched.h>
 
-#ifdef ODM_WT_EDIT
-static int regulator_status[REGULATOR_TYPE_MAX_NUM] = {0};
-static void check_for_regulator_get(struct REGULATOR *preg, struct device *pdevice, int index);
-static void check_for_regulator_put(struct REGULATOR *preg, int index);
-static struct device_node *of_node_record = NULL;
-static DEFINE_MUTEX(g_regulator_state_mutex);
-#endif
-
 static const int regulator_voltage[] = {
 	REGULATOR_VOLTAGE_0,
 	REGULATOR_VOLTAGE_1000,
@@ -61,18 +53,6 @@ struct REGULATOR_CTRL regulator_control[REGULATOR_TYPE_MAX_NUM] = {
 };
 
 static struct REGULATOR reg_instance;
-
-
-static struct regulator *gVCamIO;
-/*add for build err*/
-struct regulator *regulator_get_regVCAMAF(void)
-{
-	//struct IMGSENSOR *pimgsensor = &gimgsensor;
-	struct device *pdevice = gimgsensor_device;
-	return regulator_get(pdevice, "vcamaf");
-	//return regulator_get(&((pimgsensor->hw.common.pplatform_device)->dev), "vcamaf");
-}
-
 
 static void imgsensor_oc_handler1(void)
 {
@@ -209,9 +189,7 @@ static enum IMGSENSOR_RETURN regulator_init(void *pinstance)
 	pof_node = pdevice->of_node;
 	pdevice->of_node =
 		of_find_compatible_node(NULL, NULL, "mediatek,camera_hw");
-#ifdef ODM_WT_EDIT
-	of_node_record = pdevice->of_node;
-#endif
+
 	if (pdevice->of_node == NULL) {
 		pr_err("regulator get cust camera node failed!\n");
 		pdevice->of_node = pof_node;
@@ -227,18 +205,11 @@ static enum IMGSENSOR_RETURN regulator_init(void *pinstance)
 				i, pregulator_ctrl->pregulator_type);
 
 		atomic_set(&preg->enable_cnt[i], 0);
-#ifdef ODM_WT_EDIT
-		regulator_status[i] = 1;
-#endif
 	}
 
 
 	pdevice->of_node = pof_node;
 	imgsensor_oc_init();
-	#ifdef VENDOR_EDIT
-	/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-	gVCamIO = regulator_get(pdevice, "vcamio");
-	#endif
 	return IMGSENSOR_RETURN_SUCCESS;
 }
 static enum IMGSENSOR_RETURN regulator_release(void *pinstance)
@@ -269,7 +240,7 @@ static enum IMGSENSOR_RETURN regulator_set(
 	atomic_t	*enable_cnt;
 
 
-	if (pin > IMGSENSOR_HW_PIN_AFVDD   ||
+	if (pin > IMGSENSOR_HW_PIN_DOVDD   ||
 		pin < IMGSENSOR_HW_PIN_AVDD    ||
 		pin_state < IMGSENSOR_HW_PIN_STATE_LEVEL_0 ||
 		pin_state >= IMGSENSOR_HW_PIN_STATE_LEVEL_HIGH)
@@ -284,11 +255,6 @@ static enum IMGSENSOR_RETURN regulator_set(
 		: (sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2)
 		? REGULATOR_TYPE_SUB2_VCAMA
 		: REGULATOR_TYPE_MAIN3_VCAMA;
-
-#ifdef ODM_WT_EDIT
-	 //pr_err("regulator_dbg regulator_set sensor_idx %d, regulator %s,status %d\n", sensor_idx, regulator_control[(reg_type_offset + pin -IMGSENSOR_HW_PIN_AVDD)].pregulator_type,regulator_status[(reg_type_offset + pin - IMGSENSOR_HW_PIN_AVDD)]);
-	check_for_regulator_get(preg, gimgsensor_device, (reg_type_offset + pin - IMGSENSOR_HW_PIN_AVDD));
-#endif
 
 	pregulator =
 		preg->pregulator[reg_type_offset + pin - IMGSENSOR_HW_PIN_AVDD];
@@ -332,9 +298,6 @@ static enum IMGSENSOR_RETURN regulator_set(
 					    pin);
 					return IMGSENSOR_RETURN_ERROR;
 				}
-				#ifdef ODM_WT_EDIT
-				check_for_regulator_put(preg, (reg_type_offset + pin - IMGSENSOR_HW_PIN_AVDD));
-				#endif
 			}
 			atomic_dec(enable_cnt);
 		}
@@ -356,37 +319,6 @@ static struct IMGSENSOR_HW_DEVICE device = {
 	.id        = IMGSENSOR_HW_ID_REGULATOR
 };
 
-
-int kdVIOPowerOn(int On)
-{
-	/*Henry.Chang@Camera.Driver 20181218 add for flash&lens to use i2c individual*/
-	if (On) {
-		if (regulator_set_voltage(gVCamIO,
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800- IMGSENSOR_HW_PIN_STATE_LEVEL_0],
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800- IMGSENSOR_HW_PIN_STATE_LEVEL_0])) {
-			pr_err("[regulator]fail to regulator_set_voltage, powerId:%d\n",
-				regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_1800 - IMGSENSOR_HW_PIN_STATE_LEVEL_0]);
-		}
-		if (regulator_enable(gVCamIO)) {
-			pr_err("[regulator]fail to regulator_enable\n");
-			return IMGSENSOR_RETURN_ERROR;
-		}
-	} else {
-		if (regulator_set_voltage(gVCamIO,
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0],
-			regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0])) {
-			pr_err("[regulator]fail to regulator_set_voltage, powerId:%d\n",
-				regulator_voltage[IMGSENSOR_HW_PIN_STATE_LEVEL_0]);
-		}
-		if (regulator_disable(gVCamIO)) {
-			pr_err("[regulator]fail to regulator_disable gVCamIO\n");
-			return IMGSENSOR_RETURN_ERROR;
-		}
-	}
-
-	return IMGSENSOR_RETURN_SUCCESS;
-}
-
 enum IMGSENSOR_RETURN imgsensor_hw_regulator_open(
 	struct IMGSENSOR_HW_DEVICE **pdevice)
 {
@@ -394,31 +326,3 @@ enum IMGSENSOR_RETURN imgsensor_hw_regulator_open(
 	return IMGSENSOR_RETURN_SUCCESS;
 }
 
-#ifdef ODM_WT_EDIT
-static void check_for_regulator_get(struct REGULATOR *preg, struct device *pdevice, int index)
-{
-	struct device_node *pof_node;
-	mutex_lock(&g_regulator_state_mutex);
-	if(regulator_status[index]==0){
-		pof_node = pdevice->of_node;
-		pdevice->of_node = of_node_record;
-		preg->pregulator[index] = regulator_get(pdevice, regulator_control[index].pregulator_type);
-
-		pdevice->of_node = pof_node;
-		regulator_status[index] = 1;
-		//pr_err("regulator_dbg regulator_get %s, of_node:%p\n", regulator_control[index].pregulator_type, of_node_record);
-	}
-	mutex_unlock(&g_regulator_state_mutex);
-}
-
-static void check_for_regulator_put(struct REGULATOR *preg, int index)
-{
-	mutex_lock(&g_regulator_state_mutex);
-	if(regulator_status[index]==1){
-		regulator_put(preg->pregulator[index]);
-		regulator_status[index]=0;
-		//pr_err("regulator_dbg regulator_put %s\n", regulator_control[index].pregulator_type);
-	}
-	mutex_unlock(&g_regulator_state_mutex);
-}
-#endif

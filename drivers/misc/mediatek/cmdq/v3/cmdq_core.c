@@ -41,11 +41,6 @@
 #include <mt-plat/mtk_lpae.h>
 #include "cmdq_record_private.h"
 
-#ifdef VENDOR_EDIT
-/* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/12/03,add for mm kevent fb. */
-#include <linux/oppo_mm_kevent_fb.h>
-#endif /*VENDOR_EDIT*/
-
 /* #define CMDQ_PROFILE_COMMAND_TRIGGER_LOOP */
 /* #define CMDQ_ENABLE_BUS_ULTRA */
 
@@ -7859,10 +7854,6 @@ static s32 cmdq_core_wait_task_done_with_timeout_impl(
 	s32 delay_id = cmdq_get_delay_id_by_scenario(pTask->scenario);
 	s32 slot = -1, i = 0;
 	u32 tpr_mask = 0;
-	#ifdef VENDOR_EDIT
-	/* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/12/03,add for mm kevent fb. */
-	unsigned char payload[100] = "";
-	#endif
 
 	pThread = &(gCmdqContext.thread[thread]);
 	retry_count = 0;
@@ -7924,12 +7915,6 @@ static s32 cmdq_core_wait_task_done_with_timeout_impl(
 
 			if (delay_id >= 0 && tpr_mask)
 				cmdq_core_dump_delay_spr(delay_id, tpr_mask);
-			#ifdef VENDOR_EDIT
-			/* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/12/03,add for mm kevent fb. */
-			scnprintf(payload, sizeof(payload), "EventID@@%d$$CMDQSWtimeout@@task:0x%p slot:%d$$ReportLevel@@%d",
-				OPPO_MM_DIRVER_FB_EVENT_ID_MTK_CMDQ, pTask, slot, OPPO_MM_DIRVER_FB_EVENT_REPORTLEVEL_HIGH);
-			upload_mm_kevent_fb_data(OPPO_MM_DIRVER_FB_EVENT_MODULE_DISPLAY,payload);
-			#endif
 		} else {
 			/* dump simple status only */
 			CMDQ_PROF_SPIN_LOCK(gCmdqExecLock, flags,

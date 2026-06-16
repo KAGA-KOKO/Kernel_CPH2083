@@ -43,10 +43,6 @@ enum OPPO_PROJECT {
     OPPO_UNKOWN = 0,
     OPPO_18151 = 18151,
     OPPO_18531 = 18531,
-    OPPO_18073 = 18073,
-    OPPO_18593 = 18593,
-    OPPO_19011 = 19011,
-    OPPO_19301 = 19301,
 };
 
 enum OPPO_OPERATOR {
@@ -58,21 +54,6 @@ enum OPPO_OPERATOR {
     OPERATOR_18151_All_BAND				= 59,  // 18151
     OPERATOR_18151_MOBILE				= 60,  //18153
     OPERATOR_18151_CARRIER				= 61,  //18551
-    /* for 18073&18593 */
-    OPERATOR_18073_MOBILE				= 70,
-    OPERATOR_18073_All_BAND				= 71,
-    OPERATOR_18593_CARRIER				= 72,
-    /* for 18525*/
-    OPERATOR_18525_ASIA					= 73,
-    /* for 18161 vietnam*/
-    OPERATOR_18161_ASIA_64G				= 74,  // 18566
-    OPERATOR_18161_ASIA_128G			= 75,  // 18567
-    OPERATOR_18161_ASIA_6_128G			= 76,  // 18569
-    OPERATOR_18161_ASIA_SIMPLE_INDIA	= 77,
-    OPERATOR_19301_CARRIER				= 80,
-    OPERATOR_19305_CARRIER				= 81,
-    OPERATOR_19011_All_BAND				= 82,
-    OPERATOR_19011_MOBILE				= 83,
 };
 
 enum{
@@ -85,17 +66,6 @@ enum{
     SMALLBOARD_VERSION__6,
     SMALLBOARD_VERSION__UNKNOWN = 100,
 };
-
-#ifdef ODM_HQ_EDIT
-typedef struct{
-	char pcbVersion[8];
-	char operatorName[16];
-	char modemType[16];
-	char prjVersion[8];
-	char Kboard[8];
-	char Mboard[8];
-}OPPOVERSION;
-#endif
 
 typedef enum OPPO_PROJECT OPPO_PROJECT;
 

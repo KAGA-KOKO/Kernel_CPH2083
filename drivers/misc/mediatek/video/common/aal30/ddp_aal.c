@@ -1337,7 +1337,7 @@ void disp_aal_notify_backlight_changed(int bl_1024)
 	unsigned long flags;
 	#ifndef VENDOR_EDIT
 	/*
-	Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
+	Ling.Guo@PSW.MultiMedia.Display.LCD.Machine, 2018/11/09,
 	modify for multibits backlight.
 	*/
 	int max_backlight;
@@ -1348,15 +1348,17 @@ void disp_aal_notify_backlight_changed(int bl_1024)
 	disp_aal_notify_backlight_log(bl_1024);
 
 	disp_aal_exit_idle(__func__, 1);
+
 	#ifndef VENDOR_EDIT
 	/*
-	Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
+	Ling.Guo@PSW.MultiMedia.Display.LCD.Machine, 2018/11/09,
 	modify for multibits backlight.
 	*/
 	max_backlight = disp_pwm_get_max_backlight(DISP_PWM0);
 	if (bl_1024 > max_backlight)
 		bl_1024 = max_backlight;
 	#endif
+
 	atomic_set(&g_aal_backlight_notified, bl_1024);
 
 	service_flags = 0;
@@ -1385,11 +1387,6 @@ void disp_aal_notify_backlight_changed(int bl_1024)
 	g_aal_hist.serviceFlags |= service_flags;
 	spin_unlock_irqrestore(&g_aal_hist_lock, flags);
 
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
-	* modify for support aod state.
-	*/
 	if (atomic_read(&g_aal_is_init_regs_valid) == 1) {
 		spin_lock_irqsave(&g_aal_irq_en_lock, flags);
 		atomic_set(&g_aal_force_enable_irq, 1);
@@ -1398,9 +1395,6 @@ void disp_aal_notify_backlight_changed(int bl_1024)
 		/* Backlight latency should be as smaller as possible */
 		disp_aal_trigger_refresh(AAL_REFRESH_17MS);
 	}
-	#else
-	backlight_brightness_set_with_lock(bl_1024);
-	#endif
 }
 
 
@@ -1611,23 +1605,7 @@ int disp_aal_set_param(struct DISP_AAL_PARAM __user *param,
 	AAL_DBG("(latency = %d): ret = %d",
 		g_aal_param.refreshLatency, ret);
 
-	#ifdef VENDOR_EDIT
-	/*
-	Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
-	modify for multibits backlight.
-	*/
-	if (backlight_value > LED_FULL) {
-		backlight_value = LED_FULL;
-	}
-	#endif
-
-	#ifndef VENDOR_EDIT
-	/*
-	* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
-	* modify for support aod state.
-	*/
 	backlight_brightness_set(backlight_value);
-	#endif
 
 	disp_aal_trigger_refresh(g_aal_param.refreshLatency);
 

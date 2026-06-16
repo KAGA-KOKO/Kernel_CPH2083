@@ -252,7 +252,6 @@ struct chip_bq25601d {
 	int				hw_aicl_point;
 	int				sw_aicl_point;
 	atomic_t			charger_suspended;
-	int				irq_gpio;
 };
 
 int bq25601d_otg_enable(void);

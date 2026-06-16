@@ -57,18 +57,10 @@ struct GPIO_PINCTRL gpio_pinctrl_list[GPIO_CTRL_STATE_MAX_NUM] = {
 	{"cam3_pnd0"},
 	{"cam3_rst1"},
 	{"cam3_rst0"},
-	#ifdef VENDOR_EDIT
-	/* Feiping.Li@Camera.Driver, 20190522, add for 19301 rear 4 sensor */
-	{"cam3_ldo_vcama_1"},
-	{"cam3_ldo_vcama_0"},
-	{"cam3_ldo_vcamd_1"},
-	{"cam3_ldo_vcamd_0"},
-	#else
 	{NULL},
 	{NULL},
 	{NULL},
 	{NULL},
-	#endif
 	{NULL},
 	{NULL},
 	/* Main3 */
@@ -147,16 +139,12 @@ static enum IMGSENSOR_RETURN gpio_set(
 	enum   GPIO_CTRL_STATE ctrl_state_offset;
 
 	/* PK_DBG("%s :debug pinctrl ENABLE, PinIdx %d, Val %d\n",
-	 *    __func__, pin, pin_state);
+	 *	__func__, pin, pin_state);
 	 */
 
 	if (pin < IMGSENSOR_HW_PIN_PDN ||
 #if VENDOR_EDIT
-	#ifdef MIPI_SWITCH
-		pin > IMGSENSOR_HW_PIN_MIPI_SWITCH_EN ||
-	#else
 		pin > IMGSENSOR_HW_PIN_AVDD_1 ||
-	#endif
 #else
 #ifdef MIPI_SWITCH
 	    pin > IMGSENSOR_HW_PIN_MIPI_SWITCH_SEL ||

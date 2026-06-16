@@ -728,10 +728,6 @@ DEFINE_SPINLOCK(ktv_dl_ctrl_lock);
 
 char ktv_dl_data_unit[3840] = {0};
 struct afe_block_t user_dl_block;
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-wait_queue_head_t ktvsleep;
-int ktv_running = 0;
-int prevu4read = 0;
 
 int write_access = 0;
 int dl_init_done = 0;
@@ -817,11 +813,6 @@ static ssize_t ktvdev_write(struct file *fp, const char __user *data, size_t cou
 
 	auddrv_dl1_write_handler(ktvUnitSize);
 
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	if (dl_init_done == 1) {
-		ktv_running = 1;
-	}
-
 	ret = count;
 
 	kfree(tmp);
@@ -830,21 +821,11 @@ static ssize_t ktvdev_write(struct file *fp, const char __user *data, size_t cou
 
 }
 
-/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-static int ktvdev_release(struct inode *inode, struct file *file)
-{
-	pr_info("%s: \n", __func__);
-	ktv_running = 0;
-	return 0;
-}
-
 static const struct file_operations ktvdevw_fops = {
 	.owner   = THIS_MODULE,
 	.open    = ktvdevw_open,
 	.unlocked_ioctl   = ktvdevw_ioctl,
 	.write   = ktvdev_write,
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	.release = ktvdev_release,
 };
 
 static struct miscdevice ktvw_device = {
@@ -958,6 +939,8 @@ static int __init mt_soc_snd_init(void)
 	}
 #endif
 	ret = platform_driver_register(&mt_audio_driver);
+	pr_debug("-%s\n", __func__);
+
 #ifdef VENDOR_EDIT
 #ifdef CONFIG_OPPO_KTV_DEV
 	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature.1209435, 2019/01/09,
@@ -968,11 +951,8 @@ static int __init mt_soc_snd_init(void)
 		pr_debug("ktvw_device misc_register Fail:%d\n", ret);
 		return ret;
 	}
-	/* Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2020/01/21, add for reducing mixer buffer */
-	init_waitqueue_head(&ktvsleep);
 #endif /* CONFIG_OPPO_KTV_DEV */
 #endif /* VENDOR_EDIT */
-	pr_debug("-%s\n", __func__);
 
 	return ret;
 }

@@ -21,12 +21,6 @@
 #define WORLD_CLK_CNTCV_L        (0x10017008)
 #define WORLD_CLK_CNTCV_H        (0x1001700C)
 static u32 pcm_timer_ramp_max_sec_loop = 1;
-#ifdef VENDOR_EDIT
-/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-char wakeup_source_buf[LOG_BUF_SIZE] = { 0 };
-u64  wakesrc_count[32] = { 0 };
-extern int wakeup_reason_stastics_flag;
-#endif /* VENDOR_EDIT */
 
 const char *wakesrc_str[32] = {
 	[0] = " R12_PCM_TIMER",
@@ -66,19 +60,6 @@ const char *wakesrc_str[32] = {
 /**************************************
  * Function and API
  **************************************/
-#ifdef VENDOR_EDIT
-/* ChaoYing.Chen@BSP.Power.Basic.1056413, 2017/12/11, Add for print wakeup source */
-#define MAX_WAKEUP_REASON_IRQS 32
-void mt_clear_wakesrc_count(void)
-{
-	int i = 0;
-
-	for (i = 0; i < MAX_WAKEUP_REASON_IRQS; i++) {
-		wakesrc_count[i] = 0;
-	}
-}
-EXPORT_SYMBOL(mt_clear_wakesrc_count);
-#endif /* VENDOR_EDIT */
 int __spm_get_pcm_timer_val(const struct pwr_ctrl *pwrctrl)
 {
 	u32 val;
@@ -234,22 +215,8 @@ unsigned int __spm_output_wake_reason(
 					strlen(wakesrc_str[i]));
 
 			wr = WR_WAKE_SRC;
-#ifdef VENDOR_EDIT
-/* Yichun.Chen  PSW.BSP.CHG  2019-01-25  for power analysis */
-			if ((suspend == true) && (!(wakesta->r12 & WAKE_SRC_R12_EINT_EVENT_B))) {
-				wakesrc_count[i]++;
-			}
-#endif
 		}
 	}
-
-#ifdef VENDOR_EDIT
-/* Yichun.Chen  PSW.BSP.CHG  2019-01-25  for power analysis */
-	if ((suspend == true) && (!(wakesta->r12 & WAKE_SRC_R12_EINT_EVENT_B))) {
-		strcpy(wakeup_source_buf, buf);
-	}
-#endif
-
 	WARN_ON(strlen(buf) >= LOG_BUF_SIZE);
 
 	log_size += sprintf(log_buf,

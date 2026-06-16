@@ -46,7 +46,6 @@
 static struct regulator *vvpu_reg_id;
 static struct regulator *vmdla_reg_id;
 static struct regulator *vcore_reg_id;
-static struct regulator *vsram_reg_id;
 
 
 static bool vvpu_DVFS_is_paused_by_ptpod;
@@ -382,8 +381,6 @@ int vmdla2_cpe_result;
 static DEFINE_MUTEX(vpu_opp_lock);
 static DEFINE_MUTEX(mdla_opp_lock);
 static DEFINE_MUTEX(apu_power_count_lock);
-static DEFINE_MUTEX(power_check_lock);
-
 #ifdef HQA_LOAD
 static void get_vvpu_from_efuse(void);
 static void get_vmdla_from_efuse(void);
@@ -434,67 +431,6 @@ void dump_ptp_count(void)
 	LOG_DBG("%s end\n", __func__);
 }
 
-void apu_get_power_info(void)
-{
-	int vvpu = 0;
-	int vmdla = 0;
-	int vcore = 0;
-	int vsram = 0;
-	int dsp_freq = 0;
-	int dsp1_freq = 0;
-	int dsp2_freq = 0;
-	int dsp3_freq = 0;
-	int ipuif_freq = 0;
-	int temp_freq = 0;
-	mutex_lock(&power_check_lock);
-
-	dsp_freq = mt_get_ckgen_freq(10);
-	if (dsp_freq == 0)
-		temp_freq = mt_get_ckgen_freq(1);
-	dsp1_freq = mt_get_ckgen_freq(11);
-	if (dsp1_freq == 0)
-		temp_freq = mt_get_ckgen_freq(1);
-	dsp2_freq = mt_get_ckgen_freq(12);
-	if (dsp2_freq == 0)
-		temp_freq = mt_get_ckgen_freq(1);
-	dsp3_freq = mt_get_ckgen_freq(13);
-	if (dsp3_freq == 0)
-		temp_freq = mt_get_ckgen_freq(1);
-	ipuif_freq = mt_get_ckgen_freq(14);
-	if (ipuif_freq == 0)
-		temp_freq = mt_get_ckgen_freq(1);
-	check_vpu_clk_sts();
-
-	if (vmdla_reg_id)
-		vmdla = regulator_get_voltage(vmdla_reg_id);
-
-	if (vvpu_reg_id)
-		vvpu = regulator_get_voltage(vvpu_reg_id);
-
-	if (vcore_reg_id)
-		vcore = regulator_get_voltage(vcore_reg_id);
-
-	if (vsram_reg_id)
-		vsram = regulator_get_voltage(vsram_reg_id);
-
-	LOG_INF("vvpu=%d, vmdla=%d, vcore=%d, vsram=%d\n",
-						vvpu, vmdla, vcore, vsram);
-	if (vvpu < 700000) {
-		if	((dsp_freq >= 364000) || (ipuif_freq >= 364000)) {
-			LOG_INF("freq check fail\n");
-			LOG_INF("dsp_freq = %d\n", dsp_freq);
-			LOG_INF("dsp1_freq = %d\n", dsp1_freq);
-			LOG_INF("dsp2_freq = %d\n", dsp2_freq);
-			LOG_INF("dsp3_freq = %d\n", dsp3_freq);
-			LOG_INF("ipuif_freq = %d\n", ipuif_freq);
-	LOG_INF("vvpu=%d, vmdla=%d, vcore=%d\n", vvpu, vmdla, vcore);
-	aee_kernel_warning("freq check", "%s: failed.", __func__);
-			}
-	}
-	mutex_unlock(&power_check_lock);
-}
-EXPORT_SYMBOL(apu_get_power_info);
-
 /************************************************
  * return current Vvpu voltage mV*100
  *************************************************/
@@ -507,7 +443,6 @@ bool vvpu_vmdla_vcore_checker(void)
 	int vvpu_vmdla_diff = 0;
 	int vcore_vvpu_diff = 0;
 	int vcore_vmdla_diff = 0;
-	mutex_lock(&power_check_lock);
 
 	vvpu_vmdla_diff = 825000 - 650000;
 	vcore_vvpu_diff = 825000 - 650000;
@@ -548,7 +483,6 @@ bool vvpu_vmdla_vcore_checker(void)
 		regulator_get_voltage(vcore_reg_id));
 	aee_kernel_warning("dvfs", "%s: failed.", __func__);
 	}
-	mutex_unlock(&power_check_lock);
 	return ret;
 }
 EXPORT_SYMBOL(vvpu_vmdla_vcore_checker);
@@ -1842,9 +1776,6 @@ static int apu_dvfs_probe(struct platform_device *pdev)
 		vcore_reg_id = regulator_get(&pdev->dev, "vcore");
 		if (!vcore_reg_id)
 			LOG_ERR("regulator_get vcore_reg_id failed\n");
-		vsram_reg_id = regulator_get(&pdev->dev, "vsram_others");
-		if (!vsram_reg_id)
-			LOG_ERR("regulator_get vsram_reg_id failed\n");
 
 	ready_for_ptpod_check = false;
 	/*--enable regulator--*/
@@ -1899,8 +1830,6 @@ static int apu_dvfs_probe(struct platform_device *pdev)
 #endif
 
 	LOG_DVFS("%s: init done\n", __func__);
-
-	apu_get_power_info();
 
 	return 0;
 }

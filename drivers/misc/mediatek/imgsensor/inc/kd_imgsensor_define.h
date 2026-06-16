@@ -66,10 +66,6 @@
 #define KDIMGSENSOR_INVOKE_DRIVER_1     (1)
 #endif
 
-#ifndef VENDOR_EDIT
-#define VENDOR_EDIT
-#endif
-
 enum {
 	BINNING_NONE = 0,
 	BINNING_AVERAGED,
@@ -250,14 +246,6 @@ enum ACDK_SENSOR_FEATURE_ENUM {
 	SENSOR_FEATURE_CLOSE,
 	SENSOR_FEATURE_SET_DRIVER,
 	SENSOR_FEATURE_CHECK_IS_ALIVE,
-	#ifdef VENDOR_EDIT
-	/*zhaozhengtao 2016/02/19,modify for different module*/
-	SENSOR_FEATURE_CHECK_MODULE_ID,
-	/*Henry.Chang@Camera.Driver modify for ModuleSN 2018/12/15*/
-	SENSOR_FEATURE_GET_MODULE_SN,
-	/*Henry.Chang@Camera.Driver modify for Write eeprom 2018/12/15*/
-	SENSOR_FEATURE_SET_SENSOR_OTP,
-	#endif
 	SENSOR_FEATURE_GET_4CELL_DATA,
 	SENSOR_FEATURE_SET_WAKE_LOCK,
 	SENSOR_FEATURE_GET_MIPI_PIXEL_RATE,
@@ -280,10 +268,6 @@ enum ACDK_SENSOR_FEATURE_ENUM {
 	SENSOR_FEATURE_GET_PERIOD_BY_SCENARIO,
 	SENSOR_FEATURE_GET_BINNING_TYPE,
 	SENOSR_FEATURE_GET_OFFSET_TO_START_OF_EXPOSURE,
-	#ifdef VENDOR_EDIT
-	/*Henry.Chang@Camera.Driver modify for ModuleInfo 2019/05/30*/
-	SENSOR_FEATURE_GET_MODULE_INFO,
-	#endif
 	SENSOR_FEATURE_MAX
 };
 
@@ -1097,18 +1081,6 @@ struct IMAGESENSOR_GET_SUPPORTED_ISP_CLK {
 	unsigned char clklevelcnt; /* how many clk levels */
 	unsigned int clklevel[ISP_CLK_LEVEL_CNT]; /* Reocrd each clk level */
 };
-
-#ifdef VENDOR_EDIT
-/*Henry.Change@Camera.Driver 2018/11/28, add for camera engmode*/
-#define OPPO_STEREO_CALI_DATA_LENGTH     (1561)
-typedef struct {
-  MUINT32 uSensorId;
-  MUINT32 uDeviceId;
-  MUINT16 baseAddr;
-  MUINT16 dataLength;
-  MUINT8  uData[OPPO_STEREO_CALI_DATA_LENGTH];
-  } ACDK_SENSOR_ENGMODE_STEREO_STRUCT, *PACDK_SENSOR_ENGMODE_STEREO_STRUCT;
-#endif
 
 #ifdef CONFIG_COMPAT
 

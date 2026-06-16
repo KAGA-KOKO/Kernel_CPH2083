@@ -835,14 +835,6 @@ static int hid_scan_report(struct hid_device *hid)
 		break;
 	}
 
-	if (0x248a == hid->vendor && 2 == hid->group) {
-		hid_warn(hid, "scan_report change to GENERIC %u\n", hid->group);
-		hid->group = HID_GROUP_GENERIC;
-	}
-
-	/* fall back to generic driver in case specific driver doesn't exist */
-	hid_warn(hid, "report vendor %u,group %u\n", hid->vendor, hid->group);
-
 	vfree(parser);
 	return 0;
 }
@@ -2312,7 +2304,7 @@ __ATTRIBUTE_GROUPS(hid_dev);
 
 static int hid_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
-	struct hid_device *hdev = to_hid_device(dev);
+	struct hid_device *hdev = to_hid_device(dev);	
 
 	if (add_uevent_var(env, "HID_ID=%04X:%08X:%08X",
 			hdev->bus, hdev->vendor, hdev->product))

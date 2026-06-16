@@ -5,8 +5,8 @@
  ** Description: Source file for get board id
  **          To get board id
  ** Version :1.0
- ** Date : 2019/09/27
- ** Author: Liujia@ODM_HQ.BSP.system
+ ** Date : 2018/11/29
+ ** Author: zhangmengchun@ODM_HQ.BSP.system
  ********************************************/
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -23,12 +23,18 @@
 
 typedef enum {
 	BOARD_ID_UNKNOW = 0,
-	BOARD_ID_AL2350A = 5001,
-	BOARD_ID_AL2350B = 5002,
-	BOARD_ID_AL2351C = 5103,
-	BOARD_ID_Al2351D = 5104,
-	BOARD_ID_AL2352E = 5205,
-	BOARD_ID_AL2352F = 5206,
+	BOARD_ID_ZAL1890A	= 9001,
+	BOARD_ID_ZAL1890B	= 9002,
+	BOARD_ID_ZAL1890C	= 9003,
+	BOARD_ID_ZAL1890D	= 9004,
+	BOARD_ID_ZAL1890E	= 9005,
+	BOARD_ID_ZAL1890F	= 9006,
+	BOARD_ID_ZAL1891A	= 9101,
+	BOARD_ID_ZAL1891B	= 9102,
+	BOARD_ID_ZAL1891C	= 9103,
+	BOARD_ID_ZAL1891D	= 9104,
+	BOARD_ID_ZAL1891E	= 9105,
+	BOARD_ID_ZAL1891F	= 9106,
 }BOARDID;
 
 static struct proc_dir_entry *entry = NULL;
@@ -40,23 +46,41 @@ static BOARDID get_board_id(int boardid){
 	int boarid_tmp = 0xff & boardid;
 	printk("[kernel] Read board id tmp: %d", boarid_tmp);
 	switch(boarid_tmp){
-		case 0x0:
-			id = BOARD_ID_AL2350A;
-			break;
-		case 0x03:
-			id = BOARD_ID_AL2350B;
+		case 0x00:
+			id = BOARD_ID_ZAL1890A;
 			break;
 		case 0x0c:
-			id = BOARD_ID_AL2351C;
+			id = BOARD_ID_ZAL1890B;
 			break;
-		case 0x0f:
-			id = BOARD_ID_Al2351D;
+		case 0x03:
+			id = BOARD_ID_ZAL1890C;
 			break;
 		case 0x30:
-			id = BOARD_ID_AL2352E;
+			id = BOARD_ID_ZAL1890D;
+			break;
+		case 0x3c:
+			id = BOARD_ID_ZAL1890E;
 			break;
 		case 0x33:
-			id = BOARD_ID_AL2352F;
+			id = BOARD_ID_ZAL1890F;
+			break;
+		case 0x80:
+			id = BOARD_ID_ZAL1891A;
+			break;
+		case 0x8c:
+			id = BOARD_ID_ZAL1891B;
+			break;
+		case 0x83:
+			id = BOARD_ID_ZAL1891C;
+			break;
+		case 0xb0:
+			id = BOARD_ID_ZAL1891D;
+			break;
+		case 0xbc:
+			id = BOARD_ID_ZAL1891E;
+			break;
+		case 0xb3:
+			id = BOARD_ID_ZAL1891F;
 			break;
 		default:
 			id = BOARD_ID_UNKNOW;
@@ -100,9 +124,6 @@ static const struct file_operations board_id_proc_fops =
 {
 	.open = board_id_proc_open,
 	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-	.owner = THIS_MODULE,
 };
 
 static int __init proc_board_id_init(void)

@@ -19,15 +19,13 @@ static struct plist_head ccu_request_list;
 static struct mm_qos_request pccu_i_request;
 static struct mm_qos_request pccu_g_request;
 static struct mm_qos_request pccu_o_request;
-static DEFINE_MUTEX(ccu_qos_mutex);
 
 #define CCU_BW_I 60
 #define CCU_BW_O 60
-#define CCU_BW_G 15
+#define CCU_BW_G 10
 
 void ccu_qos_init(void)
 {
-	mutex_lock(&ccu_qos_mutex);
 
 	LOG_DBG_MUST("ccu qos init+");
 
@@ -45,8 +43,6 @@ void ccu_qos_init(void)
 	mm_qos_set_request(&pccu_o_request, CCU_BW_O, CCU_BW_O, BW_COMP_NONE);
 
 	mm_qos_update_all_request(&ccu_request_list);
-	mutex_unlock(&ccu_qos_mutex);
-
 }
 
 void ccu_qos_update_req(uint32_t *ccu_bw)
@@ -55,25 +51,13 @@ void ccu_qos_update_req(uint32_t *ccu_bw)
 	unsigned int i_request;
 	unsigned int g_request;
 	unsigned int o_request;
-	mutex_lock(&ccu_qos_mutex);
 
 	i_request = ccu_read_reg(ccu_base, CCU_STA_REG_QOS_BW_I);
 	g_request = ccu_read_reg(ccu_base, CCU_STA_REG_QOS_BW_G);
 	o_request = ccu_read_reg(ccu_base, CCU_STA_REG_QOS_BW_O);
-
-	if ((i_request > CCU_BW_I) ||
-	(o_request > CCU_BW_O) ||
-	(g_request > CCU_BW_G)) {
-		LOG_DBG_MUST("ccu qos update out+ i(%d) o(%d) g(%d)",
-		i_request, o_request, g_request);
-
-		i_request = CCU_BW_I;
-		g_request = CCU_BW_G;
-		o_request = CCU_BW_O;
-	}
-
 	LOG_DBG("ccu qos update+ i(%d) o(%d) g(%d)",
 		i_request, o_request, g_request);
+
 	mm_qos_set_request(&pccu_i_request, i_request, i_request, BW_COMP_NONE);
 	mm_qos_set_request(&pccu_g_request, g_request, g_request, BW_COMP_NONE);
 	mm_qos_set_request(&pccu_o_request, o_request, o_request, BW_COMP_NONE);
@@ -81,17 +65,13 @@ void ccu_qos_update_req(uint32_t *ccu_bw)
 	ccu_bw[0] = i_request;
 	ccu_bw[1] = o_request;
 	ccu_bw[2] = g_request;
-	if (!plist_head_empty(&ccu_request_list))
-		mm_qos_update_all_request(&ccu_request_list);
 
-	mutex_unlock(&ccu_qos_mutex);
+	mm_qos_update_all_request(&ccu_request_list);
 }
 
 void ccu_qos_uninit(void)
 {
-	mutex_lock(&ccu_qos_mutex);
 	LOG_DBG_MUST("ccu qos uninit+");
 	mm_qos_update_all_request_zero(&ccu_request_list);
 	mm_qos_remove_all_request(&ccu_request_list);
-	mutex_unlock(&ccu_qos_mutex);
 }

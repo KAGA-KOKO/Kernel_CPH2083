@@ -31,7 +31,5 @@ int disp_pm_qos_set_ovl_bw(unsigned long long in_fps,
 int disp_pm_qos_set_rdma_bw(unsigned long long out_fps,
 			unsigned long long *bandwidth);
 int disp_pm_qos_set_default_hrt(void);
-unsigned int get_has_hrt_bw(void);
-void disp_pm_qos_set_mmclk(int level);
 
 #endif /* __DISP_PM_QOS_H__ */

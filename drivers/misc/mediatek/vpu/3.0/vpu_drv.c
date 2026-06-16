@@ -57,8 +57,6 @@ static struct vpu_device *vpu_device;
 static struct wakeup_source vpu_wake_lock;
 static struct list_head device_debug_list;
 static struct mutex debug_list_mutex;
-static bool sdsp_locked;
-
 struct ion_client *my_ion_client;
 unsigned int efuse_data;
 
@@ -285,7 +283,7 @@ int vpu_push_request_to_queue(struct vpu_user *user, struct vpu_request *req)
 int vpu_put_request_to_pool(struct vpu_user *user, struct vpu_request *req)
 {
 	int i = 0, request_core_index = -1;
-	int j = 0, cnt = 0, k = 0;
+	int j = 0, cnt = 0;
 	struct ion_handle *handle = NULL;
 
 	if (!user) {
@@ -309,16 +307,8 @@ int vpu_put_request_to_pool(struct vpu_user *user, struct vpu_request *req)
 			handle = ion_import_dma_buf_fd(my_ion_client,
 						req->buf_ion_infos[cnt]);
 			if (IS_ERR(handle)) {
-				LOG_WRN("[vpu_drv] %s=0x%p failed and return\n",
+				LOG_WRN("[vpu_drv] %s=0x%p failed!\n",
 					"import ion handle", handle);
-				if (cnt > 0)
-					for (k = 0; k < cnt; k++) {
-						ion_free(my_ion_client,
-							(struct ion_handle *)
-							((uintptr_t)(req->buf_ion_infos[cnt])));
-						LOG_WRN("free cnt[%d] ion handle\n", cnt);
-					}
-				return -EINVAL;
 			} else {
 				if (g_vpu_log_level > Log_STATE_MACHINE)
 					LOG_INF("[vpu_drv]cnt_%d,%s=0x%p\n",
@@ -623,9 +613,9 @@ bool vpu_is_available(void)
 
 		mutex_unlock(&vpu_device->servicepool_mutex[i]);
 
-		LOG_DBG("vpu_%d, pool size = %d\r\n", i, pool_wait_size);
+		LOG_INF("vpu_%d, pool size = %d\r\n", i, pool_wait_size);
 		if ((pool_wait_size == 0) && vpu_is_idle(i)) {
-			LOG_DBG("vpu_%d, is available !!\r\n", i);
+			LOG_INF("vpu_%d, is available !!\r\n", i);
 			return true;
 		}
 	}
@@ -641,7 +631,6 @@ int vpu_delete_user(struct vpu_user *user)
 	struct vpu_request *req;
 	struct vpu_algo *algo;
 	int ret = 0;
-	int retry = 0;
 
 	if (!user) {
 		LOG_ERR("delete empty user!\n");
@@ -656,23 +645,11 @@ int vpu_delete_user(struct vpu_user *user)
 	ret = wait_event_interruptible(
 			user->delete_wait,
 			!vpu_user_is_running(user));
-
-	/* ret == -ERESTARTSYS, if signal interrupt */
-	/* ERESTARTSYS may caused by Freezing user space processes */
 	if (ret < 0) {
 		LOG_WRN("[vpu]%s, ret=%d, wait delete user again\n",
 			"interrupt by signal", ret);
-
-		LOG_WRN("ERESTARTSYS = %d\n", ERESTARTSYS);
-
-		while (ret < 0 && retry < 30) {
-			msleep(20);
-			LOG_ERR("ret=%d retry=%d and sleep 10ms\n", ret, retry);
-
-			ret = wait_event_interruptible(user->delete_wait,
+		wait_event_interruptible(user->delete_wait,
 			!vpu_user_is_running(user));
-			retry += 1;
-		}
 	}
 
 	/* clear the list of deque */
@@ -1077,13 +1054,6 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 			}
 			LOG_INF("[vpu] ret = %d req->requested_core = 0x%x +\n",
 			ret, req->requested_core);
-		}  else if (req->requested_core != 0xFFFF &&
-			req->requested_core > VPU_MAX_NUM_CORES) {
-			LOG_ERR("req->requested_core=%d error\n",
-				req->requested_core);
-			vpu_free_request(req);
-			ret = -EFAULT;
-			goto out;
 		}
 
 		ret |= get_user(req->user_id, &u_req->user_id);
@@ -1113,13 +1083,6 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 					&u_req->power_param.boost_value);
 		ret |= get_user(req->priority,
 					&u_req->priority);
-
-		if (req->priority >= VPU_REQ_MAX_NUM_PRIORITY) {
-			LOG_ERR("%s: ENQUE: invalid priority (%d)\n",
-				__func__, req->priority);
-			req->priority = 0;
-		}
-
 		/*opp_step counted by vpu driver*/
 	if (req->power_param.boost_value != 0xff) {
 		if (req->power_param.boost_value >= 0 &&
@@ -1522,20 +1485,14 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 
 		break;
 	}
-#ifdef CONFIG_GZ_SUPPORT_SDSP
-
 	case VPU_IOCTL_SDSP_SEC_LOCK:
 	{
 		//Jack add
 		LOG_WRN("SDSP_SEC_LOCK mutex in\n");
 
-		if (sdsp_locked == false) {
-
-			LOG_WRN("SDSP_SEC_LOCK mutex in\n");
 		for (i = 0 ; i < MTK_VPU_CORE ; i++)
 			mutex_lock(&vpu_device->sdsp_control_mutex[i]);
 
-		sdsp_locked = true;
 		LOG_WRN("SDSP_SEC_LOCK mutex-m lock\n");
 		ret = vpu_sdsp_get_power(user);
 		LOG_WRN("SDSP_POWER_ON %s\n", ret == 0?"done":"fail");
@@ -1549,6 +1506,7 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 				ret = 1;
 		}
 
+#ifdef CONFIG_GZ_SUPPORT_SDSP
 		if (ret >= 0) {
 			int sdsp_state;
 
@@ -1559,19 +1517,19 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 				ret = -1;
 			}
 		}
-		} else
-			LOG_WRN("SDSP_SEC_LOCK fail, duel lock!!\n");
+#endif
 
 		break;
 	}
 	case VPU_IOCTL_SDSP_SEC_UNLOCK:
 	{
-		if (sdsp_locked == true) {
+#ifdef CONFIG_GZ_SUPPORT_SDSP
 		ret = mtee_sdsp_enable(0);
 		if (ret != 0) {
 			LOG_ERR("mtee_sdsp_enable(0) fail(%d)\n", ret);
 			break;
 		}
+#endif
 		ret = vpu_sdsp_put_power(user);
 		LOG_WRN("DSP_SEC_UNLOCK %s\n", ret == 0?"done":"fail");
 		/* Enable IRQ */
@@ -1579,15 +1537,9 @@ static long vpu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 			enable_irq(vpu_device->irq_num[i]);
 			mutex_unlock(&vpu_device->sdsp_control_mutex[i]);
 		}
-			sdsp_locked = false;
 		LOG_WRN("DSP_SEC_UNLOCK mutex-m unlock\n");
-		} else
-			LOG_WRN("DSP_SEC_UNLOCK fail!!\n");
-
 		break;
 	}
-#endif
-
 	default:
 		LOG_WRN("ioctl: no such command!\n");
 		ret = -EINVAL;
@@ -1716,7 +1668,6 @@ static int vpu_probe(struct platform_device *pdev)
 	unsigned int irq_info[3]; /* Record interrupts info from device tree */
 	struct device_node *smi_node = NULL;
 	struct device_node *ipu_conn_node = NULL;
-	struct device_node *ipu_vcore_node = NULL;
 
 	core = vpu_num_devs;
 
@@ -1810,18 +1761,18 @@ static int vpu_probe(struct platform_device *pdev)
 		vpu_device->vpu_syscfg_base =
 				(unsigned long) of_iomap(ipu_conn_node, 0);
 
-		ipu_vcore_node = of_find_compatible_node(NULL, NULL,
-						"mediatek,ipu_vcore");
 
-		vpu_device->vpu_vcorecfg_base =
-			   (unsigned long) of_iomap(ipu_vcore_node, 0);
+
+
+
 
 		LOG_INF("probe, smi_cmn_base: 0x%lx, ipu_conn:0x%lx\n",
 				vpu_device->smi_cmn_base,
 				vpu_device->vpu_syscfg_base);
 
-		LOG_INF("probe, vcorecfg_base: 0x%lx\n",
-				vpu_device->vpu_vcorecfg_base);
+
+
+
 	}
 #endif
 
@@ -1951,7 +1902,6 @@ static int __init VPU_INIT(void)
 	int ret = 0, i = 0, j = 0;
 
 	vpu_device = kzalloc(sizeof(struct vpu_device), GFP_KERNEL);
-	sdsp_locked = false;
 
 	INIT_LIST_HEAD(&vpu_device->user_list);
 	mutex_init(&vpu_device->user_mutex);

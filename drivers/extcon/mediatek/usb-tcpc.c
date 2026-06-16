@@ -43,12 +43,7 @@ static int tcpc_otg_enable(void)
 	return 0;
 }
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Modify for OTG */
-int tcpc_otg_disable(void)
-#else
 static int tcpc_otg_disable(void)
-#endif /*VENDOR_EDIT*/
 {
 	if (usbc_otg_attached) {
 		mt_usbhost_disconnect();
@@ -56,17 +51,8 @@ static int tcpc_otg_disable(void)
 	}
 	return 0;
 }
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Add for OTG */
-EXPORT_SYMBOL(tcpc_otg_disable);
-#endif
 
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Modify for OTG */
-void tcpc_power_work_call(bool enable)
-#else
 static void tcpc_power_work_call(bool enable)
-#endif /*VENDOR_EDIT*/
 {
 	if (enable) {
 		if (!tcpc_boost_on) {
@@ -80,10 +66,6 @@ static void tcpc_power_work_call(bool enable)
 		}
 	}
 }
-#ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/26, sjc Add for OTG */
-EXPORT_SYMBOL(tcpc_power_work_call);
-#endif
 
 static int otg_tcp_notifier_call(struct notifier_block *nb,
 		unsigned long event, void *data)

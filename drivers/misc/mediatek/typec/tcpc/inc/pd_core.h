@@ -1034,14 +1034,9 @@ struct pd_port {
 	struct work_struct fg_bat_work;
 	struct notifier_block fg_bat_nb;
 #endif /* CONFIG_RECV_BAT_ABSENT_NOTIFY */
-#ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/03/25, sjc Delete for apple ta */
 #ifdef CONFIG_COMPATIBLE_APPLE_TA
 	bool apple_ccopen_flag;
 #endif /* CONFIG_COMPATIBLE_APPLE_TA */
-#endif /*VENDOR_EDIT*/
-
-	uint8_t cap_miss_match; /* For src_cap miss match */
 };
 
 static inline struct dp_data *pd_get_dp_data(struct pd_port *pd_port)

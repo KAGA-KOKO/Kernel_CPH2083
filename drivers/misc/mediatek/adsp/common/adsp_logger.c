@@ -863,26 +863,6 @@ error:
 
 }
 
-int dump_adsp_partial_log(void *buf, size_t size)
-{
-	unsigned int w_pos = 0, offset = 0, len = 0;
-	void *src = ((char *) ADSP_A_log_ctl) + ADSP_A_log_ctl->buff_ofs;
-
-	w_pos = ADSP_A_buf_info->w_pos;
-
-	if (w_pos >= size) {
-		offset = w_pos - size;
-		memcpy(buf, src + offset, size);
-	} else {
-		len = size - w_pos;
-		offset = dram_buf_len - len;
-		memcpy(buf, src + offset, len);
-		memcpy(buf + len, src, w_pos);
-	}
-
-	return size;
-}
-
 #if ADSP_TRAX
 int adsp_trax_init(void)
 {
@@ -910,6 +890,33 @@ const struct file_operations adsp_A_drv_file_ops = {
 	.compat_ioctl   = adsp_driver_compat_ioctl,
 #endif
 };
+
+
+/*
+ * get log from adsp and optionally save it
+ * NOTE: this function may be blocked
+ * @param adsp_core_id:  fill adsp id to get last log
+ */
+void adsp_get_log(enum adsp_core_id adsp_id)
+{
+	pr_debug("[ADSP] %s\n", __func__);
+#if 0 /* no need for hifi3 using dram */
+	adsp_A_get_last_log(ADSP_AED_STR_LEN - 200);
+#endif
+}
+
+/*
+ * return adsp last log
+ */
+char *adsp_get_last_log(enum adsp_core_id id)
+{
+	char *last_log = NULL;
+
+	if (id == ADSP_A_ID)
+		last_log = adsp_A_last_log;
+
+	return last_log;
+}
 
 #if ADSP_TRAX
 int adsp_get_trax_initiated(void)

@@ -23,59 +23,6 @@
  *     mediatek\custom\common\hal\imgsensor\src\sensorlist.cpp
  */
 struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
-#ifdef ODM_WT_EDIT
-/* Cola Project */
-/* 1.First Vendor */
-#if defined(HI1336_MIPI_RAW)
-		{HI1336_SENSOR_ID,
-		SENSOR_DRVNAME_HI1336_MIPI_RAW,
-		HI1336_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC2375H_CHENGXIANGTONG_MIPI_RAW)
-		{GC2375H_CHENGXIANGTONG_SENSOR_ID,
-		SENSOR_DRVNAME_GC2375H_CHENGXIANGTONG_MIPI_RAW,
-		GC2375H_CHENGXIANGTONG_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC5035_HOLITECH_MIPI_RAW)
-                {GC5035_HOLITECH_SENSOR_ID,
-                SENSOR_DRVNAME_GC5035_HOLITECH_MIPI_RAW,
-                GC5035_HOLITECH_MIPI_RAW_SensorInit},
-#endif
-/* 2.Second Vendor */
-#if defined(HI556_LCE_MIPI_RAW)
-                {HI556_LCE_SENSOR_ID,
-                SENSOR_DRVNAME_HI556_LCE_MIPI_RAW,
-                HI556_LCE_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC02M1B_CXT_MIPI_RAW)
-                {GC02M1B_CXT_SENSOR_ID,
-                SENSOR_DRVNAME_GC02M1B_CXT_MIPI_RAW,
-                GC02M1B_CXT_MIPI_RAW_SensorInit},
-#endif
-#if defined(HI1336_HOLITECH_MIPI_RAW)
-		{HI1336_HOLITECH_SENSOR_ID,
-		SENSOR_DRVNAME_HI1336_HOLITECH_MIPI_RAW,
-		HI1336_HOLITECH_MIPI_RAW_SensorInit},
-#endif
-/* 3.Third Vendor */
-#if defined(HI1336_HAOZE_MIPI_RAW)
-		{HI1336_HAOZE_SENSOR_ID,
-		SENSOR_DRVNAME_HI1336_HAOZE_MIPI_RAW,
-		HI1336_HAOZE_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC2385_MIPI_RAW)
-	{GC2385_SENSOR_ID,
-	SENSOR_DRVNAME_GC2385_MIPI_RAW,
-	GC2385_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC5035_B_MIPI_RAW)
-                {GC5035_B_SENSOR_ID,
-                SENSOR_DRVNAME_GC5035_B_MIPI_RAW,
-                GC5035_B_MIPI_RAW_SensorInit},
-#endif
-/* Cola Camera End */
-#endif
-
 	/*IMX*/
 #if defined(IMX499_MIPI_RAW)
 		{IMX499_SENSOR_ID,
@@ -212,6 +159,11 @@ struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
 	{OV13850_SENSOR_ID,
 	SENSOR_DRVNAME_OV13850_MIPI_RAW,
 	OV13850_MIPI_RAW_SensorInit},
+#endif
+#if defined(OV12A10_MIPI_RAW)
+	{OV12A10_SENSOR_ID,
+	SENSOR_DRVNAME_OV12A10_MIPI_RAW,
+	OV12A10_MIPI_RAW_SensorInit},
 #endif
 #if defined(OV12830_MIPI_RAW)
 	{OV12830_SENSOR_ID,
@@ -540,11 +492,6 @@ struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
 	SENSOR_DRVNAME_HI704_YUV,
 	HI704_YUV_SensorInit},
 #endif
-#if defined(HI556_MIPI_RAW)
-	{HI556_SENSOR_ID,
-	SENSOR_DRVNAME_HI556_MIPI_RAW,
-	HI556_MIPI_RAW_SensorInit},
-#endif
 #if defined(HI551_MIPI_RAW)
 	{HI551_SENSOR_ID,
 	SENSOR_DRVNAME_HI551_MIPI_RAW,
@@ -741,39 +688,41 @@ struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
 	SENSOR_DRVNAME_T8EV5_YUV,
 	T8EV5_YUV_SensorInit},
 #endif
+//zhaiyankun_hq@ODM_HQ.Multimedia.Camera.driver, 2018/12/7, Add for bring up start
+#if defined(HI846_MIPI_RAW)
+	{HI846_SENSOR_ID,
+	SENSOR_DRVNAME_HI846_MIPI_RAW,
+	HI846_MIPI_RAW_SensorInit},
+#endif
 
-/*Bacon cam begin*/
-#if defined(OV12A10_MIPI_RAW)
-	{OV12A10_SENSOR_ID,
-	SENSOR_DRVNAME_OV12A10_MIPI_RAW,
-	OV12A10_MIPI_RAW_SensorInit},
+
+
+#if defined(HI556_MIPI_RAW)
+	{HI556_SENSOR_ID,
+	SENSOR_DRVNAME_HI556_MIPI_RAW,
+	HI556_MIPI_RAW_SensorInit},
 #endif
-#if defined(OV12A10_ST_MIPI_RAW)
-	{OV12A10_ST_SENSOR_ID,
-	SENSOR_DRVNAME_OV12A10_ST_MIPI_RAW,
-	OV12A10_ST_MIPI_RAW_SensorInit},
-#endif
-#if defined(S5K4H7YX_HLT_MIPI_RAW)
-	{S5K4H7YX_HLT_SENSOR_ID,
-	SENSOR_DRVNAME_S5K4H7YX_HLT_MIPI_RAW,
-	S5K4H7YX_HLT_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC02M0_MIPI_RAW)
-	{GC02M0_SENSOR_ID,
-	SENSOR_DRVNAME_GC02M0_MIPI_RAW,
-	GC02M0_MIPI_RAW_SensorInit},
-#endif
-#if defined(GC2385_BW_MIPI_RAW)
-	{GC2385_BW_SENSOR_ID,
-	SENSOR_DRVNAME_GC2385_BW_MIPI_RAW,
-	GC2385_BW_MIPI_RAW_SensorInit},
-#endif
+
+
 #if defined(GC2375H_MIPI_RAW)
 	{GC2375H_SENSOR_ID,
 	SENSOR_DRVNAME_GC2375H_MIPI_RAW,
 	GC2375H_MIPI_RAW_SensorInit},
 #endif
-/*Bacon cam end*/
+
+#if defined(GC5035_MIPI_RAW)
+	{GC5035_SENSOR_ID,
+	SENSOR_DRVNAME_GC5035_MIPI_RAW,
+	GC5035_MIPI_RAW_SensorInit},
+#endif
+
+/* chenlijun_hq@ODM_HQ.Multimedia.camera, 2018/12/10, modify for camera bring up*/
+#if defined(S5K3H7YX_MIPI_RAW)
+		{S5K3H7YX_SENSOR_ID,
+		SENSOR_DRVNAME_S5K3H7YX_MIPI_RAW,
+		S5K3H7YX_MIPI_RAW_SensorInit},
+#endif
+//zhaiyankun_hq@ODM_HQ.Multimedia.Camera.driver, 2018/12/7, Add for bring up end
 	/*  ADD sensor driver before this line */
 	{0, {0}, NULL}, /* end of list */
 };

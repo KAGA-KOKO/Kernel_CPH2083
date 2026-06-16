@@ -309,9 +309,8 @@ endif # NETWORK_FILESYSTEMS
 
 source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
-
-#ifdef VENDOR_EDIT
-#Xinhua.Song@BSP.Driver, 2015/04/03, Add for exfat filesystem
+#ifdef ODM_HQ_EDIT
+#Wenchao.Du@ODM_HQ.BSP.Storage.FS, 2019/01/09, config exFAT&NTFS filesystem
 source "fs/exfat/Kconfig"
-#endif /*VENDOR_EDIT*/
+#endif
 endmenu

@@ -28,19 +28,19 @@
 #include <mt-plat/mtk_charger.h>
 #include <mt-plat/mtk_battery.h>
 
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/misc/mtk_gauge_time_service.h"
+#include "../../supply/mediatek/misc/mtk_gauge_time_service.h"
 
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/charger_class.h"
+#include "../../supply/mediatek/charger/charger_class.h"
 
 /* PD */
-#include "../../../../kernel-4.9/drivers/misc/mediatek/typec/tcpc/inc/tcpm.h"
+#include "../../../misc/mediatek/typec/tcpc/inc/tcpm.h"
 
-#include "../../../../kernel-4.9/drivers/misc/mediatek/typec/tcpc/inc/mtk_direct_charge_vdm.h"
+#include "../../../misc/mediatek/typec/tcpc/inc/mtk_direct_charge_vdm.h"
 
 struct charger_manager;
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pe_intf.h"
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pe20_intf.h"
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pdc_intf.h"
+#include "../../supply/mediatek/charger/mtk_pe_intf.h"
+#include "../../supply/mediatek/charger/mtk_pe20_intf.h"
+#include "../../supply/mediatek/charger/mtk_pdc_intf.h"
 
 //====================================================================//
 /* mtk_pe40_intf begin */
@@ -526,7 +526,7 @@ struct mtk_pmic {
 //extern int mt_power_supply_type_check(void);
 extern enum charger_type mt_get_charger_type(void);
 //int battery_meter_get_charger_voltage(void);
-extern int mt6360_get_vbus_rising(void);
+extern bool mt6360_get_vbus_status(void);
 extern int mt6360_check_charging_enable(void);
 extern int mt6360_suspend_charger(bool suspend);
 extern int mt6360_set_rechg_voltage(int rechg_mv);
@@ -570,9 +570,7 @@ extern void mt_usb_disconnect(void);
 //#endif /* CONFIG_OPPO_CHARGER_MTK */
 
 bool oppo_pmic_check_chip_is_null(void);
-extern int oppo_get_typec_sbu_voltage(void);
-extern void oppo_set_water_detect(bool enable);
-extern int oppo_get_water_detect(void);
+
 #endif /* VENDOR_EDIT */
 
 /* charger related module interface */

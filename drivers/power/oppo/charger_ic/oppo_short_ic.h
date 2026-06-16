@@ -19,7 +19,7 @@
 #define OPPO_SHORT_IC_WORK_MODE_REG					0x03
 #define OPPO_SHORT_IC_OTP_REG						0x08
 
-#define OPPO_SHORT_IC_TEMP_VOLT_DROP_THRESH_VAL		0x44
+#define OPPO_SHORT_IC_TEMP_VOLT_DROP_THRESH_VAL		0x43
 struct oppo_short_ic{
 	struct i2c_client				 *client;
 	struct device					 *dev;

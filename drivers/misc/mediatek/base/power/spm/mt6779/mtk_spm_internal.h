@@ -526,6 +526,9 @@ extern struct spm_lp_scen __spm_dpidle;
 extern struct spm_lp_scen __spm_sodi3;
 extern struct spm_lp_scen __spm_sodi;
 
+/* dpamif debug */
+extern void dpmaif_dump_reg(void);
+
 /***********************************************************
  * mtk_spm_suspend.c
  ***********************************************************/

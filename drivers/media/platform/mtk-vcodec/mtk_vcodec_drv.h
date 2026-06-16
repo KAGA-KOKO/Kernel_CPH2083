@@ -341,8 +341,7 @@ struct mtk_vcodec_ctx {
 	enum v4l2_xfer_func xfer_func;
 
 	int decoded_frame_cnt;
-	struct mutex buf_lock;
-	struct mutex worker_lock;
+	struct mutex lock;
 };
 
 /**
@@ -414,7 +413,6 @@ struct mtk_vcodec_dev {
 
 	struct mutex dec_dvfs_mutex;
 	struct mutex enc_dvfs_mutex;
-	atomic_t enc_smvr;
 
 	struct mtk_vcodec_pm pm;
 	unsigned int dec_capability;

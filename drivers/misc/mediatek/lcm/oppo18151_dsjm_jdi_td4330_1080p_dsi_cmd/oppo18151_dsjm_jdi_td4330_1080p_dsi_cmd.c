@@ -15,7 +15,6 @@
 #ifndef BUILD_LK
 #include <linux/string.h>
 #include <linux/kernel.h>
-#include <mt-plat/mtk_boot_common.h>
 #endif
 
 
@@ -28,30 +27,20 @@
 #include <platform/mt_i2c.h>
 #include <platform/mt_pmic.h>
 #include <string.h>
-#include <platform/boot_mode.h>
 #elif defined(BUILD_UBOOT)
 #include <asm/arch/mt_gpio.h>
-#else
-/*#include <mach/mt_pm_ldo.h>*/
+
 #ifdef CONFIG_MTK_LEGACY
+//#include <mach/mt_pm_ldo.h>
 #include <mach/mt_gpio.h>
-#endif
-#endif
-#ifdef CONFIG_MTK_LEGACY
-#include <cust_gpio_usage.h>
-#endif
+
 #ifndef CONFIG_FPGA_EARLY_PORTING
-#if defined(CONFIG_MTK_LEGACY)
+#include <cust_gpio_usage.h>
 #include <cust_i2c.h>
 #endif
+
 #endif
-#include <linux/slab.h>
-#include <linux/string.h>
-#include <soc/oppo/device_info.h>
-
-#include "ddp_hal.h"
-
-#define DEBUG_INTERFACE
+#endif
 
 #ifdef BUILD_LK
 #define LCD_DEBUG(fmt)  dprintf(CRITICAL,fmt)
@@ -59,27 +48,45 @@
 #define LCD_DEBUG(fmt)  printk(fmt)
 #endif
 
-static struct LCM_UTIL_FUNCS *lcm_util = NULL;
+static const unsigned int BL_MIN_LEVEL = 20;
+static struct LCM_UTIL_FUNCS lcm_util;
 
-#define SET_RESET_PIN(v) (lcm_util->set_reset_pin((v)))
-#define MDELAY(n) (lcm_util->mdelay(n))
-#define UDELAY(n) (lcm_util->udelay(n))
+#define SET_RESET_PIN(v)	(lcm_util.set_reset_pin((v)))
+#define MDELAY(n)		(lcm_util.mdelay(n))
+#define UDELAY(n)		(lcm_util.udelay(n))
 
-#define dsi_set_cmdq_V2(cmd, count, ppara, force_update)	lcm_util->dsi_set_cmdq_V2(cmd, count, ppara, force_update)
-#define dsi_set_cmdq(pdata, queue_size, force_update)		lcm_util->dsi_set_cmdq(pdata, queue_size, force_update)
-#define wrtie_cmd(cmd)						lcm_util->dsi_write_cmd(cmd)
-#define write_regs(addr, pdata, byte_nums)			lcm_util->dsi_write_regs(addr, pdata, byte_nums)
-#define read_reg(cmd)						lcm_util->dsi_dcs_read_lcm_reg(cmd)
-#define read_reg_v2(cmd, buffer, buffer_size)			lcm_util->dsi_dcs_read_lcm_reg_v2(cmd, buffer, buffer_size)
-#define dsi_set_cmdq_V22(cmdq,cmd, count, ppara, force_update)	lcm_util->dsi_set_cmdq_V22(cmdq,cmd, count, ppara, force_update)
 
-#define LCM_DSI_CMD_MODE 1
-#define FRAME_WIDTH (1080)
-#define FRAME_HEIGHT (2340)
+
+#define dsi_set_cmdq_V2(cmd, count, ppara, force_update) \
+	lcm_util.dsi_set_cmdq_V2(cmd, count, ppara, force_update)
+#define dsi_set_cmdq(pdata, queue_size, force_update) \
+		lcm_util.dsi_set_cmdq(pdata, queue_size, force_update)
+#define wrtie_cmd(cmd) lcm_util.dsi_write_cmd(cmd)
+#define write_regs(addr, pdata, byte_nums) \
+		lcm_util.dsi_write_regs(addr, pdata, byte_nums)
+#define read_reg(cmd) \
+	  lcm_util.dsi_dcs_read_lcm_reg(cmd)
+#define read_reg_v2(cmd, buffer, buffer_size) \
+		lcm_util.dsi_dcs_read_lcm_reg_v2(cmd, buffer, buffer_size)
+
+
+/* static unsigned char lcd_id_pins_value = 0xFF; */
+static const unsigned char LCD_MODULE_ID = 0x01;
+#define LCM_DSI_CMD_MODE	1
+#define FRAME_WIDTH		(1080)
+#define FRAME_HEIGHT		(2340)
 #define PHYSICAL_WIDTH (69)
 #define PHYSICAL_HEIGHT (150)
 #define PHYSICAL_WIDTH_UM (69498)
 #define PHYSICAL_HEIGHT_UM (150579)
+
+
+#define REGFLAG_DELAY		0xFFFC
+#define REGFLAG_UDELAY	0xFFFB
+#define REGFLAG_END_OF_TABLE	0xFFFD
+#define REGFLAG_RESET_LOW	0xFFFE
+#define REGFLAG_RESET_HIGH	0xFFFF
+
 
 #ifndef TRUE
 #define TRUE 1
@@ -101,32 +108,25 @@ extern int tp_control_irq(bool enable, int mode);
 
 extern int tp_gesture_enable_flag(void);
 
-extern int display_esd_recovery_lcm(void);
+//extern int display_esd_recovery_lcm(void);
 
 extern void tp_wait_hdl_finished(void);
 
-#define REGFLAG_DELAY      0xFC
-#define REGFLAG_UDELAY     0xFB
-
-#define REGFLAG_END_OF_TABLE   0xFD
-#define REGFLAG_RESET_LOW  0xFE
-#define REGFLAG_RESET_HIGH  0xFF
 struct LCM_setting_table {
-	unsigned char cmd;
+	unsigned int cmd;
 	unsigned char count;
-	unsigned char para_list[128];
+	unsigned char para_list[64];
 };
+
+
 
 static struct LCM_setting_table lcm_initialization_setting[] = {
 	{0x11,0, {}},
-	{REGFLAG_DELAY, 100, {}},
+	{REGFLAG_DELAY, 130, {}},
 	{0x51,2,  {0xFF,0xF0}},
 	{0x53,1,  {0x24}},
-	{0x55,1,  {0x81}},
+	{0x55,1,  {0x00}},
 	{0x35,1,  {0x00}},//TE on
-	{0xB8,7,  {0x27,0x3d,0x10,0xbe,0x1e,0x04,0x0a}},
-	{0xCE,35, {0x5D,0x40,0x49,0x53,0x59,0x5E,0x63,0x68,0x6E,0x74,0x7E,0x8A,0x98,0xA8,0xBB,0xD0,\
-			0xE7,0xFF,0x05,0x86,0x04,0x04,0x42,0x00,0x69,0x5A,0x40,0x11,0xF4,0x00,0x00,0x04,0xFA,0x00,0x00}},
 	{0x29,0,  {}},
 	{REGFLAG_DELAY, 20, {}},
 	{REGFLAG_END_OF_TABLE, 0x00, {}},
@@ -140,10 +140,9 @@ static struct LCM_setting_table lcm_sleep_in_setting[] = {
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
 
-
 static struct LCM_setting_table lcm_cabc_enter_setting[] = {
 	{0x53,1,{0x2C}},
-	{0x55,1,{0x81}},
+	{0x55,1,{0x00}},
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
 
@@ -153,80 +152,55 @@ static struct LCM_setting_table lcm_cabc_exit_setting[] = {
 	{REGFLAG_END_OF_TABLE, 0x00, {}}
 };
 
+/*
+static struct LCM_setting_table bl_level[] = {
+	{0x51, 1, {0xFF} },
+	{REGFLAG_END_OF_TABLE, 0x00, {} }
+};
+*/
 
-static void push_table(struct LCM_setting_table *table, unsigned int count, unsigned char force_update)
+static void push_table(struct LCM_setting_table *table,
+				unsigned int count,
+				unsigned char force_update)
 {
 	unsigned int i;
+	unsigned int cmd;
 
 	for (i = 0; i < count; i++) {
-		unsigned cmd;
 		cmd = table[i].cmd;
 
 		switch (cmd) {
-		case REGFLAG_DELAY :
-			if (table[i].count <= 10) {
+
+		case REGFLAG_DELAY:
+			if (table[i].count <= 10)
 				MDELAY(table[i].count);
-			} else {
+			else
 				MDELAY(table[i].count);
-			}
 			break;
-		case REGFLAG_UDELAY :
+
+		case REGFLAG_UDELAY:
 			UDELAY(table[i].count);
 			break;
 
-		case REGFLAG_END_OF_TABLE :
+		case REGFLAG_END_OF_TABLE:
 			break;
 
 		default:
-			dsi_set_cmdq_V2(cmd, table[i].count, table[i].para_list, force_update);
+			dsi_set_cmdq_V2(cmd, table[i].count,
+				table[i].para_list, force_update);
 		}
 	}
 }
 
-#if (LCM_DSI_CMD_MODE)
-static void push_table22(void *handle,struct LCM_setting_table *table, unsigned int count, unsigned char force_update)
-{
-	unsigned int i;
-
-	for (i = 0; i < count; i++) {
-		unsigned cmd;
-		cmd = table[i].cmd;
-
-		switch (cmd) {
-		case REGFLAG_DELAY :
-			if (table[i].count <= 10) {
-				MDELAY(table[i].count);
-			} else {
-				MDELAY(table[i].count);
-			}
-		break;
-
-		case REGFLAG_UDELAY :
-			UDELAY(table[i].count);
-			break;
-
-		case REGFLAG_END_OF_TABLE :
-			break;
-
-		default:
-			dsi_set_cmdq_V22(handle, cmd, table[i].count, table[i].para_list, force_update);
-		}
-	}
-}
-#endif
 
 static void lcm_set_util_funcs(const struct LCM_UTIL_FUNCS *util)
 {
-	if (lcm_util == NULL) {
-		lcm_util = kmalloc(sizeof(struct LCM_UTIL_FUNCS),GFP_KERNEL);
-	}
-	memcpy(lcm_util, util, sizeof(struct LCM_UTIL_FUNCS));
+	memcpy(&lcm_util, util, sizeof(struct LCM_UTIL_FUNCS));
 }
+
 
 static void lcm_get_params(struct LCM_PARAMS *params)
 {
-	int boot_mode = 0;
-
 	memset(params, 0, sizeof(struct LCM_PARAMS));
 
 	params->type = LCM_TYPE_DSI;
@@ -234,15 +208,16 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->width = FRAME_WIDTH;
 	params->height = FRAME_HEIGHT;
 
-	//params->physical_width = PHYSICAL_WIDTH;
-	//params->physical_height = PHYSICAL_HEIGHT;
-	params->physical_width_um = PHYSICAL_WIDTH_UM;
-	params->physical_height_um = PHYSICAL_HEIGHT_UM;
+#if (LCM_DSI_CMD_MODE)
+	params->dsi.mode = CMD_MODE;
+	params->dsi.switch_mode = SYNC_PULSE_VDO_MODE;
+#else
+	params->dsi.mode = SYNC_PULSE_VDO_MODE;
+	params->dsi.switch_mode = CMD_MODE;
+#endif
+	params->dsi.switch_mode_enable = 0;
 
-	params->dsi.mode   = CMD_MODE;
-	params->dbi.te_mode = LCM_DBI_TE_MODE_VSYNC_ONLY;
-	params->dbi.te_edge_polarity = LCM_POLARITY_RISING;
-
+	/* DSI */
 	/* Command mode setting */
 	params->dsi.LANE_NUM = LCM_FOUR_LANE;
 	/* The following defined the fomat for data coming from LCD engine. */
@@ -266,82 +241,51 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.horizontal_backporch   = 16;
 	params->dsi.horizontal_frontporch  = 16;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
-
-
-	//553.5
-	params->dsi.PLL_CLOCK = 553;
-	params->dsi.data_rate = 1107;
-
 	params->dsi.ssc_disable = 1;
-	params->dsi.CLK_TRAIL = 9;
-	params->dsi.HS_PRPR = 9;
-
-	/* clk continuous video mode */
-	params->dsi.cont_clock = 0;
+#ifndef CONFIG_FPGA_EARLY_PORTING
+#if (LCM_DSI_CMD_MODE)
+	params->dsi.PLL_CLOCK = 500;
+#else
+	params->dsi.PLL_CLOCK = 450;
+#endif
+#else
+````
+	params->dsi.pll_div1 = 0;
+	params->dsi.pll_div2 = 0;
+	params->dsi.fbk_div = 0x1;
+#endif
 
 	params->dsi.clk_lp_per_line_enable = 0;
-	if (get_boot_mode() == META_BOOT) {
-		boot_mode++;
-		LCD_DEBUG("META_BOOT\n");
-	}
-	if (get_boot_mode() == ADVMETA_BOOT) {
-		boot_mode++;
-		LCD_DEBUG("ADVMETA_BOOT\n");
-	}
-	if (get_boot_mode() == ATE_FACTORY_BOOT) {
-		boot_mode++;
-		LCD_DEBUG("ATE_FACTORY_BOOT\n");
-	}
-	if (get_boot_mode() == FACTORY_BOOT) {
-		boot_mode++;
-		LCD_DEBUG("FACTORY_BOOT\n");
-	}
+	params->dsi.esd_check_enable = 0;
+	params->dsi.customization_esd_check_enable = 0;
+	params->dsi.lcm_esd_check_table[0].cmd = 0x53;
+	params->dsi.lcm_esd_check_table[0].count = 1;
+	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x24;
 
-	if (boot_mode == 0) {
-		LCD_DEBUG("neither META_BOOT or FACTORY_BOOT\n");
-		params->dsi.esd_check_enable = 1;
-		params->dsi.customization_esd_check_enable = 1;
-		params->dsi.lcm_esd_check_table[0].cmd = 0x0A;
-		params->dsi.lcm_esd_check_table[0].count = 1;
-		params->dsi.lcm_esd_check_table[0].para_list[0] = 0x1C;
-	}
-	//#ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
-	//	params->round_corner_en = 1;
-	//	params->full_content = 1;
-	//	params->corner_pattern_width = 1080;
-	//	params->corner_pattern_height = 91;
-	//	params->corner_pattern_height_bot = 72;
-	//#endif
-	/*
-	if (debug == NULL) {
-		debug = kmalloc(sizeof(dsi_debug),GFP_KERNEL);
-	}
-	if (debug_read == NULL) {
-		debug_read = kmalloc(sizeof(dsi_debug),GFP_KERNEL);
-	}
-	*/
-#ifndef BUILD_LK
-	/*
-	if(is_dpt_hx83112a_lcd == 2){
-		register_device_proc("lcd", "hx83112a_dpt", "jdi vdo mode");
-	} else if(is_dpt_hx83112a_lcd == 8){
-		register_device_proc("lcd", "hx83112a_2_dpt", "jdi vdo mode");
-	} else if(is_dpt_hx83112a_lcd == 7){
-		register_device_proc("lcd", "hx83112a_2", "dsjm vdo mode");
-	} else {
-		register_device_proc("lcd", "hx83112a", "dsjm vdo mode");
-	}
-*/
-	register_device_proc("lcd", "td4330_m03", "dsjm cmd mode");
+/*
+#ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
+	params->round_corner_en = 1;
+	params->corner_pattern_width = FRAME_WIDTH;
+	params->corner_pattern_height = ROUND_CORNER_H;
+
+	params->round_corner_params.w = ROUND_CORNER_W;
+	params->round_corner_params.h = ROUND_CORNER_H;
+	params->round_corner_params.tp_size = sizeof(top_rc_pattern);
+	params->round_corner_params.lt_addr = (void *)top_rc_pattern;
+	params->round_corner_params.rt_addr = NULL;
+	params->round_corner_params.lb_addr = NULL;
+	params->round_corner_params.rb_addr = NULL;
 #endif
+*/
 }
 
 static void poweron_before_ulps(void)
 {
-	LCD_DEBUG("[td4330] poweron_before_ulps 1.8v\n");
-	if (tp_gesture_enable_flag()) {
-	    tp_control_irq(false, 1);
-	}
+	LCD_DEBUG("[lcd] poweron_before_ulps 1.8v\n");
+	MDELAY(5);
+    if (tp_gesture_enable_flag()) {
+        tp_control_irq(false, 1);
+    }
 
 	lcd_1p8_en_setting(1);
 	MDELAY(5);
@@ -367,12 +311,24 @@ static void lcm_init_power(void)
 {
 	LCD_DEBUG("[lcd] lcm_init_power\n");
 
+	lcm_power_write_byte(0x00, 0x0D);
+	lcm_power_write_byte(0x03, 0x0F);
+	lcm_power_write_byte(0x01, 0x0D);
+	lcm_power_write_byte(0xFF, 0xF0);
+
 	lcd_rst_setting(1);
 	MDELAY(10);
 	lcd_rst_setting(0);
 	MDELAY(10);
 	lcd_rst_setting(1);
 	MDELAY(25);
+
+	lcd_enp_bias_setting(1);
+
+	MDELAY(10);
+
+	lcd_enn_bias_setting(1);
+	MDELAY(15);
 }
 
 static void lcm_suspend_power(void)
@@ -424,7 +380,7 @@ static void lcm_init(void)
 		}
 		lm3697_write_byte(0x06, 0x1B);
 		lm3697_write_byte(0x07, 0x00);
-		lm3697_write_byte(0x08, 0x12);
+		lm3697_write_byte(0x08, 0x00);
 	} else if (is_lm3697 == 1) {
 		lm3697_write_byte(0x10,0x04);
 		if (LM3697_EXPONENTIAL) {
@@ -436,7 +392,7 @@ static void lcm_init(void)
 		lm3697_write_byte(0x18, 0x13);
 		lm3697_write_byte(0x19, 0x03);
 		lm3697_write_byte(0x1A, 0x04);
-		lm3697_write_byte(0x1C, 0x0D);
+		lm3697_write_byte(0x1C, 0x0C);
 	} else {
 		lm3697_write_byte(0x10, 0x0c);
 		if (MP3188_EXPONENTIAL) {
@@ -487,8 +443,10 @@ static void lcm_resume(void)
 	lcm_init();
 }
 
-static void lcm_update(unsigned int x, unsigned int y, unsigned int width, unsigned int height)
+static void lcm_update(unsigned int x, unsigned int y, unsigned int width,
+	unsigned int height)
 {
+#if LCM_DSI_CMD_MODE
 	unsigned int x0 = x;
 	unsigned int y0 = y;
 	unsigned int x1 = x0 + width - 1;
@@ -506,18 +464,20 @@ static void lcm_update(unsigned int x, unsigned int y, unsigned int width, unsig
 	unsigned int data_array[16];
 
 	data_array[0] = 0x00053902;
-	data_array[1] = (x1_MSB << 24) | (x0_LSB << 16) | (x0_MSB<<8) | 0x2a;
+	data_array[1] = (x1_MSB << 24) | (x0_LSB << 16) | (x0_MSB << 8) | 0x2a;
 	data_array[2] = (x1_LSB);
 	dsi_set_cmdq(data_array, 3, 1);
 
 	data_array[0] = 0x00053902;
-	data_array[1] = (y1_MSB << 24) | (y0_LSB << 16)|(y0_MSB << 8) | 0x2b;
+	data_array[1] = (y1_MSB << 24) | (y0_LSB << 16) | (y0_MSB << 8) | 0x2b;
 	data_array[2] = (y1_LSB);
 	dsi_set_cmdq(data_array, 3, 1);
 
 	data_array[0] = 0x002c3909;
 	dsi_set_cmdq(data_array, 1, 0);
+#endif
 }
+
 
 static void lcm_setbacklight(unsigned int level)
 {
@@ -539,22 +499,28 @@ static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 	lm3697_setbacklight(level);
 }
 
+/*
+static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
+{
+
+	pr_debug("[LCM]%s,nt35595 backlight: level = %d\n", __func__, level);
+
+	bl_level[0].para_list[0] = level;
+
+	push_table(bl_level,
+		sizeof(bl_level) / sizeof(struct LCM_setting_table), 1);
+}
+*/
+
 static void lcm_set_cabc_mode_cmdq(void *handle, unsigned int level)
 {
 	printk("%s [lcd] cabc_mode is %d \n", __func__, level);
-#if (LCM_DSI_CMD_MODE)
-	if (level) {
-		push_table22(handle,lcm_cabc_enter_setting, sizeof(lcm_cabc_enter_setting) / sizeof(struct LCM_setting_table), 1);
-	} else {
-		push_table22(handle,lcm_cabc_exit_setting, sizeof(lcm_cabc_exit_setting) / sizeof(struct LCM_setting_table), 1);
-	}
-#else
+
 	if (level) {
 		push_table(lcm_cabc_enter_setting, sizeof(lcm_cabc_enter_setting) / sizeof(struct LCM_setting_table), 1);
 	} else {
 		push_table(lcm_cabc_exit_setting, sizeof(lcm_cabc_exit_setting) / sizeof(struct LCM_setting_table), 1);
 	}
-#endif
 }
 
 struct LCM_DRIVER oppo18151_dsjm_jdi_td4330_1080p_dsi_cmd_lcm_drv =

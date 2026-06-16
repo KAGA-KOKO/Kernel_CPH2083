@@ -4704,8 +4704,6 @@ PVRSRV_ERROR RGXWaitForFWOp(PVRSRV_RGXDEV_INFO	*psDevInfo,
 			{
 				break;
 			}
-
-			RGXSendCommandsFromDeferredList(psDevInfo, IMG_FALSE);
 		}
 
 		if (eError == PVRSRV_ERROR_TIMEOUT)

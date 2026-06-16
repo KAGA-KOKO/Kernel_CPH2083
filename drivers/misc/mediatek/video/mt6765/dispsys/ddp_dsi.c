@@ -1784,15 +1784,14 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 
 	hs_trail_m = 1;
 	hs_trail_n = (dsi_params->HS_TRAIL == 0) ?
-		(NS_TO_CYCLE(((hs_trail_m * 0x4 * ui) + 0x50)
-		* dsi_params->PLL_CLOCK * 2, 0x1F40) + 0x1) :
+		NS_TO_CYCLE(((hs_trail_m * 0x4 * ui) + 0x50), cycle_time) :
 		dsi_params->HS_TRAIL;
 	/* +3 is recommended from designer becauase of HW latency */
 	timcon0.HS_TRAIL = (hs_trail_m > hs_trail_n) ? hs_trail_m : hs_trail_n;
 
 	timcon0.HS_PRPR =
 		(dsi_params->HS_PRPR == 0) ?
-		(NS_TO_CYCLE((0x40 + 0x5 * ui), cycle_time) + 0x1) :
+		NS_TO_CYCLE((0x40 + 0x5 * ui), cycle_time) :
 		dsi_params->HS_PRPR;
 	/* HS_PRPR can't be 1. */
 	if (timcon0.HS_PRPR < 1)
@@ -1808,8 +1807,7 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 
 	timcon0.LPX =
 		(dsi_params->LPX == 0) ?
-		(NS_TO_CYCLE(dsi_params->PLL_CLOCK * 2 * 0x4b, 0x1F40) + 0x1) :
-		dsi_params->LPX;
+		NS_TO_CYCLE(0x55, cycle_time) : dsi_params->LPX;
 	if (timcon0.LPX < 1)
 		timcon0.LPX = 1;
 
@@ -1834,8 +1832,8 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 
 	timcon2.CLK_TRAIL =
 		((dsi_params->CLK_TRAIL == 0) ?
-		NS_TO_CYCLE(0x64 * dsi_params->PLL_CLOCK * 2,
-		0x1F40) : dsi_params->CLK_TRAIL) + 0x01;
+		NS_TO_CYCLE(0x60, cycle_time) :
+		dsi_params->CLK_TRAIL) + 0x01;
 	/* CLK_TRAIL can't be 1. */
 	if (timcon2.CLK_TRAIL < 2)
 		timcon2.CLK_TRAIL = 2;
@@ -1848,8 +1846,8 @@ void DSI_PHY_TIMCONFIG(enum DISP_MODULE_ENUM module,
 
 	timcon3.CLK_HS_PRPR =
 		(dsi_params->CLK_HS_PRPR == 0) ?
-		NS_TO_CYCLE(0x50 * dsi_params->PLL_CLOCK * 2,
-		0x1F40) : dsi_params->CLK_HS_PRPR;
+		NS_TO_CYCLE(0x40, cycle_time) :
+		dsi_params->CLK_HS_PRPR;
 
 	if (timcon3.CLK_HS_PRPR < 1)
 		timcon3.CLK_HS_PRPR = 1;
@@ -3381,7 +3379,8 @@ int DSI_Send_ROI(enum DISP_MODULE_ENUM module, void *handle, unsigned int x,
 static void lcm_set_reset_pin(UINT32 value)
 {
 #ifndef ODM_HQ_EDIT
-	/* Sunshiyue@ODM.HQ.Multimedia.LCM 2019/1/15 control the lcm_rst by pinctrl*/
+/* Xianfei.Wang@ODM.HQ.Multimedia.LCM 2019/1/15
+	control the lcm_rst by pinctrl*/
 	DSI_OUTREG32(NULL, DISP_REG_CONFIG_MMSYS_LCM_RST_B, value);
 #else
 #if !defined(CONFIG_MTK_LEGACY)
@@ -3572,14 +3571,13 @@ unsigned int DSI_dcs_read_lcm_reg_v3_wrapper_DSIDUAL(char *out,
 			out, cmds, len);
 }
 
-/* remove later 
+/* remove later */
 long lcd_enp_bias_setting(unsigned int value)
 {
 	long ret = 0;
 
 	return ret;
 }
-*/
 
 int ddp_dsi_set_lcm_utils(enum DISP_MODULE_ENUM module,
 	struct LCM_DRIVER *lcm_drv)
@@ -3711,7 +3709,7 @@ int ddp_dsi_set_lcm_utils(enum DISP_MODULE_ENUM module,
 	utils->set_gpio_pull_enable =
 		(int (*)(unsigned int, unsigned char))mt_set_gpio_pull_enable;
 #else
-//	utils->set_gpio_lcd_enp_bias = lcd_enp_bias_setting;
+	utils->set_gpio_lcd_enp_bias = lcd_enp_bias_setting;
 #endif
 #endif
 
@@ -5271,7 +5269,7 @@ int ddp_dsi_build_cmdq(enum DISP_MODULE_ENUM module,
 
 				DISPDBG("buffer[%d]=0x%x\n", j, buffer[j]);
 				if (buffer[j] != lcm_esd_tb->para_list[j]) {
-					DISPCHECK
+					DISPDBG
 			("buffer[%d]0x%x != lcm_esd_tb->para_list[%d]0x%x\n",
 				j, buffer[j], j, lcm_esd_tb->para_list[j]);
 

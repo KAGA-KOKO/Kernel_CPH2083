@@ -168,12 +168,6 @@ long xgf_get_task_state(struct task_struct *t)
 }
 EXPORT_SYMBOL(xgf_get_task_state);
 
-unsigned long xgf_lookup_name(const char *name)
-{
-	return kallsyms_lookup_name(name);
-}
-EXPORT_SYMBOL(xgf_lookup_name);
-
 static inline int xgf_ko_is_ready(void)
 {
 	xgf_lockprove(__func__);
@@ -1264,24 +1258,13 @@ int fpsgo_comp2xgf_qudeq_notify(int rpid, int cmd,
 			ret = XGF_THREAD_NOT_FOUND;
 			goto qudeq_notify_err;
 		}
-		r->queue.start_ts = ts;
-		xgf_reset_render_sector(r);
-		break;
-
-	case XGF_QUEUE_END:
-		rrender = &r;
-		if (xgf_get_render(rpid, rrender, 1)) {
-			ret = XGF_THREAD_NOT_FOUND;
-			goto qudeq_notify_err;
-		}
-		r->queue.end_ts = ts;
-
 		new_spid = xgf_get_spid(r);
 		if (new_spid != -1) {
 			xgf_trace("xgf spid:%d => %d", r->spid, new_spid);
 			r->spid = new_spid;
 		}
 		ret = xgf_enter_est_runtime(rpid, r, &raw_runtime, ts);
+		r->queue.start_ts = ts;
 
 		if (!raw_runtime)
 			*run_time = raw_runtime;
@@ -1302,7 +1285,16 @@ int fpsgo_comp2xgf_qudeq_notify(int rpid, int cmd,
 			hr_iter->mid, hr_iter->event_type, hr_iter->hw_type);
 		}
 
-		xgf_print_debug_log(rpid, r, raw_runtime);
+		xgf_print_debug_log(rpid, r, *run_time);
+		break;
+
+	case XGF_QUEUE_END:
+		rrender = &r;
+		if (xgf_get_render(rpid, rrender, 1)) {
+			ret = XGF_THREAD_NOT_FOUND;
+			goto qudeq_notify_err;
+		}
+		r->queue.end_ts = ts;
 		break;
 
 	case XGF_DEQUEUE_START:
@@ -1312,6 +1304,7 @@ int fpsgo_comp2xgf_qudeq_notify(int rpid, int cmd,
 			goto qudeq_notify_err;
 		}
 		r->deque.start_ts = ts;
+		xgf_reset_render_sector(r);
 		break;
 
 	case XGF_DEQUEUE_END:

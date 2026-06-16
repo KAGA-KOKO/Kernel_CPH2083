@@ -120,31 +120,7 @@ struct cmdq {
 	bool			suspended;
 	atomic_t		usage;
 	struct workqueue_struct *timeout_wq;
-	struct wakeup_source	wake_lock;
 };
-
-static void cmdq_lock_wake_lock(struct cmdq *cmdq, bool lock)
-{
-	static bool is_locked;
-
-	if (lock) {
-		if (!is_locked) {
-			__pm_stay_awake(&cmdq->wake_lock);
-			is_locked = true;
-		} else  {
-			/* should not reach here */
-			cmdq_err("try lock twice");
-		}
-	} else {
-		if (is_locked) {
-			__pm_relax(&cmdq->wake_lock);
-			is_locked = false;
-		} else {
-			/* should not reach here */
-			cmdq_err("try unlock twice");
-		}
-	}
-}
 
 static s32 cmdq_clk_enable(struct cmdq *cmdq)
 {
@@ -160,8 +136,6 @@ static s32 cmdq_clk_enable(struct cmdq *cmdq)
 		if (cmdq->prefetch)
 			writel(cmdq->prefetch,
 				cmdq->base + CMDQ_PREFETCH_GSIZE);
-		/* make sure pm not suspend */
-		cmdq_lock_wake_lock(cmdq, true);
 	}
 	return err;
 }
@@ -177,11 +151,6 @@ static void cmdq_clk_disable(struct cmdq *cmdq)
 		cmdq_err("ref count error after dec:%d", usage);
 	else if (usage == 0)
 		cmdq_log("cmdq shutdown mbox");
-
-	if (usage == 0) {
-		/* now allow pm suspend */
-		cmdq_lock_wake_lock(cmdq, false);
-	}
 }
 
 static dma_addr_t cmdq_thread_get_pc(struct cmdq_thread *thread)
@@ -274,19 +243,6 @@ static void cmdq_thread_err_reset(struct cmdq *cmdq, struct cmdq_thread *thread,
 	writel(CMDQ_THR_IRQ_EN, thread->base + CMDQ_THR_IRQ_ENABLE);
 	writel(CMDQ_THR_ENABLED, thread->base + CMDQ_THR_ENABLE_TASK);
 }
-
-void cmdq_mbox_thread_err_reset(struct mbox_chan *chan)
-{
-	struct cmdq_thread *thread = (struct cmdq_thread *)chan->con_priv;
-	struct cmdq *cmdq = container_of(chan->mbox, struct cmdq, mbox);
-	dma_addr_t pc;
-
-	writel(CMDQ_THR_SUSPEND, thread->base + CMDQ_THR_SUSPEND_TASK);
-	pc = cmdq_thread_get_pc(thread);
-	cmdq_thread_err_reset(cmdq, thread, pc, thread->priority);
-	writel(CMDQ_THR_RESUME, thread->base + CMDQ_THR_SUSPEND_TASK);
-}
-EXPORT_SYMBOL(cmdq_mbox_thread_err_reset);
 
 static void cmdq_thread_disable(struct cmdq *cmdq, struct cmdq_thread *thread)
 {
@@ -1072,7 +1028,7 @@ static int cmdq_suspend(struct device *dev)
 		if (!list_empty(&thread->task_busy_list)) {
 			cmdq_mbox_thread_stop(thread);
 			task_running = true;
-			cmdq_err("thread %d running", i);
+			break;
 		}
 	}
 
@@ -1282,8 +1238,6 @@ static int cmdq_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, cmdq);
 	WARN_ON(clk_prepare(cmdq->clock) < 0);
-
-	wakeup_source_init(&cmdq->wake_lock, "cmdq_wakelock");
 
 	return 0;
 }

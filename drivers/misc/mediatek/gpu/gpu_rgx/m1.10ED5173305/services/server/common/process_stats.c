@@ -2646,38 +2646,6 @@ void RawProcessStatsPrintElements(void *pvFile,
 } /* RawProcessStatsPrintElements */
 #endif
 
-#ifdef VENDOR_EDIT
-/* Wen.Luo@BSP.Kernel.Stability, 2019/04/26, Add for Process memory statistics */
-size_t get_gl_mem_by_pid(pid_t pid)
-{
-	unsigned long pid_gpu = 0;
-#if defined(PVRSRV_ENABLE_MEMTRACK_STATS_FILE)
-	PVRSRV_PROCESS_STATS *psProcessStats;
-	OSLockAcquire(g_psLinkedListLock);
-
-	psProcessStats = g_psLiveList;
-
-	while (psProcessStats != NULL)
-	{
-		if (psProcessStats->pid == pid)
-		{
-			pid_gpu = psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_KMALLOC]
-							 + psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_UMA]
-							 + psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_LMA]
-							 + psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_LMA_PAGES]
-							 + psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_UMA_PAGES];
-			break;
-		}
-
-		psProcessStats = psProcessStats->psNext;
-	}
-	OSLockRelease(g_psLinkedListLock);
-#endif
-	return pid_gpu/1024;
-}
-EXPORT_SYMBOL(get_gl_mem_by_pid);
-#endif
-
 void
 PVRSRVStatsDecrMemKAllocStat(size_t uiBytes,
                              IMG_PID decrPID)
@@ -2946,17 +2914,27 @@ PVRSRVStatsUpdateFreelistStats(IMG_UINT32 ui32NumGrowReqByApp,
 
 	if (psProcessStats != NULL)
 	{
+		/* Avoid signed / unsigned mismatch which is flagged by some compilers */
+		IMG_INT32 a, b;
 
 		OSLockAcquireNested(psProcessStats->hLock, PROCESS_LOCK_SUBCLASS_CURRENT);
 		psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_GROW_REQS_BY_APP] += ui32NumGrowReqByApp;
 		psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_GROW_REQS_BY_FW]  += ui32NumGrowReqByFW;
 
-		UPDATE_MAX_VALUE(psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_PAGES_INIT],
-				(IMG_INT32) ui32InitFLPages);
+		a=psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_PAGES_INIT];
+		b=(IMG_INT32)(ui32InitFLPages);
+		UPDATE_MAX_VALUE(a, b);
 
-		UPDATE_MAX_VALUE(psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_MAX_PAGES],
-				(IMG_INT32) ui32NumHighPages);
 
+		psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_PAGES_INIT]=a;
+		ui32InitFLPages=(IMG_UINT32)b;
+
+		a=psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_MAX_PAGES];
+		b=(IMG_INT32)ui32NumHighPages;
+
+		UPDATE_MAX_VALUE(a, b);
+		psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_FREELIST_PAGES_INIT]=a;
+		ui32InitFLPages=(IMG_UINT32)b;
 		OSLockRelease(psProcessStats->hLock);
 
 	}

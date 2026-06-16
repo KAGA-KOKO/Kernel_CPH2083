@@ -102,8 +102,10 @@ static enum hrtimer_restart mt_fstb(struct hrtimer *timer)
 	return HRTIMER_NORESTART;
 }
 
-
-int second_chance_flag;
+//#ifdef ODM_HQ_EDIT
+//#XuTian@ODM_HQ.Android.fpsgo, 2019/1/14, modify for fpsgo
+//int second_chance_flag;
+//#endif ODM_HQ_EDIT
 
 int is_fstb_enable(void)
 {
@@ -1076,13 +1078,18 @@ static int cal_target_fps(struct FSTB_FRAME_INFO *iter)
 		iter->asfc_flag = 0;
 		iter->check_asfc = 0;
 		fpsgo_systrace_c_fstb(iter->pid, iter->asfc_flag, "asfc_flag");
-		second_chance_flag = 0;
+		//#ifdef ODM_HQ_EDIT
+		//#XuTian@ODM_HQ.Android.fpsgo, 2019/1/14, modify for fpsgo
+		/*second_chance_flag = 0;
 		fpsgo_systrace_c_fstb(iter->pid,
-				second_chance_flag, "second_chance_flag");
+		second_chance_flag, "second_chance_flag");*/
+		//#endif ODM_HQ_EDIT
 		/*decrease*/
 	} else if (iter->target_fps - iter->queue_fps >
 			iter->target_fps * fps_error_threshold / 100) {
-		if (cur_cap > SECOND_CHANCE_CAPACITY ||
+		//#ifdef ODM_HQ_EDIT
+		//#XuTian@ODM_HQ.Android.fpsgo, 2019/1/14, modify for fpsgo
+		/*if (cur_cap > SECOND_CHANCE_CAPACITY ||
 				second_chance_flag == 1) {
 			if (iter->queue_fps < iter->target_fps)
 				target_limit = iter->queue_fps;
@@ -1090,19 +1097,22 @@ static int cal_target_fps(struct FSTB_FRAME_INFO *iter)
 				target_limit = iter->target_fps;
 			second_chance_flag = 0;
 		} else {
-			second_chance_flag = 1;
+			second_chance_flag = 1;*/
+		if (iter->queue_fps < iter->target_fps)
+			target_limit = iter->queue_fps;
+		else
 			target_limit = iter->target_fps;
-		}
+		//}
 		fpsgo_systrace_c_fstb(iter->pid,
 				(int)target_limit, "tmp_target_limit");
-		fpsgo_systrace_c_fstb(iter->pid,
-				second_chance_flag, "second_chance_flag");
+		//fpsgo_systrace_c_fstb(iter->pid,
+		//		second_chance_flag, "second_chance_flag");
 		/*increase*/
 	} else if (iter->target_fps - iter->queue_fps <= 1) {
-
-		second_chance_flag = 0;
-		fpsgo_systrace_c_fstb(iter->pid,
-				second_chance_flag, "second_chance_flag");
+		//second_chance_flag = 0;
+		//fpsgo_systrace_c_fstb(iter->pid,
+		//second_chance_flag, "second_chance_flag");
+		//#endif ODM_HQ_EDIT
 		tmp_target_limit = 1000000000LL;
 		do_div(tmp_target_limit,
 				(long long)max(cur_cpu_time, cur_gpu_time));
@@ -1143,9 +1153,12 @@ static int cal_target_fps(struct FSTB_FRAME_INFO *iter)
 
 		/*stable state*/
 	} else {
-		second_chance_flag = 0;
+		//#ifdef ODM_HQ_EDIT
+		//#XuTian@ODM_HQ.Android.fpsgo, 2019/1/14, modify for fpsgo
+		/*second_chance_flag = 0;
 		fpsgo_systrace_c_fstb(iter->pid,
-				second_chance_flag, "second_chance_flag");
+		second_chance_flag, "second_chance_flag");*/
+		//#endif ODM_HQ_EDIT
 		target_limit = iter->target_fps;
 	}
 

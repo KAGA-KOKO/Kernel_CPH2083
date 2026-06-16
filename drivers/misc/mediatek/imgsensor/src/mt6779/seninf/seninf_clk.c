@@ -199,8 +199,6 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 
 	if (pmclk->on) {
 		/* Workaround for timestamp: TG1 always ON */
-		#ifndef VENDOR_EDIT
-		/* Henry.Chang@Camera.Driver add for mclk2 output influenced by mclk1 & mclk0 20190307 */
 		if (clk_prepare_enable(
 			pclk->mclk_sel[SENINF_CLK_IDX_TG_TOP_MUX_CAMTG]))
 			PK_PR_ERR("[CAMERA SENSOR] failed tg=%d\n",
@@ -208,7 +206,6 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 		else
 			atomic_inc(
 			&pclk->enable_cnt[SENINF_CLK_IDX_TG_TOP_MUX_CAMTG]);
-		#endif
 
 		if (clk_prepare_enable(
 			pclk->mclk_sel[pmclk->TG + SENINF_CLK_IDX_TG_MIN_NUM]))
@@ -246,8 +243,6 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 		}
 
 		/* Workaround for timestamp: TG1 always ON */
-		#ifndef VENDOR_EDIT
-		/* Henry.Chang@Camera.Driver add for mclk2 output influenced by mclk1 & mclk0 20190307 */
 		if (atomic_read(
 			&pclk->enable_cnt[SENINF_CLK_IDX_TG_TOP_MUX_CAMTG])
 			> 0) {
@@ -256,7 +251,6 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 			atomic_dec(
 			&pclk->enable_cnt[SENINF_CLK_IDX_TG_TOP_MUX_CAMTG]);
 		}
-		#endif
 	}
 
 	return ret;

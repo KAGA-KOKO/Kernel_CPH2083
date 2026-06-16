@@ -46,8 +46,8 @@ struct GPIO_PINCTRL gpio_pinctrl_list[GPIO_CTRL_STATE_MAX_NUM] = {
 	{NULL},
 	{NULL},
 	/* Sub2 */
-	{"cam3_pnd1"},
-	{"cam3_pnd0"},
+	{NULL},
+	{NULL},
 	{NULL},
 	{NULL},
 	{NULL},

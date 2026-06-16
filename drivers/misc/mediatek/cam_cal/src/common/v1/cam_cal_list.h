@@ -14,16 +14,7 @@
 #define __CAM_CAL_LIST_H
 #include <linux/i2c.h>
 
-#ifndef VENDOR_EDIT
-#define VENDOR_EDIT
-#endif
-
-#ifdef VENDOR_EDIT
-/*Longyuan.Yang@Camera.Driver 20190109 add for P90 PDAF porting*/
-#define DEFAULT_MAX_EEPROM_SIZE_8K 0x2B00
-#else
 #define DEFAULT_MAX_EEPROM_SIZE_8K 0x2000
-#endif
 
 typedef unsigned int (*cam_cal_cmd_func) (struct i2c_client *client,
 	unsigned int addr, unsigned char *data, unsigned int size);

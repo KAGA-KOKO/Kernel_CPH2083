@@ -180,10 +180,11 @@ s32 ffsMountVol(struct super_block *sb)
 		sb_set_blocksize(sb, p_bd->sector_size);
 
 	/* read Sector 0 */
-	if (sector_read(sb, 0, &tmp_bh, 1) != FFS_SUCCESS)
+	if (sector_read(sb, 0, &tmp_bh, 1) != FFS_SUCCESS) {
 		return FFS_MEDIAERR;
+	}
 
-		p_fs->PBR_sector = 0;
+	p_fs->PBR_sector = 0;
 
 	p_pbr = (PBR_SECTOR_T *) tmp_bh->b_data;
 
@@ -1089,7 +1090,7 @@ s32 ffsGetStat(struct inode *inode, DIR_ENTRY_T *info)
 {
 	u32 sector = 0;
 	s32 count;
-	CHAIN_T dir;
+	CHAIN_T dir = {0};
 	UNI_NAME_T uni_name;
 	TIMESTAMP_T tm;
 	DENTRY_T *ep, *ep2;
@@ -1446,7 +1447,7 @@ s32 ffsReadDir(struct inode *inode, DIR_ENTRY_T *dir_entry)
 	int i, dentry, clu_offset;
 	s32 dentries_per_clu, dentries_per_clu_bits = 0;
 	u32 type, sector;
-	CHAIN_T dir, clu;
+	CHAIN_T dir = {0}, clu;
 	UNI_NAME_T uni_name;
 	TIMESTAMP_T tm;
 	DENTRY_T *ep;
@@ -2226,11 +2227,13 @@ s32 clr_alloc_bitmap(struct super_block *sb, u32 clu)
 {
 	int i, b;
 	u32 sector;
+#if 0
 #ifdef CONFIG_EXFAT_DISCARD
 	struct exfat_sb_info *sbi = EXFAT_SB(sb);
 	struct exfat_mount_options *opts = &sbi->options;
 	int ret;
 #endif /* CONFIG_EXFAT_DISCARD */
+#endif
 	FS_INFO_T *p_fs = &(EXFAT_SB(sb)->fs_info);
 	BD_INFO_T *p_bd = &(EXFAT_SB(sb)->bd_info);
 
@@ -2243,6 +2246,7 @@ s32 clr_alloc_bitmap(struct super_block *sb, u32 clu)
 
 	return sector_write(sb, sector, p_fs->vol_amap[i], 0);
 
+#if 0
 #ifdef CONFIG_EXFAT_DISCARD
 	if (opts->discard) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
@@ -2256,6 +2260,7 @@ s32 clr_alloc_bitmap(struct super_block *sb, u32 clu)
 		}
 	}
 #endif /* CONFIG_EXFAT_DISCARD */
+#endif
 } /* end of clr_alloc_bitmap */
 
 u32 test_alloc_bitmap(struct super_block *sb, u32 clu)
@@ -3842,8 +3847,8 @@ s32 exfat_find_dir_entry(struct super_block *sb, CHAIN_T *p_dir, UNI_NAME_T *p_u
 
 						if ((++order) == 2)
 							uniname = p_uniname->name;
-#ifndef VENDOR_EDIT
-/* Fuchun.Liao@BSP.CHG.Basic 2018/06/11 modify for uniname null pointer */
+#ifndef ODM_WT_EDIT
+/* Yanchao.Hu@BSP.Storage.Sdcard 2018/10/18 modify for uniname null pointer */
 						else
 							uniname += 15;
 #else
@@ -3851,7 +3856,7 @@ s32 exfat_find_dir_entry(struct super_block *sb, CHAIN_T *p_dir, UNI_NAME_T *p_u
 							return -2;
 						else
 							uniname += 15;
-#endif /* VENDOR_EDIT */
+#endif /* ODM_WT_EDIT */
 
 						len = extract_uni_name_from_name_entry(name_ep, entry_uniname, order);
 

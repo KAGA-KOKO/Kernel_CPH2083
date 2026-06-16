@@ -78,12 +78,12 @@
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 20190107 add notify_code*/
 #include <mt-plat/mtk_auxadc.h>
 
-#define BATTERY_ID_CHANNEL_NUM 3
-#define ATL_BATTERY_VOLTAGE_MAX	1100000
-#define ATL_BATTERY_VOLTAGE_MIN	820000
-#define SDI_BATTERY_VOLTAGE_MAX	550000
+#define BATTERY_ID_CHANNEL_NUM 2
+#define ATL_BATTERY_VOLTAGE_MAX	950000
+#define ATL_BATTERY_VOLTAGE_MIN	850000
+#define SDI_BATTERY_VOLTAGE_MAX	420000
 #define SDI_BATTERY_VOLTAGE_MIN	300000
-#define BATTERY_VOLTAGE_MAX		4550
+#define BATTERY_VOLTAGE_MAX		4500
 #define NTC_DISCONNECT -25
 #define JEITA_COUNT 2
 #endif /*ODM_HQ_EDIT*/
@@ -98,6 +98,7 @@ static int vchg_flag = 0, vchg_full_flag = 0, rechg_flag = 0;
 static int set_540cc_flag = 0, set_960cc_flag = 0;
 static bool des_vlot = false, cc_540 = false, cc_960 = false;
 static int notify_check = 0;
+static int last_backlight_state = -1;
 
 extern int full_status;
 extern unsigned int esd_recovery_backlight_level;
@@ -1053,7 +1054,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 			if (!des_vlot)
 				sw_jeita->cv = info->data.jeita_temp_t3_to_t4_cv;
 			charger_dev_recharger(info->chg1_dev, 0);
-			if (info->chr_type == STANDARD_HOST)
+			if (info->chr_type == STANDARD_HOST || info->chr_type == CHARGING_HOST)
 				sw_jeita->cc = info->data.jeita_temp_t1_to_t2_cc;
 			else {
 				if (vbat >= 4180 && (cc_540  || is_first))
@@ -1375,6 +1376,7 @@ static int mtk_charger_plug_in(struct charger_manager *info,
 	info->enable_dynamic_cv = true;
 	info->safety_timeout = false;
 	info->vbusov_stat = false;
+	last_backlight_state = -1;
 	chr_err("mtk_is_charger_on plug in, tyupe:%d\n", chr_type);
 	if (info->plug_in != NULL)
 		info->plug_in(info);
@@ -1740,18 +1742,18 @@ static void update_vchg_work(struct work_struct *work)
 	struct charger_device *chg_dev = get_charger_by_name("primary_chg");
 	if (info->chr_type != CHARGER_UNKNOWN) {
 		switch (info->sw_jeita.sm) {
-			case BATTERY_STATUS_COLD_TEMP: //-2 ~ 0
-				get_3_times_set_jeita(info, chg_dev, bat_volt, 4001, 3993, 300);
+			case BATTERY_STATUS_COLD_TEMP:
+				get_3_times_set_jeita(info, chg_dev, bat_volt, 4001, 3993, 200);
 				break;
-			case BATTERY_STATUS_LITTLE_COLD_TEMP: //0 ~5 
+			case BATTERY_STATUS_LITTLE_COLD_TEMP:
+				get_3_times_set_jeita(info, chg_dev, bat_volt, 4391, 4383, 100);
+				break;
+			case BATTERY_STATUS_LITTLE_COOL_TEMP:
+			case BATTERY_STATUS_NORMAL:
 				get_3_times_set_jeita(info, chg_dev, bat_volt, 4391, 4383, 200);
 				break;
-			case BATTERY_STATUS_LITTLE_COOL_TEMP: // 12 - 16
-			case BATTERY_STATUS_NORMAL:    // 16 - 44
-				get_3_times_set_jeita(info, chg_dev, bat_volt, 4391, 4383, 100);
-				break;
-			case BATTERY_STATUS_COOL_TEMP: //5 - 12 
-				get_3_times_set_jeita(info, chg_dev, bat_volt, 4391, 4383, 100);
+			case BATTERY_STATUS_COOL_TEMP:
+				get_3_times_set_jeita(info, chg_dev, bat_volt, 4391, 4383, 200);
 				if (info->chr_type != STANDARD_HOST) {
 					if (bat_volt >= 4180) {
 						set_540cc_flag++;
@@ -1778,7 +1780,7 @@ static void update_vchg_work(struct work_struct *work)
 					}
 				}
 				break;
-			case BATTERY_STATUS_WARM_TEMP: //44 -53 
+			case BATTERY_STATUS_WARM_TEMP:
 				get_3_times_set_jeita(info, chg_dev, bat_volt, 4098, 4093, 100);
 				break;
 		}
@@ -3013,7 +3015,7 @@ static ssize_t store_BatNotify(struct device *dev,
 
 	pr_debug("[Battery] store_BatteryNotify\n");
 	if (buf != NULL && size != 0) {
-		pr_debug("[Battery] buf is %s and size is %lu\n", buf, size);
+		pr_debug("[Battery] buf is %s and size is %Zu\n", buf, size);
 		ret = kstrtouint(buf, 16, &reg);
 		pinfo->notify_code = reg;
 		pr_debug("[Battery] store code: 0x%x\n", pinfo->notify_code);
@@ -3592,67 +3594,10 @@ aicl_end:
 	return;
 }
 
-#ifdef ODM_HQ_EDIT
-/*zhouyi@ODM.HQ.BSP.CHG.Basic 20191015 modify for charging*/
-int lcd_on_selecet_current(void)
-{
-	static int temp_normal = 0;
-	static int temp_warm = 0;
-	static int temp_hot = 0;
-	static int is_first = 1;
-	static int result;
-	int bat_temp;
-	bat_temp = battery_get_bat_temperature();
-	if (is_first == 1) {
-		is_first = 0;
-		if (bat_temp < 35) {
-			temp_normal += 1;
-			return result = CHARGER_CURRENT_LIMET_2000MA;
-		}
-		else if (bat_temp < 37) {
-			temp_warm += 1;
-			return result = CHARGER_CURRENT_LIMET_1500MA;
-		} else {
-			temp_hot += 1;
-			return result = CHARGER_CURRENT_LIMET_1200MA;
-		}
-	}
-
-	if (bat_temp > 37 ) {
-		temp_hot += 1;
-		temp_normal = 0;
-		temp_warm = 0;
-		if (temp_hot >= 4) {
-			temp_hot = 0;
-			result =  CHARGER_CURRENT_LIMET_1200MA;
-		}
-	} else if (bat_temp < 35) {
-		temp_normal += 1;
-		temp_hot = 0;
-		temp_warm = 0;
-		if (temp_normal >= 4) {
-			temp_normal = 0;
-			result =  CHARGER_CURRENT_LIMET_2000MA;
-		}
-	} else {
-		temp_warm += 1;
-		temp_normal = 0;
-		temp_hot = 0;
-		if (temp_warm >= 4) {
-			temp_warm = 0;
-			result =  CHARGER_CURRENT_LIMET_1500MA;
-		}
-	}
-	return result;
-}
-#endif /*ODM_HQ_EDIT*/
-
 static void vbus_check_work(struct work_struct *work)
 {
 	int vbus_vlot;
 	int bat_volt;
-	int lcd_on_current = CHARGER_CURRENT_LIMET_2000MA;
-	static int pre_lcd_on_current = -1;
 	static int vbus_state = 0;
 	static int vbat_state = 0;
 	struct charger_device *chg_dev = get_charger_by_name("primary_chg");
@@ -3699,15 +3644,14 @@ static void vbus_check_work(struct work_struct *work)
 		}
 	}
 
-	if (esd_recovery_backlight_level > 0 || call_mode == 1) {
-		lcd_on_current = lcd_on_selecet_current();
-		if (pre_lcd_on_current != lcd_on_current) {
-			input_current_aicl(4500);
-			pre_lcd_on_current =  lcd_on_current;
-		}
-		if (input_limit_level > lcd_on_current)
-			input_limit_level = lcd_on_current;
-	} else if (esd_recovery_backlight_level == 0 && call_mode == 0) {
+	if ((esd_recovery_backlight_level > 0 || call_mode == 1) && last_backlight_state != 1)
+	{
+		last_backlight_state = 1;
+		input_current_aicl(4500);
+		if (input_limit_level > CHARGER_CURRENT_LIMET_1200MA)
+			input_limit_level = CHARGER_CURRENT_LIMET_1200MA;
+	} else if (esd_recovery_backlight_level == 0 && call_mode == 0 && last_backlight_state != 0) {
+		last_backlight_state = 0;
 		input_current_aicl(4500);
 	}
 	charger_dev_set_input_current(chg_dev,cust_input_limit_current[input_limit_level]);

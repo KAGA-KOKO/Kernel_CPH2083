@@ -93,7 +93,7 @@ int usb_otg_set_vbus(int is_on)
 #ifdef VENDOR_EDIT
 /* Jianchao.Shi@BSP.CHG.Basic, 2018/12/03, sjc Modify for OTG */
 		charger_dev_set_boost_current_limit(g_info->primary_charger,
-			1100000);
+			1300000);
 #else
 		charger_dev_set_boost_current_limit(g_info->primary_charger,
 			1500000);
@@ -110,7 +110,7 @@ int usb_otg_set_vbus(int is_on)
 #ifdef VENDOR_EDIT
 /* Jianchao.Shi@BSP.CHG.Basic, 2018/12/03, sjc Modify for OTG */
 		charger_dev_set_boost_current_limit(g_info->primary_charger,
-			1100000);
+			1300000);
 #else
 		charger_dev_set_boost_current_limit(g_info->primary_charger,
 			1500000);

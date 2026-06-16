@@ -71,10 +71,6 @@
 #include "ccu_mva.h"
 #include "ccu_qos.h"
 
-//for mmdvfs
-#include <linux/pm_qos.h>
-#include <mmdvfs_pmqos.h>
-
 /*******************************************************************************
 *
 ********************************************************************************/
@@ -122,9 +118,6 @@ static irqreturn_t ccu_isr_callback_xxx(int irq, void *device_id)
 	return IRQ_HANDLED;
 }
 
-static struct pm_qos_request _ccu_qos_request;
-static u64 _g_freq_steps[MAX_FREQ_STEP];
-static u32 _step_size;
 
 static int ccu_probe(struct platform_device *dev);
 
@@ -714,17 +707,12 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 					IrqInfo.EventInfo.St_type,
 					IrqInfo.EventInfo.Status);
 
-				if ((IrqInfo.bDumpReg >=
-						IMGSENSOR_SENSOR_IDX_MIN_NUM) &&
-					(IrqInfo.bDumpReg <
-						IMGSENSOR_SENSOR_IDX_MAX_NUM)) {
-					ret = ccu_AFwaitirq(
-						&IrqInfo, IrqInfo.bDumpReg);
-				} else {
-					LOG_DBG_MUST(
-						"unknown sensorIdx(%d)(CCU_IOCTL_WAIT_AF_IRQ)\n",
-						IrqInfo.bDumpReg);
-					ret = -EFAULT;
+				if (IrqInfo.bDumpReg == CCU_CAM_TG_1)
+					ret = ccu_AFwaitirq(&IrqInfo, CCU_CAM_TG_1);
+				else if (IrqInfo.bDumpReg == CCU_CAM_TG_2)
+					ret = ccu_AFwaitirq(&IrqInfo, CCU_CAM_TG_2);
+				else {
+					LOG_ERR("invalid CCU_CAM_TG:%d\n", IrqInfo.bDumpReg);
 					goto EXIT;
 				}
 
@@ -763,28 +751,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 			ccu_qos_update_req(&ccu_bw[0]);
 			ret = copy_to_user((void *)arg, &ccu_bw,
 				sizeof(uint32_t) * 3);
-			break;
-		}
-	case CCU_IOCTL_UPDATE_CAM_FREQ_REQUEST:
-		{
-			uint32_t freq_level;
-
-			ret = copy_from_user(&freq_level,
-				(void *)arg, sizeof(uint32_t));
-
-			LOG_DBG_MUST("request freq level: %d\n", freq_level);
-
-			if (freq_level == CCU_REQ_CAM_FREQ_NONE)
-				pm_qos_update_request(&_ccu_qos_request, 0);
-			else
-				pm_qos_update_request(&_ccu_qos_request,
-					_g_freq_steps[freq_level]);
-
-			//use pm_qos_request to get
-			//current freq setting
-			LOG_DBG_MUST("current freq: %d\n",
-				pm_qos_request(PM_QOS_CAM_FREQ));
-
 			break;
 		}
 	case CCU_IOCTL_GET_I2C_DMA_BUF_ADDR:
@@ -831,68 +797,51 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 		}
 	case CCU_IOCTL_GET_SENSOR_I2C_SLAVE_ADDR:
 		{
-			int32_t sensorI2cSlaveAddr[5];
+			int32_t sensorI2cSlaveAddr[3];
 
 			ccu_get_sensor_i2c_slave_addr(&sensorI2cSlaveAddr[0]);
 
-			ret = copy_to_user((void *)arg,
-				&sensorI2cSlaveAddr, sizeof(int32_t) * 5);
+			ret = copy_to_user((void *)arg, &sensorI2cSlaveAddr, sizeof(int32_t) * 3);
 
 			break;
 		}
 
 	case CCU_IOCTL_GET_SENSOR_NAME:
-	{
-		#define SENSOR_NAME_MAX_LEN 32
-		char *sensor_names[5];
+		{
+			#define SENSOR_NAME_MAX_LEN 32
 
-		ccu_get_sensor_name(sensor_names);
-		if (sensor_names[0] != NULL) {
-			ret = copy_to_user((char *)arg,
-				sensor_names[0], strlen(sensor_names[0])+1);
-			if (ret != 0) {
-				LOG_ERR("copy_to_user 1 failed: %d\n", ret);
-				break;
-			}
-		}
+			char *sensor_names[3];
 
-		if (sensor_names[1] != NULL) {
-			ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN),
-				sensor_names[1], strlen(sensor_names[1])+1);
-			if (ret != 0) {
-				LOG_ERR("copy_to_user 2 failed: %d\n", ret);
-				break;
-			}
-		}
+			ccu_get_sensor_name(sensor_names);
 
-		if (sensor_names[2] != NULL) {
-			ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN*2),
-				sensor_names[2], strlen(sensor_names[2])+1);
-			if (ret != 0) {
-				LOG_ERR("copy_to_user 3 failed: %d\n", ret);
-				break;
+			if (sensor_names[0] != NULL) {
+				ret = copy_to_user((char *)arg, sensor_names[0], strlen(sensor_names[0])+1);
+				if (ret != 0) {
+					LOG_ERR("copy_to_user 1 failed: %d\n", ret);
+					break;
+				}
 			}
-		}
 
-		if (sensor_names[3] != NULL) {
-			ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN*3),
-				sensor_names[3], strlen(sensor_names[3])+1);
-			if (ret != 0) {
-				LOG_ERR("copy_to_user 4 failed: %d\n", ret);
-				break;
+			if (sensor_names[1] != NULL) {
+				ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN),
+					sensor_names[1], strlen(sensor_names[1])+1);
+				if (ret != 0) {
+					LOG_ERR("copy_to_user 2 failed: %d\n", ret);
+					break;
+				}
 			}
-		}
 
-		if (sensor_names[4] != NULL) {
-			ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN*4),
-				sensor_names[4], strlen(sensor_names[4])+1);
-			if (ret != 0) {
-				LOG_ERR("copy_to_user 4 failed: %d\n", ret);
-				break;
+			if (sensor_names[2] != NULL) {
+				ret = copy_to_user(((char *)arg+SENSOR_NAME_MAX_LEN*2),
+					sensor_names[2], strlen(sensor_names[2])+1);
+				if (ret != 0) {
+					LOG_ERR("copy_to_user 3 failed: %d\n", ret);
+					break;
+				}
 			}
-		}
-		#undef SENSOR_NAME_MAX_LEN
-		break;
+
+			#undef SENSOR_NAME_MAX_LEN
+			break;
 	}
 
 	case CCU_READ_REGISTER:
@@ -1259,7 +1208,7 @@ static int ccu_probe(struct platform_device *pdev)
 				goto EXIT;
 
 			/*allocate dma buffer for i2c*/
-			if (dma_set_mask(g_ccu_device->dev, DMA_BIT_MASK(36))) {
+			if (dma_set_mask(g_ccu_device->dev, DMA_BIT_MASK(33))) {
 				LOG_DERR(g_ccu_device->dev, "dma_set_mask return error.");
 				goto EXIT;
 			}
@@ -1347,9 +1296,6 @@ static int ccu_resume(struct platform_device *pdev)
 static int __init CCU_INIT(void)
 {
 	int ret = 0;
-
-	int result = 0;
-
 	/*struct device_node *node = NULL;*/
 
 	g_ccu_device = kzalloc(sizeof(struct ccu_device_s), GFP_KERNEL);
@@ -1368,28 +1314,12 @@ static int __init CCU_INIT(void)
 
 	LOG_DBG("platform_driver_register finsish\n");
 
-	//Call pm_qos_add_request when
-	//initialize module or driver prob
-	pm_qos_add_request(&_ccu_qos_request,
-		PM_QOS_CAM_FREQ, PM_QOS_MM_FREQ_DEFAULT_VALUE);
-
-	//Call mmdvfs_qos_get_freq_steps
-	//to get supported frequency
-	result = mmdvfs_qos_get_freq_steps(PM_QOS_CAM_FREQ,
-		_g_freq_steps, &_step_size);
-
-	if (result < 0)
-		LOG_ERR("get MMDVFS freq steps failed, result: %d\n", result);
-
 	return ret;
 }
 
 
 static void __exit CCU_EXIT(void)
 {
-	//Call pm_qos_remove_request when
-	//de-initialize module or driver remove
-	pm_qos_remove_request(&_ccu_qos_request);
 	platform_driver_unregister(&ccu_driver);
 	kfree(g_ccu_device);
 }

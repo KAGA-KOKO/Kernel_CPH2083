@@ -32,7 +32,10 @@ obj-y += ../common/$(COMMON_VERSION)/eeprom_i2c_common_driver.o
 # Platform code
 obj-y += eeprom_i2c_custom_driver.o
 
+# ifdef ODM_HQ_EDIT
+# Yankun.Zhai@ODM_HQ.Multimedia.camera, 2018/12/7, add  for camera bring up
 obj-y += otp_insensor_dev.o
+# endif
 
 define INC_CUSTOM_SRC
 ifeq ($(wildcard $(CAM_CAL_PLATFORM_SRC_PATH)/camera_project/$(ARCH_MTK_PROJECT)/$(1).c),)

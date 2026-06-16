@@ -1182,26 +1182,6 @@ void zap_page_range(struct vm_area_struct *vma, unsigned long address,
 		unsigned long size, struct zap_details *);
 void unmap_vmas(struct mmu_gather *tlb, struct vm_area_struct *start_vma,
 		unsigned long start, unsigned long end);
-/*
- * This has to be called after a get_task_mm()/mmget_not_zero()
- * followed by taking the mmap_sem for writing before modifying the
- * vmas or anything the coredump pretends not to change from under it.
- *
- * NOTE: find_extend_vma() called from GUP context is the only place
- * that can modify the "mm" (notably the vm_start/end) under mmap_sem
- * for reading and outside the context of the process, so it is also
- * the only case that holds the mmap_sem for reading that must call
- * this function. Generally if the mmap_sem is hold for reading
- * there's no need of this check after get_task_mm()/mmget_not_zero().
- *
- * This function can be obsoleted and the check can be removed, after
- * the coredump code will hold the mmap_sem for writing before
- * invoking the ->core_dump methods.
- */
-static inline bool mmget_still_valid(struct mm_struct *mm)
-{
-	return likely(!mm->core_state);
-}
 
 /**
  * mm_walk - callbacks for walk_page_range
@@ -1916,7 +1896,6 @@ extern void set_dma_reserve(unsigned long new_dma_reserve);
 extern void memmap_init_zone(unsigned long, int, unsigned long,
 				unsigned long, enum memmap_context);
 extern void setup_per_zone_wmarks(void);
-extern void update_kswapd_threads(void);
 extern int __meminit init_per_zone_wmark_min(void);
 extern void mem_init(void);
 extern void __init mmap_init(void);
@@ -1937,7 +1916,6 @@ extern void zone_pcp_update(struct zone *zone);
 extern void zone_pcp_reset(struct zone *zone);
 
 /* page_alloc.c */
-extern int kswapd_threads;
 extern int min_free_kbytes;
 extern int watermark_scale_factor;
 
@@ -2124,7 +2102,7 @@ void task_dirty_inc(struct task_struct *tsk);
 
 /* readahead.c */
 #ifndef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2017/05/19, sjc Modify for increasing the default max readahead to speed-up reading */
+/* Yichun.Chen  PSW.BSP.CHG  2018-12-24  checklist for increase default max readahead */
 #define VM_MAX_READAHEAD	128	/* kbytes */
 #else
 #define VM_MAX_READAHEAD	512	/* kbytes */
@@ -2495,48 +2473,6 @@ void __init setup_nr_node_ids(void);
 #else
 static inline void setup_nr_node_ids(void) {}
 #endif
-
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM)
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-07,
- * add process reclaim parameters */
-struct reclaim_param {
-	struct vm_area_struct *vma;
-	/* Number of pages scanned */
-	int nr_scanned;
-	/* max pages to reclaim */
-	int nr_to_reclaim;
-	/* pages reclaimed */
-	int nr_reclaimed;
-#if defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-	/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-07,
-	 * flag that relcaim inactive pages only */
-	bool inactive_lru;
-#endif
-	/* robin.ren@PSW.BSP.Kernel.Performance, 2019-03-13,
-	 * the target reclaimed process
-	 */
-	struct task_struct *reclaimed_task;
-};
-
-/* Kui.Zhang@PSW.BSP.Kernel.Performance, 2019-01-01,
- * Extract the reclaim core code from task_mmu.c for /proc/process_reclaim*/
-extern ssize_t reclaim_task_write(struct task_struct *task,
-		char *buffer);
-
-#ifdef CONFIG_OPPO_SPECIAL_BUILD
-extern int reclaim_info_show(struct seq_file *s, void *unused);
-#endif
-
-#define PR_PASS		0
-#define PR_SEM_OUT	1
-#define PR_TASK_FG	2
-#define PR_TIME_OUT	3
-#define PR_ADDR_OVER	4
-#define PR_FULL		5
-#define PR_TASK_RUN	6
-#define PR_TASK_DIE	7
-#endif /* VENDOR_EDIT && CONFIG_PROCESS_RECLAIM */
-
 
 #endif /* __KERNEL__ */
 #endif /* _LINUX_MM_H */

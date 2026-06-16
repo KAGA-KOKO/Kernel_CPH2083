@@ -124,10 +124,7 @@ struct compat_biometric_threshold {
 #define ALSPS_GET_PS_THRESHOLD_LOW _IOR(ALSPS, 0x0C, int)
 #define ALSPS_IOCTL_CLR_CALI _IOW(ALSPS, 0x0F, int)
 #define ALSPS_IOCTL_GET_CALI _IOR(ALSPS, 0x10, int)
-#ifdef VENDOR_EDIT
-/*Yan.Chen@PSW.BSP.sensor,2018/12/10,modified 0x11-- 0x77*/
-#define ALSPS_IOCTL_SET_CALI _IOW(ALSPS, 0x77, int)
-#endif
+#define ALSPS_IOCTL_SET_CALI _IOW(ALSPS, 0x11, int)
 #define ALSPS_SET_PS_THRESHOLD _IOW(ALSPS, 0x12, int)
 #define AAL_SET_ALS_MODE _IOW(ALSPS, 0x14, int)
 #define AAL_GET_ALS_MODE _IOR(ALSPS, 0x15, int)
@@ -136,10 +133,6 @@ struct compat_biometric_threshold {
 #define ALSPS_PS_ENABLE_CALI _IO(ALSPS, 0x18)
 #define ALSPS_IOCTL_ALS_GET_CALI _IOW(ALSPS, 0x19, int)
 #define ALSPS_ALS_SET_CALI _IOW(ALSPS, 0x20, int)
-#ifdef VENDOR_EDIT
-/* Weiqin.Tang@PSW.BSP.Sensor, 2020/1/2, add for set factory flag to scp */
-#define ALSPS_SET_FACTORY_FLAG _IOW(ALSPS, 0xFE, int)
-#endif
 
 #ifdef CONFIG_COMPAT
 #define COMPAT_ALSPS_SET_PS_MODE _IOW(ALSPS, 0x01, compat_int_t)

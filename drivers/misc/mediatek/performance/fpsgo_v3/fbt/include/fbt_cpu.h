@@ -25,6 +25,14 @@ void fpsgo_ctrl2fbt_cpufreq_cb(int cid, unsigned long freq);
 void fpsgo_ctrl2fbt_vsync(void);
 void fpsgo_comp2fbt_frame_start(struct render_info *thr,
 		unsigned long long ts);
+void fpsgo_comp2fbt_frame_complete(struct render_info *thr,
+		unsigned long long ts);
+void fpsgo_comp2fbt_enq_start(struct render_info *thr,
+		unsigned long long ts);
+void fpsgo_comp2fbt_enq_end(struct render_info *thr,
+		unsigned long long ts);
+void fpsgo_comp2fbt_deq_start(struct render_info *thr,
+		unsigned long long ts);
 void fpsgo_comp2fbt_deq_end(struct render_info *thr,
 		unsigned long long ts);
 
@@ -55,6 +63,14 @@ static inline void fpsgo_ctrl2fbt_cpufreq_cb(int cid,
 static inline void fpsgo_ctrl2fbt_vsync(void) { }
 static inline void fpsgo_comp2fbt_frame_start(struct render_info *thr,
 	unsigned long long ts) { }
+static inline void fpsgo_comp2fbt_frame_complete(struct render_info *thr,
+		unsigned long long ts) { }
+static inline void fpsgo_comp2fbt_enq_start(struct render_info *thr,
+		unsigned long long ts) { }
+static inline void fpsgo_comp2fbt_enq_end(struct render_info *thr,
+		unsigned long long ts) { }
+static inline void fpsgo_comp2fbt_deq_start(struct render_info *thr,
+		unsigned long long ts) { }
 static inline void fpsgo_comp2fbt_deq_end(struct render_info *thr,
 		unsigned long long ts) { }
 

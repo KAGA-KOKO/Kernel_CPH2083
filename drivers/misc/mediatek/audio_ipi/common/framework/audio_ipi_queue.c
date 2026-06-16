@@ -13,7 +13,7 @@
 
 #include "audio_ipi_queue.h"
 
-#include <linux/vmalloc.h>
+#include <linux/slab.h>         /* needed by kmalloc */
 
 #include <linux/kthread.h>
 #include <linux/wait.h>
@@ -80,7 +80,6 @@ struct msg_queue_t {
 	spinlock_t rw_lock;
 
 	struct ipi_msg_t ipi_msg_ack;
-	spinlock_t ack_lock;
 
 	bool enable;
 };
@@ -177,7 +176,7 @@ static struct msg_queue_t *create_msg_queue(const uint8_t task_scene)
 	int i = 0;
 
 	/* malloc */
-	msg_queue = vmalloc(sizeof(struct msg_queue_t));
+	msg_queue = kmalloc(sizeof(struct msg_queue_t), GFP_KERNEL);
 	if (msg_queue == NULL)
 		return NULL;
 
@@ -194,7 +193,6 @@ static struct msg_queue_t *create_msg_queue(const uint8_t task_scene)
 	msg_queue->idx_w = 0;
 
 	spin_lock_init(&msg_queue->rw_lock);
-	spin_lock_init(&msg_queue->ack_lock);
 
 	memset(&msg_queue->ipi_msg_ack, 0, sizeof(struct ipi_msg_t));
 
@@ -215,7 +213,7 @@ void destroy_msg_queue(struct msg_queue_t *msg_queue)
 	AUD_ASSERT(check_queue_empty(msg_queue));
 
 	/* free */
-	vfree(msg_queue);
+	kfree(msg_queue);
 	msg_queue = NULL;
 }
 
@@ -322,7 +320,7 @@ int send_message(
 	int retval = 0;
 
 	uint32_t try_cnt = 0;
-	const uint32_t k_max_try_cnt = 100; /* retry 1 sec for -ERESTARTSYS */
+	const uint32_t k_max_try_cnt = 200; /* retry 2 sec for -ERESTARTSYS */
 	const uint32_t k_restart_sleep_min_us = 10 * 1000; /* 10 ms */
 	const uint32_t k_restart_sleep_max_us = (k_restart_sleep_min_us + 200);
 
@@ -444,7 +442,6 @@ int send_message_ack(
 {
 	struct msg_queue_t *msg_queue = NULL;
 	uint8_t task_scene = 0xFF;
-	unsigned long flags = 0;
 
 	/* error handling */
 	if (handler == NULL) {
@@ -475,19 +472,16 @@ int send_message_ack(
 
 
 	/* get msg ack & wake up queue */
-	spin_lock_irqsave(&msg_queue->ack_lock, flags);
 	if (msg_queue->ipi_msg_ack.magic != 0) {
 		DUMP_IPI_MSG("previous ack not clean", &msg_queue->ipi_msg_ack);
 		DUMP_IPI_MSG("new ack", p_ipi_msg_ack);
 		AUD_ASSERT(0);
 	}
-
 	memcpy(&msg_queue->ipi_msg_ack,
 	       p_ipi_msg_ack,
 	       sizeof(struct ipi_msg_t));
 	dsb(SY);
 	wake_up_interruptible(&msg_queue->element[msg_queue->idx_r].wq);
-	spin_unlock_irqrestore(&msg_queue->ack_lock, flags);
 
 	return 0;
 }
@@ -506,7 +500,7 @@ static int process_message_in_queue(
 
 	uint32_t try_cnt = 0;
 	const uint32_t k_wait_ms = 10; /* 10 ms */
-	const uint32_t k_max_try_cnt = 100; /* retry 1 sec for -ERESTARTSYS */
+	const uint32_t k_max_try_cnt = 300; /* retry 3 sec for -ERESTARTSYS */
 	const uint32_t k_restart_sleep_min_us = k_wait_ms * 1000;
 	const uint32_t k_restart_sleep_max_us = (k_restart_sleep_min_us + 200);
 
@@ -629,20 +623,17 @@ static int process_message_in_queue(
 		}
 
 		/* should be in pair */
-		spin_lock_irqsave(&msg_queue->ack_lock, flags);
 		if (!check_ack_msg_valid(p_ipi_msg, p_ack)) {
 			DUMP_IPI_MSG("ack not pair", p_ipi_msg);
 			DUMP_IPI_MSG("ack not pair", p_ack);
 			memset(p_ack, 0, sizeof(struct ipi_msg_t));
 			retval = -1;
-			spin_unlock_irqrestore(&msg_queue->ack_lock, flags);
 			AUD_ASSERT(0);
 			break;
 		}
 
 		memcpy(p_ipi_msg, p_ack, sizeof(struct ipi_msg_t));
 		memset(p_ack, 0, sizeof(struct ipi_msg_t));
-		spin_unlock_irqrestore(&msg_queue->ack_lock, flags);
 		retval = 0;
 		break;
 	}

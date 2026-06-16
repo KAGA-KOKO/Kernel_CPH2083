@@ -1,20 +1,19 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <soc/oppo/mmkey_log.h>
-#include <criticallog_class.h>
+#include <linux/switch.h>
 #include <linux/kthread.h>
 #include <linux/wait.h>
 
 //John.Xu@PhoneSw.AudioDriver.OppoDebug.CriticalLog, 2016/02/22, Add for critical_log
+
 static int keylog_registered = 0;
-static struct criticallog_dev keylog_swthdev;
+static struct switch_dev keylog_swthdev;
 static wait_queue_head_t keylog_thread_wq;
 static struct task_struct *keylog_thread_task = NULL;
 
 #define KEYLOG_BUF_MAX 5
-//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
-//Add for monitor modem crash
-#define LOGNAME_BUF_LEN 2148
+#define LOGNAME_BUF_LEN 512
 
 struct keylog_data{
     char buf[LOGNAME_BUF_LEN];
@@ -43,25 +42,10 @@ void mm_keylog_write(const char *logmessage, const char *cause, int id) {
    }
 }
 
-void mm_keylog_write_modemdump(unsigned int hashId, const char *cause, int id) {
-   if(keylog_thread_task && keylog_registered){
-        struct keylog_data * keylog_data;
-        spin_lock(&gKeylog_buf.keylog_lock);
-        keylog_data = &gKeylog_buf.data[gKeylog_buf.index_write%KEYLOG_BUF_MAX];
-        snprintf(keylog_data->buf, LOGNAME_BUF_LEN,"fid:%u;cause:%s\n", hashId, cause);
-        keylog_data->id = id;
-        gKeylog_buf.index_write++;
-        spin_unlock(&gKeylog_buf.keylog_lock);
-        wake_up_interruptible(&keylog_thread_wq);
-   }
-}
-
 EXPORT_SYMBOL_GPL(mm_keylog_write);
-EXPORT_SYMBOL_GPL(mm_keylog_write_modemdump);
 
-static ssize_t mm_keylog_printname(struct criticallog_dev *sdev, char *buf) {
-    struct keylog_data *keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
-    pr_err("name = %s\n", keylog_data->buf);
+static ssize_t mm_keylog_printname(struct switch_dev *sdev, char *buf) {
+    struct keylog_data	*keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
     return snprintf(buf, LOGNAME_BUF_LEN,"%s", keylog_data->buf);
 }
 
@@ -69,10 +53,10 @@ static int keylog_thread(void *data){
     while(1){
         wait_event_interruptible(keylog_thread_wq, (gKeylog_buf.index_write - gKeylog_buf.index_read));
         while(gKeylog_buf.index_write > gKeylog_buf.index_read){
-            struct keylog_data *keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
+            struct keylog_data	*keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
             pr_err("logname lenth = %d\n", (int)strlen(keylog_data->buf));
-            criticallog_set_state(&keylog_swthdev, keylog_data->id);
-            criticallog_set_state(&keylog_swthdev, -keylog_data->id);
+            switch_set_state(&keylog_swthdev, keylog_data->id);
+            switch_set_state(&keylog_swthdev, -keylog_data->id);
             gKeylog_buf.index_read++;
         }
     }
@@ -87,7 +71,7 @@ static int __init oppo_criticallog_init(void)
     init_waitqueue_head(&keylog_thread_wq);
     keylog_swthdev.name = "oppo_critical_log";
     keylog_swthdev.print_name = mm_keylog_printname;
-    ret = criticallog_dev_register(&keylog_swthdev);
+    ret = switch_dev_register(&keylog_swthdev);
     if(ret){
         goto keylog_err;
     }
@@ -103,7 +87,7 @@ static int __init oppo_criticallog_init(void)
     wake_up_process(keylog_thread_task);
     return 0;
 keylog_err:
-    criticallog_dev_unregister(&keylog_swthdev);
+    switch_dev_unregister(&keylog_swthdev);
     keylog_registered = 0;
     return ret;
 }

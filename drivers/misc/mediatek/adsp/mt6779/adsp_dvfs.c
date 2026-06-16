@@ -1124,6 +1124,8 @@ void adsp_sw_reset(void)
 	writel(0, ADSP_A_REBOOT);
 	spin_unlock_irqrestore(&adsp_sw_reset_spinlock, flags);
 	mutex_unlock(&adsp_sw_reset_mutex);
+
+	pr_debug("ADSP_A_REBOOT=%x", readl(ADSP_A_REBOOT));
 }
 
 void adsp_release_runstall(uint32_t release)

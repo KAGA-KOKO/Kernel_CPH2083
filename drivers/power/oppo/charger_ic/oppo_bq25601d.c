@@ -78,9 +78,6 @@ void (*enable_aggressive_segmentation_fn)(bool);
 
 #endif
 
-#include <linux/gpio.h>
-#include <linux/of_gpio.h>
-
 #include "../oppo_vooc.h"
 #include "../oppo_gauge.h"
 #include <oppo_bq25601d.h>
@@ -1278,8 +1275,10 @@ extern void Charger_Detect_Release(void);
 extern bool is_usb_rdy(void);
 static void hw_bc12_init(void)
 {
-	int timeout = 350;
+	int timeout = 40;
 	static bool first_connect = true;
+
+	msleep(400);
 
 	if (first_connect == true) {
 		/* add make sure USB Ready */
@@ -1604,50 +1603,12 @@ static irqreturn_t bq25601d_irq_handler_fn(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int bq25601d_parse_dts(void)
-{
-	int ret = 0;
-	struct chip_bq25601d *chip = charger_ic;
-
-	if (!chip) {
-		chg_err("chip is NULL\n");
-		return -1;
-	}
-
-	chip->irq_gpio = of_get_named_gpio(chip->client->dev.of_node, "chg-irq-gpio", 0);
-	if (chip->irq_gpio <= 0) {
-		chg_err("Couldn't read chg-irq-gpio:%d\n", chip->irq_gpio);
-		return -1;
-	} else {
-		if (gpio_is_valid(chip->irq_gpio)) {
-			ret = gpio_request(chip->irq_gpio, "chg-irq-gpio");
-			if (ret) {
-				chg_err("unable to request chg-irq-gpio[%d]\n", chip->irq_gpio);
-				chip->irq_gpio = -EINVAL;
-			} else {
-				gpio_direction_input(chip->irq_gpio);
-			}
-		} else {
-			chg_err("gpio_is_valid fail chg-irq-gpio[%d]\n", chip->irq_gpio);
-			chip->irq_gpio = -EINVAL;
-			return -1;
-		}
-	}
-	chg_err("chg-irq-gpio[%d]\n", chip->irq_gpio);
-	return ret;
-}
-
 static int bq25601d_irq_registration(void)
 {
 	int ret = 0;
 	struct chip_bq25601d *chip = charger_ic;
 
-	if (chip->irq_gpio <= 0) {
-		chg_err("chip->irq_gpio fail\n");
-		return -1;
-	}
-
-	ret = request_threaded_irq(gpio_to_irq(chip->irq_gpio), NULL,
+	ret = request_threaded_irq(chip->client->irq, NULL,
 			bq25601d_irq_handler_fn,
 			IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
 			"BQ25601D-eint", chip);
@@ -1690,7 +1651,6 @@ static int bq25601d_driver_probe(struct i2c_client *client, const struct i2c_dev
 	charger_ic_flag = 2;
 	
 	INIT_DELAYED_WORK(&bq25601d_irq_delay_work, do_bq25601d_irq_delay_work);
-	bq25601d_parse_dts();
 	bq25601d_irq_registration();
 	atomic_set(&chip->charger_suspended, 0);
 

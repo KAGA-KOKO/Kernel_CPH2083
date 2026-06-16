@@ -13,12 +13,7 @@
 
 # drivers/video/mtk/Makefile
 #
-#ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2019/2/21,  for enable KASAN, use GCC complile tool, add flag format
-ifeq ($(CONFIG_KASAN),y)
-subdir-ccflags-y += -Wno-format
-endif
-#endif /*VENDOR_EDIT*/
+
 obj-$(CONFIG_MTK_FB) += mtkfb_console.o		\
 			disp_assert_layer.o	\
 			mtkfb.o			\
@@ -37,8 +32,6 @@ obj-$(CONFIG_MTK_FB) += mtkfb_console.o		\
 			disp_dts_gpio.o		\
 			disp_rect.o		\
 			disp_arr.o		\
-			oppo_display_private_api.o \
-			oppo_mm_kevent_fb.o \
 			disp_partial.o		\
 			mtk_ovl.o		\
 			layering_rule.o		\

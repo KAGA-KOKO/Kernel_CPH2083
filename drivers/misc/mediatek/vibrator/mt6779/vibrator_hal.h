@@ -15,7 +15,3 @@ void vibr_Enable_HW(void);
 void vibr_Disable_HW(void);
 void vibr_power_set(void);
 struct vibrator_hw *mt_get_cust_vibrator_hw(void);
-#ifdef VENDOR_EDIT
-/*Fei.Mo@EXP.BSP.Sensor, 2017/06/13, Add for solve vibrator noise in gsensor*/
-extern void register_vibrator_notify(void (*notify)(int));
-#endif /* VENDOR_EDIT */

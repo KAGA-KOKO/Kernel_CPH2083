@@ -39,9 +39,6 @@ enum IMGSENSOR_MODE {
 	IMGSENSOR_MODE_SLIM_VIDEO,
 	IMGSENSOR_MODE_CUSTOM1,
 	IMGSENSOR_MODE_CUSTOM2,
-	IMGSENSOR_MODE_CUSTOM3,
-	IMGSENSOR_MODE_CUSTOM4,
-	IMGSENSOR_MODE_CUSTOM5,
 };
 
 struct imgsensor_mode_struct {
@@ -89,15 +86,12 @@ struct imgsensor_struct {
 	kal_uint8 ihdr_mode; /* ihdr enable or disable */
 	kal_uint8 pdaf_mode; /* ihdr enable or disable */
 	kal_uint8 i2c_write_id; /* record current sensor's i2c write id */
+	kal_uint8 AE_binning_type;
 };
 
 /* SENSOR PRIVATE STRUCT FOR CONSTANT*/
 struct imgsensor_info_struct {
 	kal_uint32 sensor_id; /* record sensor id defined in Kd_imgsensor.h */
-	#ifdef VENDOR_EDIT
-	/*Caohua.Lin@Camera.Driver add for 18011/18311	board 20180723*/
-	kal_uint16 module_id;
-	#endif
 	kal_uint32 checksum_value; /* checksum value for Camera Auto Test */
 	struct imgsensor_mode_struct pre;
 	struct imgsensor_mode_struct cap;
@@ -106,9 +100,6 @@ struct imgsensor_info_struct {
 	struct imgsensor_mode_struct slim_video;
 	struct imgsensor_mode_struct custom1;
 	struct imgsensor_mode_struct custom2;
-	struct imgsensor_mode_struct custom3;
-	struct imgsensor_mode_struct custom4;
-	struct imgsensor_mode_struct custom5;
 
 	kal_uint8 ae_shut_delay_frame; /* shutter delay frame for AE cycle */
 	kal_uint8 ae_sensor_gain_delay_frame;
@@ -125,9 +116,6 @@ struct imgsensor_info_struct {
 	kal_uint8 slim_video_delay_frame; /* enter slim video delay frame num */
 	kal_uint8 custom1_delay_frame; /* enter custom1 delay frame num */
 	kal_uint8 custom2_delay_frame; /* enter custom2 delay frame num */
-	kal_uint8 custom3_delay_frame; /* enter custom3 delay frame num */
-	kal_uint8 custom4_delay_frame; /* enter custom4 delay frame num */
-	kal_uint8 custom5_delay_frame; /* enter custom4 delay frame num */
 	kal_uint8  frame_time_delay_frame;
 	kal_uint8 margin; /* sensor framelength & shutter margin */
 	kal_uint32 min_shutter; /* min shutter */
@@ -170,6 +158,4 @@ extern int iWriteReg(u16 a_u2Addr, u32 a_u4Data, u32 a_u4Bytes, u16 i2cId);
 extern void kdSetI2CSpeed(u16 i2cSpeed);
 extern int iBurstWriteReg_multi(u8 *pData, u32 bytes, u16 i2cId,
 				u16 transfer_length, u16 timing);
-extern int iBurstWriteReg(u8 *pData, u32 bytes, u16 i2cId);
-
 #endif

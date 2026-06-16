@@ -126,7 +126,6 @@ struct m4u_buf_info_t {
 	int seq_id;
 	unsigned long mapped_kernel_va_for_debug;
 	unsigned int domain_idx;
-	unsigned long long current_ts;
 };
 
 struct M4U_MAU_STRUCT {
@@ -173,7 +172,7 @@ int check_reserved_region_integrity(unsigned int domain_idx,
 /* ==== define in m4u_pgtable.c===== */
 void m4u_dump_pgtable(struct m4u_domain_t *domain,
 			struct seq_file *seq);
-int m4u_dump_pte_nolock(struct m4u_domain_t *domain,
+void m4u_dump_pte_nolock(struct m4u_domain_t *domain,
 				unsigned int mva);
 void m4u_dump_pte(struct m4u_domain_t *domain,
 			unsigned int mva);

@@ -83,9 +83,6 @@ void (*enable_aggressive_segmentation_fn)(bool);
 
 #endif
 
-#include <linux/gpio.h>
-#include <linux/of_gpio.h>
-
 #include "../oppo_vooc.h"
 #include "../oppo_gauge.h"
 #include <oppo_bq25890h.h>
@@ -256,14 +253,13 @@ static int bq25890h_input_current_limit_write(int value)
 	int aicl_point_temp = 0;
 	int chg_vol_all[10] = {0};
 	static int low_chg_vol_flag = 0;
-/*
 	if(bq25890h_registers_read_full()) {
 		bq25890h_config_interface(charger_ic, REG00_BQ25890H_ADDRESS, REG00_BQ25890H_INPUT_CURRENT_LIMIT_400MA, REG00_BQ25890H_INPUT_CURRENT_LIMIT_MASK);
 		bq25890h_dump_registers();
 		printk("bq25890h_input_current_limit_write\n");
 		return 0;
 	}
-
+	/*
 	if(charger_ic->charging_state == CHARGING_STATUS_FULL && charger_ic->in_rechging == false){
 		bq25890h_config_interface(charger_ic, REG00_BQ25890H_ADDRESS, REG00_BQ25890H_INPUT_CURRENT_LIMIT_400MA, REG00_BQ25890H_INPUT_CURRENT_LIMIT_MASK);
 		bq25890h_dump_registers();
@@ -1385,16 +1381,16 @@ extern void Charger_Detect_Release(void);
 extern bool is_usb_rdy(void);
 static void hw_bc12_init(void)
 {
-	int timeout = 350;
+	int timeout = 40;
 	static bool first_connect = true;
+
+	msleep(400);
 
 	if (first_connect == true) {
 		/* add make sure USB Ready */
 		if (is_usb_rdy() == false) {
 			pr_err("CDP, block\n");
-			while ((is_usb_rdy() == false && timeout > 0)
-					/*keep "Ibus < 200mA" for 1s, so vooc/svooc adapter go into idle and release D+*/
-					|| (is_usb_rdy() == true && timeout > 340)) {
+			while (is_usb_rdy() == false && timeout > 0) {
 				msleep(100);
 				timeout--;
 			}
@@ -1446,7 +1442,7 @@ enum charger_type mt_charger_type_detection_bq25890h(void)
 	}
 
 	hw_bc12_init();
-	usleep_range(10000, 10200);
+	usleep_range(40000, 40200);
 
 	printk("mt_charger_type_detection1\n");
 	//bq25890h_config_interface(charger_ic, REG00_BQ25890H_ADDRESS, 0, 0x80);
@@ -1602,50 +1598,10 @@ static irqreturn_t bq25890h_irq_handler_fn(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int bq25890h_parse_dts(void)
+static int bq25890h_irq_registration(struct chip_bq25890h *chip)
 {
 	int ret = 0;
-	struct chip_bq25890h *chip = charger_ic;
-
-	if (!chip) {
-		chg_err("chip is NULL\n");
-		return -1;
-	}
-
-	chip->irq_gpio = of_get_named_gpio(chip->client->dev.of_node, "chg-irq-gpio", 0);
-	if (chip->irq_gpio <= 0) {
-		chg_err("Couldn't read chg-irq-gpio:%d\n", chip->irq_gpio);
-		return -1;
-	} else {
-		if (gpio_is_valid(chip->irq_gpio)) {
-			ret = gpio_request(chip->irq_gpio, "chg-irq-gpio");
-			if (ret) {
-				chg_err("unable to request chg-irq-gpio[%d]\n", chip->irq_gpio);
-				chip->irq_gpio = -EINVAL;
-			} else {
-				gpio_direction_input(chip->irq_gpio);
-			}
-		} else {
-			chg_err("gpio_is_valid fail chg-irq-gpio[%d]\n", chip->irq_gpio);
-			chip->irq_gpio = -EINVAL;
-			return -1;
-		}
-	}
-	chg_err("chg-irq-gpio[%d]\n", chip->irq_gpio);
-	return ret;
-}
-
-static int bq25890h_irq_registration(void)
-{
-	int ret = 0;
-	struct chip_bq25890h *chip = charger_ic;
-
-	if (!chip || chip->irq_gpio <= 0) {
-		chg_err("chip->irq_gpio fail\n");
-		return -1;
-	}
-
-	ret = request_threaded_irq(gpio_to_irq(chip->irq_gpio), NULL,
+	ret = request_threaded_irq(chip->client->irq, NULL,
 		bq25890h_irq_handler_fn,
 		IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
 		"BQ25890H-eint", chip);
@@ -1661,15 +1617,15 @@ static int bq25890h_driver_probe(struct i2c_client *client, const struct i2c_dev
 	int reg = 0;
 	struct chip_bq25890h *chip = NULL;
 
-#ifndef CONFIG_OPPO_CHARGER_MTK
+	#ifndef CONFIG_OPPO_CHARGER_MTK
 	struct power_supply *usb_psy;
 	usb_psy = power_supply_get_by_name("usb");
 	if (!usb_psy) {
         chg_err("USB psy not found; deferring probe\n");
         return -EPROBE_DEFER;
-	}
-#endif  /* CONFIG_OPPO_CHARGER_MTK */
-	chg_debug( " call \n");
+    }
+	#endif  /* CONFIG_OPPO_CHARGER_MTK */
+    chg_debug( " call \n");
 
 	chip = devm_kzalloc(&client->dev,
 		sizeof(struct chip_bq25890h), GFP_KERNEL);
@@ -1678,8 +1634,8 @@ static int bq25890h_driver_probe(struct i2c_client *client, const struct i2c_dev
 		return -ENOMEM;
 	}
 	chip->client = client;
-	chip->dev = &client->dev;
-	charger_ic = chip;
+    chip->dev = &client->dev;
+    charger_ic = chip;
 	reg = bq25890h_check_registers();
 	if (reg < 0) {
 		return -ENODEV;
@@ -1689,8 +1645,7 @@ static int bq25890h_driver_probe(struct i2c_client *client, const struct i2c_dev
 	//oppo_chg_shortc_hw_parse_dt(chip);
 	
 	INIT_DELAYED_WORK(&bq25890h_irq_delay_work, do_bq25890h_irq_delay_work);
-	bq25890h_parse_dts();
-	bq25890h_irq_registration();
+	bq25890h_irq_registration(chip);
 	atomic_set(&chip->charger_suspended, 0);
 	register_charger_devinfo();
 	/* Qiao.Hu@BSP.BaseDrv.CHG.Basic, 2017/12/12, Add for charger modefy */
@@ -1698,7 +1653,7 @@ static int bq25890h_driver_probe(struct i2c_client *client, const struct i2c_dev
 	INIT_DELAYED_WORK(&charger_modefy_work, do_charger_modefy_work);
 	schedule_delayed_work(&charger_modefy_work, 0);
 
-	return 0;
+    return 0;
 
 }
 
@@ -1763,7 +1718,7 @@ static int bq25890h_resume(struct device *dev)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if (sleep_time < 1) {
+	if (sleep_time < 0) {
 		sleep_time = 0;
 	}
 	chg_err(" resume_sec:%ld,sleep_time:%ld\n\n",resume_tm_sec,sleep_time);
@@ -1809,7 +1764,7 @@ static int bq25890h_resume(struct i2c_client *client)
 		sleep_time = resume_tm_sec - suspend_tm_sec;
 	}
 
-	if (sleep_time < 1) {
+	if (sleep_time < 0) {
 		sleep_time = 0;
 	}
 	oppo_chg_soc_update_when_resume(sleep_time);

@@ -39,7 +39,6 @@ typedef enum {
 	tilt_detector,
 	flat,
 	sar,
-	sar_modem,
 	max_situation_support,
 } situation_index_table;
 

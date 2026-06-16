@@ -69,14 +69,7 @@ static enum IMGSENSOR_RETURN mt6306_set(
 	   (pin == IMGSENSOR_HW_PIN_DVDD &&
 	   sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN2) ||
 	   (pin == IMGSENSOR_HW_PIN_DVDD &&
-	   #ifdef VENDOR_EDIT
-	   /* Feiping.Li@Camera.Driver, 20190522, add for 19301 rear 4 sensor */
-	   sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2) ||
-	   (pin == IMGSENSOR_HW_PIN_DVDD &&
-	   sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN3) ) {
-	   #else
-	   sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2) ) {
-	   #endif
+	   sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2)) {
 		list_idx = MT6306_PIN_CAM_EXT_PWR_EN;
 
 	} else {

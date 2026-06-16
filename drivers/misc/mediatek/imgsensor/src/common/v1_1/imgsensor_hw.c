@@ -24,8 +24,6 @@ char *imgsensor_sensor_idx_name[IMGSENSOR_SENSOR_IDX_MAX_NUM] = {
 	IMGSENSOR_SENSOR_IDX_NAME_MAIN,
 	IMGSENSOR_SENSOR_IDX_NAME_SUB,
 	IMGSENSOR_SENSOR_IDX_NAME_MAIN2,
-	IMGSENSOR_SENSOR_IDX_NAME_SUB2,
-	IMGSENSOR_SENSOR_IDX_NAME_MAIN3
 };
 
 enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
@@ -45,16 +43,8 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 
 	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 		psensor_pwr = &phw->sensor_pwr[i];
-		#ifdef VENDOR_EDIT
-		/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-		if (is_project(OPPO_19011) || is_project(OPPO_19301)) {
-			pcust_pwr_cfg = imgsensor_custom_config_19301;
-		} else {
-			pcust_pwr_cfg = imgsensor_custom_config;
-		}
-		#else
+
 		pcust_pwr_cfg = imgsensor_custom_config;
-		#endif
 		while (pcust_pwr_cfg->sensor_idx != i)
 			pcust_pwr_cfg++;
 
@@ -89,19 +79,6 @@ enum IMGSENSOR_RETURN imgsensor_hw_release_all(struct IMGSENSOR_HW *phw)
 	}
 	return IMGSENSOR_RETURN_SUCCESS;
 }
-
-#ifdef VENDOR_EDIT
-/* Feiping.Li@Camera.Drv, 20190716, add for pull-up gc02's avdd when main sensor is powered*/
-static bool g_is_sub2_gc02m0 = false;
-static bool g_is_main3_gc02m0 = false;
-void set_gc02m0_flag(enum IMGSENSOR_SENSOR_IDX sensor_idx)
-{
-	if (sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2)
-		g_is_sub2_gc02m0 = true;
-	else if (sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN3)
-		g_is_main3_gc02m0 = true;
-}
-#endif
 
 static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 		struct IMGSENSOR_HW             *phw,
@@ -180,46 +157,9 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 				ppwr_info->pin, ppwr_info->pin_state_off);
 			}
 
-			#ifdef VENDOR_EDIT
-			// Feiping.Li@Camera.Drv, 20190723, add for solve search and change camera, power can't drop to level_0 issue
-			if (is_project(19011) || is_project(19301)) {
-				PK_DBG("19301 iovdd/avdd/dvdd need more delay time");
-				mdelay(ppwr_info->pin_off_delay);
-			} else {
-				mdelay(ppwr_info->pin_on_delay);
-			}
-			#else
 			mdelay(ppwr_info->pin_on_delay);
-			#endif
 		}
 	}
-
-	#ifdef VENDOR_EDIT
-	/* Feiping.Li@Camera.Drv, 20190710, add for pull-up gc02's avdd when main sensor is powered*/
-	if ((sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN) && (is_project(OPPO_19011) || is_project(OPPO_19301))) {
-		if (pwr_status == IMGSENSOR_HW_POWER_STATUS_ON) {//power up
-			pdev = phw->pdev[IMGSENSOR_HW_ID_GPIO];
-			if (g_is_sub2_gc02m0 && pdev->set != NULL) {
-				PK_DBG("force sub2_gc02 avdd to high");
-				pdev->set(pdev->pinstance, IMGSENSOR_SENSOR_IDX_SUB2, IMGSENSOR_HW_PIN_AVDD, Vol_2800);
-			}
-			if (g_is_main3_gc02m0 && pdev->set != NULL) {
-				PK_DBG("force main3_gc02 avdd to high");
-				pdev->set(pdev->pinstance, IMGSENSOR_SENSOR_IDX_MAIN3, IMGSENSOR_HW_PIN_AVDD, Vol_2800);
-			}
-		} else if (pwr_status == IMGSENSOR_HW_POWER_STATUS_OFF) {//power down
-			pdev = phw->pdev[IMGSENSOR_HW_ID_GPIO];
-			if (g_is_sub2_gc02m0 && pdev->set != NULL) {
-				PK_DBG("force sub2_gc02 avdd to low");
-				pdev->set(pdev->pinstance, IMGSENSOR_SENSOR_IDX_SUB2, IMGSENSOR_HW_PIN_AVDD, Vol_Low);
-			}
-			if (g_is_main3_gc02m0 && pdev->set != NULL) {
-				PK_DBG("force main3_gc02 avdd to low");
-				pdev->set(pdev->pinstance, IMGSENSOR_SENSOR_IDX_MAIN3, IMGSENSOR_HW_PIN_AVDD, Vol_Low);
-			}
-		}
-	}
-	#endif
 
 	return IMGSENSOR_RETURN_SUCCESS;
 }
@@ -235,9 +175,7 @@ enum IMGSENSOR_RETURN imgsensor_hw_power(
 #if defined(CONFIG_IMGSENSOR_MAIN)  || \
 		defined(CONFIG_IMGSENSOR_SUB)   || \
 		defined(CONFIG_IMGSENSOR_MAIN2) || \
-		defined(CONFIG_IMGSENSOR_SUB2)  || \
-		defined(CONFIG_IMGSENSOR_MAIN3)
-
+		defined(CONFIG_IMGSENSOR_SUB2)
 	char *pcustomize_sensor = NULL;
 
 	switch (sensor_idx) {
@@ -253,9 +191,6 @@ enum IMGSENSOR_RETURN imgsensor_hw_power(
 	case IMGSENSOR_SENSOR_IDX_SUB2:
 		pcustomize_sensor = IMGSENSOR_STRINGIZE(CONFIG_IMGSENSOR_SUB2);
 		break;
-	case IMGSENSOR_SENSOR_IDX_MAIN3:
-		pcustomize_sensor = IMGSENSOR_STRINGIZE(CONFIG_IMGSENSOR_MAIN3);
-		break;
 	default:
 		break;
 	}
@@ -268,31 +203,13 @@ enum IMGSENSOR_RETURN imgsensor_hw_power(
 	PK_DBG("sensor_idx %d, power %d curr_sensor_name %s\n",
 		sensor_idx, pwr_status,
 		curr_sensor_name);
-	#ifdef VENDOR_EDIT
-	/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-	if (is_project(OPPO_19011) || is_project(OPPO_19301)) {
-		imgsensor_hw_power_sequence(
-				phw,
-				sensor_idx,
-				pwr_status,
-				platform_power_sequence_19301,
-				imgsensor_sensor_idx_name[sensor_idx]);
-	} else {
-		imgsensor_hw_power_sequence(
-				phw,
-				sensor_idx,
-				pwr_status,
-				platform_power_sequence,
-				imgsensor_sensor_idx_name[sensor_idx]);
-	}
-	#else
+
 	imgsensor_hw_power_sequence(
 			phw,
 			sensor_idx,
 			pwr_status,
 			platform_power_sequence,
 			imgsensor_sensor_idx_name[sensor_idx]);
-	#endif
 
 	imgsensor_hw_power_sequence(
 			phw,

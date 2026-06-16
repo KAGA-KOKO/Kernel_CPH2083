@@ -160,22 +160,20 @@ static int eara_open(struct inode *inode, struct file *file)
 	return single_open(file, eara_show, inode->i_private);
 }
 
-static long eara_ioctl_impl(struct file *filp,
-		unsigned int cmd, unsigned long arg, void *pKM)
+static long eara_ioctl(struct file *filp,
+		unsigned int cmd, unsigned long arg)
 {
 	ssize_t ret = 0;
 	struct _EARA_NN_PACKAGE *msgKM = NULL,
 		*msgUM = (struct _EARA_NN_PACKAGE *)arg;
 	struct _EARA_NN_PACKAGE smsgKM;
 
-	msgKM = (struct _EARA_NN_PACKAGE *)pKM;
-	if (!msgKM) {
-		msgKM = &smsgKM;
-		if (perfctl_copy_from_user(msgKM, msgUM,
-				sizeof(struct _EARA_NN_PACKAGE))) {
-			ret = -EFAULT;
-			goto ret_ioctl;
-		}
+	msgKM = &smsgKM;
+
+	if (perfctl_copy_from_user(msgKM, msgUM,
+		sizeof(struct _EARA_NN_PACKAGE))) {
+		ret = -EFAULT;
+		goto ret_ioctl;
 	}
 
 	switch (cmd) {
@@ -209,73 +207,9 @@ ret_ioctl:
 	return ret;
 }
 
-static long eara_ioctl(struct file *filp,
-		unsigned int cmd, unsigned long arg)
-{
-	return eara_ioctl_impl(filp, cmd, arg, NULL);
-}
-
-static long eara_compat_ioctl(struct file *filp,
-		unsigned int cmd, unsigned long arg)
-{
-	int ret = -EFAULT;
-	struct _EARA_NN_PACKAGE_32 {
-		__u32 pid;
-		__u32 tid;
-		__u64 mid;
-		__s32 errorno;
-		__s32 priority;
-		__s32 num_step;
-
-		__s32 dev_usage;
-		__u32 bw_usage;
-
-		union {
-			__u32 device;
-			__u64 p_dummy_device;
-		};
-		union {
-			__u32 boost;
-			__u64 p_dummy_boost;
-		};
-		union {
-			__u32 exec_time;
-			__u64 p_dummy_exec_time;
-		};
-		union {
-			__u32 target_time;
-			__u64 p_dummy_target_time;
-		};
-	};
-	struct _EARA_NN_PACKAGE sEaraPackageKM64;
-	struct _EARA_NN_PACKAGE_32 sEaraPackageKM32;
-	struct _EARA_NN_PACKAGE_32 *psEaraPackageKM32 = &sEaraPackageKM32;
-	struct _EARA_NN_PACKAGE_32 *psEaraPackageUM32 =
-		(struct _EARA_NN_PACKAGE_32 *)arg;
-
-	if (perfctl_copy_from_user(psEaraPackageKM32,
-			psEaraPackageUM32, sizeof(struct _EARA_NN_PACKAGE_32)))
-		goto unlock_and_return;
-
-	sEaraPackageKM64 = *((struct _EARA_NN_PACKAGE *)psEaraPackageKM32);
-	sEaraPackageKM64.device =
-		(void *)((size_t) psEaraPackageKM32->device);
-	sEaraPackageKM64.boost =
-		(void *)((size_t) psEaraPackageKM32->boost);
-	sEaraPackageKM64.exec_time =
-		(void *)((size_t) psEaraPackageKM32->exec_time);
-	sEaraPackageKM64.target_time =
-		(void *)((size_t) psEaraPackageKM32->target_time);
-
-	ret = eara_ioctl_impl(filp, cmd, arg, &sEaraPackageKM64);
-
-unlock_and_return:
-	return ret;
-}
-
 static const struct file_operations eara_Fops = {
 	.unlocked_ioctl = eara_ioctl,
-	.compat_ioctl = eara_compat_ioctl,
+	.compat_ioctl = eara_ioctl,
 	.open = eara_open,
 	.read = seq_read,
 	.llseek = seq_lseek,

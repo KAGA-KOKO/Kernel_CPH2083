@@ -17,7 +17,6 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 #include "ccu_mailbox_extif.h"
-#include "kd_camera_feature.h"/*for sensoridx enum*/
 
 #ifdef CONFIG_COMPAT
 /*64 bit*/
@@ -181,7 +180,7 @@ struct CCU_INFO_STRUCT {
 	unsigned int IsCcuPoweredOn;
 
 	wait_queue_head_t WaitQueueHead;
-	wait_queue_head_t AFWaitQueueHead[IMGSENSOR_SENSOR_IDX_MAX_NUM];
+	wait_queue_head_t AFWaitQueueHead[2];
 	wait_queue_head_t WaitQHeadList[SUPPORT_MAX_IRQ];
 
 	unsigned int UserCount;
@@ -291,13 +290,6 @@ struct ccu_cmd_s {
 struct import_mem_s {
 	uint32_t memID[CCU_IMPORT_BUF_NUM];
 };
-
-/*---------------------------------------------------------------------------*/
-/*  CAM FREQ                                                                 */
-/*---------------------------------------------------------------------------*/
-#define CCU_REQ_CAM_FREQ_HIGH 2
-#define CCU_REQ_CAM_FREQ_MID  1
-#define CCU_REQ_CAM_FREQ_NONE 0
 /*---------------------------------------------------------------------------*/
 /*  IOCTL Command                                                            */
 /*---------------------------------------------------------------------------*/
@@ -328,6 +320,5 @@ struct import_mem_s {
 #define CCU_IOCTL_GET_PLATFORM_INFO         _IOR(CCU_MAGICNO,  26, int)
 #define CCU_IOCTL_IMPORT_MEM		        _IOW(CCU_MAGICNO,  27, int)
 #define CCU_IOCTL_UPDATE_QOS_REQUEST        _IOW(CCU_MAGICNO,  28, int)
-#define CCU_IOCTL_UPDATE_CAM_FREQ_REQUEST	_IOW(CCU_MAGICNO,  29, int)
 
 #endif

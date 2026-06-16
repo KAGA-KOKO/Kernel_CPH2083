@@ -82,9 +82,7 @@ static int vcu_enc_ipi_handler(void *data, unsigned int len, void *priv)
 	struct task_struct *task = NULL;
 	struct files_struct *f = NULL;
 
-	vcu_get_file_lock();
-	vcu_get_task(&task, &f, 0);
-	vcu_put_file_lock();
+	vcu_get_task(&task, &f);
 	if (msg == NULL || task == NULL ||
 	   task->tgid != current->tgid ||
 	   (struct venc_vcu_inst *)msg->venc_inst == NULL) {
@@ -120,11 +118,21 @@ static int vcu_enc_ipi_handler(void *data, unsigned int len, void *priv)
 	case VCU_IPIMSG_ENC_DEINIT_DONE:
 		break;
 	case VCU_IPIMSG_ENC_POWER_ON:
-		venc_encode_prepare(ctx, &flags);
+		mtk_venc_lock(ctx);
+		spin_lock_irqsave(&ctx->dev->irqlock, flags);
+		ctx->dev->curr_ctx = ctx;
+		spin_unlock_irqrestore(&ctx->dev->irqlock, flags);
+		enable_irq(ctx->dev->enc_irq);
+		mtk_vcodec_enc_clock_on(&ctx->dev->pm);
 		ret = 1;
 		break;
 	case VCU_IPIMSG_ENC_POWER_OFF:
-		venc_encode_unprepare(ctx, &flags);
+		mtk_vcodec_enc_clock_off(&ctx->dev->pm);
+		disable_irq(ctx->dev->enc_irq);
+		spin_lock_irqsave(&ctx->dev->irqlock, flags);
+		ctx->dev->curr_ctx = NULL;
+		spin_unlock_irqrestore(&ctx->dev->irqlock, flags);
+		mtk_venc_unlock(ctx);
 		ret = 1;
 		break;
 	case VCU_IPIMSG_ENC_QUERY_CAP_ACK:

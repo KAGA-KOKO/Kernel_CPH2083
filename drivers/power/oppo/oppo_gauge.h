@@ -44,14 +44,12 @@ struct oppo_gauge_operations {
         int (*get_prev_battery_temperature) (void);
         int (*get_prev_battery_soc) (void);
         int (*get_prev_average_current) (void);
-        int (*get_prev_batt_remaining_capacity)(void);
         int (*get_battery_mvolts_2cell_max) (void);
         int (*get_battery_mvolts_2cell_min) (void);
         int (*get_prev_battery_mvolts_2cell_max) (void);
         int (*get_prev_battery_mvolts_2cell_min) (void);
 		int (*update_battery_dod0) (void);
 		int (*update_soc_smooth_parameter) (void);
-		 int (*get_battery_id) (void);
 };
 
 /****************************************
@@ -75,10 +73,6 @@ int oppo_gauge_get_device_type(void);
 int oppo_gauge_get_device_type_for_vooc(void);
 
 int oppo_gauge_get_batt_fcc(void);
-#ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.10.21 add bq check_charging_enable function*/
-int oppo_gauge_get_batt_id(void);
-#endif /*ODM_HQ_EDIT*/
 
 int oppo_gauge_get_batt_cc(void);
 int oppo_gauge_get_batt_soh(void);
@@ -92,7 +86,6 @@ int oppo_gauge_get_prev_batt_mvolts_2cell_min(void);
 int oppo_gauge_get_prev_batt_temperature(void);
 int oppo_gauge_get_prev_batt_soc(void);
 int oppo_gauge_get_prev_batt_current(void);
-int oppo_gauge_get_prev_remaining_capacity(void);
 int oppo_gauge_update_battery_dod0(void);
 int oppo_gauge_update_soc_smooth_parameter(void);
 

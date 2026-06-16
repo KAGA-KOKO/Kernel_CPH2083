@@ -10,11 +10,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  */
- #ifdef VENDOR_EDIT
-/* Jianchao.Shi@BSP.CHG.Basic, 2019/02/19, sjc Add for usb eye test */
-#define NEVER	1
-#endif
-
 #ifdef NEVER
 
 #include <linux/module.h>

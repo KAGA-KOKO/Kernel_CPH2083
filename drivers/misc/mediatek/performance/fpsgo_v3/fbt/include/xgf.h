@@ -181,7 +181,6 @@ void xgf_atomic_set(atomic_t *val, int i);
 int xgf_get_task_wake_cpu(struct task_struct *t);
 int xgf_get_task_pid(struct task_struct *t);
 long xgf_get_task_state(struct task_struct *t);
-unsigned long xgf_lookup_name(const char *name);
 void notify_xgf_ko_ready(void);
 unsigned long long xgf_get_time(void);
 struct xgf_dep *xgf_get_dep(pid_t tid, struct xgf_render *render,

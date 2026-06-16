@@ -120,9 +120,6 @@ extern u32 mdla_klog;
 #define mdla_debug(mask, ...) do { if (mdla_klog & mask) \
 		pr_debug(__VA_ARGS__); \
 	} while (0)
-#define mdla_debug_test(mask, ...) do { if (1) \
-	pr_debug(__VA_ARGS__); \
-	} while (0)
 void mdla_dump_reg(void);
 void mdla_dump_ce(struct command_entry *ce);
 void mdla_dump_buf(int mask, void *kva, int group, u32 size);
@@ -155,8 +152,8 @@ static inline void mdla_debugfs_exit(void)
 #define mdla_pmu_debug(...) mdla_debug(MDLA_DBG_PMU, __VA_ARGS__)
 #define mdla_perf_debug(...) mdla_debug(MDLA_DBG_PERF, __VA_ARGS__)
 #define mdla_qos_debug(...) mdla_debug(MDLA_DBG_QOS, __VA_ARGS__)
-#define mdla_timeout_debug(...) mdla_debug_test(MDLA_DBG_TIMEOUT, __VA_ARGS__)
-#define mdla_dvfs_debug(...) mdla_debug_test(MDLA_DBG_DVFS, __VA_ARGS__)
+#define mdla_timeout_debug(...) mdla_debug(MDLA_DBG_TIMEOUT, __VA_ARGS__)
+#define mdla_dvfs_debug(...) mdla_debug(MDLA_DBG_DVFS, __VA_ARGS__)
 
 #endif
 

@@ -155,8 +155,9 @@ static inline void mmc_cmdq_ready_wait(struct mmc_host *host,
 	 * 5. free tag available to process the new request.
 	 */
 	wait_event(ctx->wait, kthread_should_stop()
-		|| (!test_bit(CMDQ_STATE_DCMD_ACTIVE, &ctx->curr_state)
-		&& mmc_peek_request(mq)
+		|| (mmc_peek_request(mq) &&
+		!(mmc_req_is_special(mq->cmdq_req_peeked)
+		  && test_bit(CMDQ_STATE_DCMD_ACTIVE, &ctx->curr_state))
 		&& ((!(!host->card->part_curr && !mmc_card_suspended(host->card)
 			 && mmc_host_halt(host))
 		&& !(!host->card->part_curr && mmc_host_cq_disable(host) &&
@@ -272,9 +273,10 @@ fetch_done:
 			set_current_state(TASK_RUNNING);
 			mmc_blk_issue_rq(mq, req);
 			cond_resched();
-			if (test_and_clear_bit(MMC_QUEUE_NEW_REQUEST,
-				&mq->flags))
+			if (mq->flags & MMC_QUEUE_NEW_REQUEST) {
+				mq->flags &= ~MMC_QUEUE_NEW_REQUEST;
 				continue; /* fetch again */
+			}
 
 			if (!part_cmdq_en) {
 				/*
@@ -943,15 +945,13 @@ int mmc_queue_suspend(struct mmc_queue *mq, int wait)
 
 		if (wait) {
 			/*
-			 * After blk_stop_queue is called, wait for all
+			 * After blk_cleanup_queue is called, wait for all
 			 * active_reqs to complete.
 			 * Then wait for cmdq thread to exit before calling
 			 * cmdq shutdown to avoid race between issuing
 			 * requests and shutdown of cmdq.
 			 */
-			spin_lock_irqsave(q->queue_lock, flags);
-			blk_stop_queue(q);
-			spin_unlock_irqrestore(q->queue_lock, flags);
+			blk_cleanup_queue(q);
 
 			if (host->cmdq_ctx.active_reqs)
 				wait_for_completion(
@@ -1021,7 +1021,8 @@ void mmc_queue_suspend(struct mmc_queue *mq)
 	struct request_queue *q = mq->queue;
 	unsigned long flags;
 
-	if (!(test_and_set_bit(MMC_QUEUE_SUSPENDED, &mq->flags))) {
+	if (!(mq->flags & MMC_QUEUE_SUSPENDED)) {
+		mq->flags |= MMC_QUEUE_SUSPENDED;
 
 		spin_lock_irqsave(q->queue_lock, flags);
 		blk_stop_queue(q);
@@ -1040,7 +1041,8 @@ void mmc_queue_resume(struct mmc_queue *mq)
 	struct request_queue *q = mq->queue;
 	unsigned long flags;
 
-	if (test_and_clear_bit(MMC_QUEUE_SUSPENDED, &mq->flags)) {
+	if (mq->flags & MMC_QUEUE_SUSPENDED) {
+		mq->flags &= ~MMC_QUEUE_SUSPENDED;
 
 		up(&mq->thread_sem);
 

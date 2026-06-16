@@ -32,11 +32,3 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
 proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
 proc-$(CONFIG_PRINTK)	+= kmsg.o
 proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
-#ifdef VENDOR_EDIT
-#Huacai.Zhou@PSW.BSP.kernel.Peformance, 2018/06/18, add foreground process opt support
-proc-$(CONFIG_OPPO_FG_OPT)	+= fg_uid.o
-#endif /* VENDOR_EDIT */
-#ifdef ODM_WT_EDIT
-# Donghong.Zhao@ODM_WT.System.Kernel.Security,2020/02/24,Add for uniqueno display in factory mode
-proc-y  += serial_num.o
-#endif /* ODM_WT_EDIT */

@@ -190,7 +190,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.max_framerate = 1200,
 	},
 	.margin = 10,		/* sensor framelength & shutter margin */
-	.min_shutter = 8,	/* min shutter */
+	.min_shutter = 1,	/* min shutter */
 
 	/* max framelength by sensor register's limitation */
 	.max_frame_length = 0xffff,
@@ -208,7 +208,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.ihdr_le_firstline = 0,	/* 1,le first ; 0, se first */
 	.temperature_support = 1,	/* 1, support; 0,not support */
 	.sensor_mode_num = 4,	/* support sensor mode num */
-	.frame_time_delay_frame = 3,
+
 	.cap_delay_frame = 1,	/* enter capture delay frame num */
 	.pre_delay_frame = 2,	/* enter preview delay frame num */
 	.video_delay_frame = 1,	/* enter video delay frame num */

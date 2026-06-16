@@ -1,4 +1,4 @@
-config OPPO_HYPNUS
-bool "config oppo hypnus feature"
-help
-    This selects hypnus driver
+config HYPNUS_HELPER
+	bool "config hypnus helper"
+	help
+		Provide helper functions for hypnus.

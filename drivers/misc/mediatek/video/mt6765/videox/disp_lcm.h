@@ -49,9 +49,6 @@ int disp_lcm_update(struct disp_lcm_handle *plcm,
 	int x, int y, int w, int h, int force);
 int disp_lcm_esd_check(struct disp_lcm_handle *plcm);
 int disp_lcm_esd_recover(struct disp_lcm_handle *plcm);
-#ifdef ODM_WT_EDIT
-int disp_lcm_shutdown(struct disp_lcm_handle *plcm);
-#endif
 int disp_lcm_suspend(struct disp_lcm_handle *plcm);
 int disp_lcm_resume(struct disp_lcm_handle *plcm);
 int disp_lcm_is_support_adjust_fps(struct disp_lcm_handle *plcm);
@@ -73,10 +70,7 @@ int disp_lcm_is_partial_support(struct disp_lcm_handle *plcm);
 int disp_lcm_validate_roi(struct disp_lcm_handle *plcm,
 	int *x, int *y, int *w, int *h);
 int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter);
-#ifdef ODM_WT_EDIT
-//Zhenzhen.Wu@ODM_WT.MM.Display.LCD, 2019/12/15, add LCD dimming control
-int disp_lcm_set_lcm_dimming_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level);
-#endif
+
 #ifdef VENDOR_EDIT
 /* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
 int disp_lcm_oppo_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level);

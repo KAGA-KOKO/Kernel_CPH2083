@@ -21,21 +21,14 @@
 #define M4U_SEC_MVA_DOMAIN      0
 
 /*0x7FF00000 ~ (0x8010 0000 - 1) not use in vpu_iommu*/
-#define VPU_IOMMU_MVA_START     0x7FC00000
+#define VPU_IOMMU_MVA_START     0x7FF00000
 #define VPU_IOMMU_MVA_END       0x80100000
 
 #define VPU_IOMMU_MVA_SIZE      \
 	(VPU_IOMMU_MVA_END - VPU_IOMMU_MVA_START)
 
-/* m4u0 has 2 slaves, iommu(m4u1) has 2 slave */
-#define M4U_SLAVE_NUM(m4u_id)   ((m4u_id) ? 2 : 2)
-
-/* m4u call atf debug parameter */
-#define M4U_ATF_SECURITY_DEBUG_EN  (20)
-#define M4U_ATF_BANK1_4_TF         (21)
-#define M4U_ATF_DUMP_INFO          (22)
-
-#define M4U_PROTECT_BANK           (3)
+/* m4u0 has 2 slaves, iommu(m4u1) has 1 slave */
+#define M4U_SLAVE_NUM(m4u_id)   ((m4u_id) ? 1 : 1)
 
 /* seq range related */
 #if 0
@@ -264,7 +257,6 @@ static inline int larb_port_2_m4u_port(int larb, int larb_port)
 
 void m4u_print_perf_counter(int m4u_index, int m4u_slave_id, const char *msg);
 int m4u_dump_reg(int m4u_index, unsigned int start, unsigned int end);
-void m4u_call_atf_debug(int m4u_debug_id);
 
 extern struct m4u_device *gM4uDev;
 

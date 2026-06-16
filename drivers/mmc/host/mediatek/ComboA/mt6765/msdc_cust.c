@@ -30,10 +30,7 @@
 #include "mtk_sd.h"
 #include "dbg.h"
 #include "include/pmic_api_buck.h"
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.sdcard, 2019/12/19, Modify sdcard
-unsigned int cd_ldo_gpio;
-#endif
+
 
 struct msdc_host *mtk_msdc_host[] = { NULL, NULL, NULL};
 EXPORT_SYMBOL(mtk_msdc_host);
@@ -138,7 +135,6 @@ void msdc_ldo_power(u32 on, struct regulator *reg, int voltage_mv, u32 *status)
 	} else {  /* want to power off */
 		if (*status != 0) {  /* has been powerred on */
 			pr_notice("msdc power off\n");
-
 			(void)regulator_disable(reg);
 			*status = 0;
 		} else {
@@ -293,9 +289,6 @@ void msdc_sd_power(struct msdc_host *host, u32 on)
 		if (host->hw->flags & MSDC_SD_NEED_POWER)
 			card_on = 1;
 
-#ifndef ODM_WT_EDIT
-// weitao.Qiao@ODM_WT.BSP.Storage.Sdcard, 2019/12/24, Add for T-card ldo
-
 		/* Disable VMCH OC */
 		if (!card_on)
 			pmic_enable_interrupt(INT_VMCH_OC, 0, "sdcard");
@@ -304,22 +297,12 @@ void msdc_sd_power(struct msdc_host *host, u32 on)
 		msdc_ldo_power(card_on, host->mmc->supply.vmmc, VOL_3000,
 			&host->power_flash);
 
+
 		/* Enable VMCH OC */
 		if (card_on) {
 			mdelay(3);
 			pmic_enable_interrupt(INT_VMCH_OC, 1, "sdcard");
 		}
-#else
-		if(card_on) {
-			pr_err("%s enable cd_ldo_gpio!\n",__func__);
-			__gpio_set_value(cd_ldo_gpio, 1);
-			pr_err("%s cd_ldo_gpio = %d!\n",__func__,__gpio_get_value(cd_ldo_gpio));
-		} else {
-			pr_err("%s disable cd_ldo_gpio!\n",__func__);
-			__gpio_set_value(cd_ldo_gpio, 0);
-			pr_err("%s cd_ldo_gpio = %d!\n",__func__,__gpio_get_value(cd_ldo_gpio));
-		}
-#endif
 
 		/* VMC VOLSEL */
 		/* rollback to 0mv in REG_VMC_VOSEL_CAL
@@ -366,7 +349,7 @@ EXPORT_SYMBOL(msdc_sd_power_off);
 #endif /*if !defined(FPGA_PLATFORM)*/
 
 #ifdef ODM_HQ_EDIT
-/*liujia@ODM_HQ.BSP.Kernel.Driver 2019.10.11 add sdcard poweroff quick*/
+/*Wenchao.Du@ODM_HQ.BSP.Kernel.Driver 2019.01.08 add sdcard poweroff quick*/
 void msdc_sd_power_off_quick(void){
     pr_err("sdcard removed and power off VMCH first!\n");
     pmic_config_interface_nolock(0x1AC4,0x0,0x1,0); //add here for disable VMCH
@@ -1253,26 +1236,13 @@ int msdc_of_parse(struct platform_device *pdev, struct mmc_host *mmc)
 	if (of_property_read_u8(np, "cd_level", &host->hw->cd_level))
 		pr_notice("[msdc%d] cd_level isn't found in device tree\n",
 			host->id);
-#ifdef ODM_WT_EDIT
-// huangxiaotian@ODM_WT.BSP.Storage.sdcard, 2019/12/20, Modify sdcard
-	cd_ldo_gpio = of_get_named_gpio(np, "cd-ldo-gpio", 0);
-    gpio_direction_output(cd_ldo_gpio, 0);
-#endif
+
 	msdc_get_register_settings(host, np);
 
 #if !defined(FPGA_PLATFORM)
 	msdc_get_pinctl_settings(host, np);
 
-#ifdef ODM_WT_EDIT
-// weitao.Qiao@ODM_WT.BSP.Storage.Sdcard, 2019/12/31, close sd-card Vmch
-	if (host->id == 0)
-	{
-		mmc->supply.vmmc = regulator_get(mmc_dev(mmc), "vmmc");
-	}
-#else
 	mmc->supply.vmmc = regulator_get(mmc_dev(mmc), "vmmc");
-#endif
-
 	mmc->supply.vqmmc = regulator_get(mmc_dev(mmc), "vqmmc");
 #else
 	msdc_fpga_pwr_init();
@@ -1318,12 +1288,9 @@ int msdc_of_parse(struct platform_device *pdev, struct mmc_host *mmc)
 	pdev->name = pdev->dev.kobj.name;
 	kfree_const(dup_name);
 
-#ifndef ODM_WT_EDIT
-// weitao.Qiao@ODM_WT.BSP.Storage.Sdcard, 2019/12/31, close sd-card Vmch
 	if (host->id == 1)
 		pmic_register_interrupt_callback(INT_VMCH_OC,
 			msdc_sd_power_off);
-#endif
 
 	return host->id;
 }

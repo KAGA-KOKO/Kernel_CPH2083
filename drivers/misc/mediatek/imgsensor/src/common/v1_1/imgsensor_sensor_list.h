@@ -176,14 +176,7 @@ UINT32 T8EV5_YUV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 /*Henry.Chang@Camera.Driver 20181107 add for P80_18151 imgsensor driver*/
 UINT32 IMX586_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K3P9SP_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 S5KGD1SP_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 GC5035_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 HI846_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 OV02A10_MIPI_MONO_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 GC02M0_MIPI_MONO_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-/* Feiping.Li@Camera.Drv, 20190603, add for 19301 two mono sensor install in any place*/
-UINT32 OV02A10_MIPI_MONO1_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 GC02M0_MIPI_MONO1_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 #endif
 
 extern struct IMGSENSOR_SENSOR_LIST gimgsensor_sensor_list[];

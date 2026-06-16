@@ -29,11 +29,6 @@
 #define IMGSENSOR_HW_POWER_INFO_MAX	12
 #define IMGSENSOR_HW_SENSOR_MAX_NUM	12
 
-#ifdef VENDOR_EDIT
-/* Henry.Chang@Camera.Driver add for 19301 special mipi switch 20190521 */
-#define MIPI_SWITCH
-#endif
-
 enum IMGSENSOR_HW_PIN {
 	IMGSENSOR_HW_PIN_NONE = 0,
 	IMGSENSOR_HW_PIN_PDN,

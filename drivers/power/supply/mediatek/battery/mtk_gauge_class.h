@@ -221,7 +221,7 @@ struct gauge_ops {
 	int (*gauge_get_info)(
 		struct gauge_device *gauge_dev,
 		enum gauge_info ginfo, int *value);
-#ifndef ODM_HQ_EDIT
+#ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.02.25 add set monitci soc for rtc*/
 	int (*gauge_set_rtc_monitic_soc)(
 		struct gauge_device *gauge_dev, int ui_soc);
@@ -344,7 +344,7 @@ extern int gauge_dev_set_info(
 extern int gauge_dev_get_info(
 	struct gauge_device *gauge_dev, enum gauge_info ginfo, int *value);
 
-#ifndef ODM_HQ_EDIT
+#ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Gauge 2019.02.25 add set monitci soc for rtc*/
 extern int gauge_dev_set_monitic_rtc_ui_soc(
 	struct gauge_device *gauge_dev, int ui_soc);

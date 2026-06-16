@@ -78,8 +78,8 @@ __weak void get_android_log_buffer(unsigned long *addr, unsigned long *size,
 }
 
 #if defined(CONFIG_TRUSTY_LOG)
-__weak void get_gz_log_buffer(unsigned long *addr, unsigned long *paddr,
-			unsigned long *size, unsigned long *start)
+__weak void get_gz_log_buffer(unsigned long *addr, unsigned long *size,
+		unsigned long *start)
 {
 }
 #endif
@@ -804,15 +804,6 @@ static void mrdump_mini_build_elf_misc(void)
 	unsigned long task_info_pa =
 	    MRDUMP_MINI_BUF_PADDR ? (MRDUMP_MINI_BUF_PADDR +
 			MRDUMP_MINI_HEADER_SIZE) : __pa(task_info_va);
-#if defined(CONFIG_TRUSTY_LOG)
-	unsigned long gz_log_pa;
-
-	memset_io(&misc, 0, sizeof(struct mrdump_mini_elf_misc));
-	get_gz_log_buffer(&misc.vaddr, &gz_log_pa, &misc.size, &misc.start);
-	if (gz_log_pa != 0)
-		mrdump_mini_add_misc_pa(misc.vaddr, gz_log_pa, misc.size,
-					misc.start, "_GZ_LOG_");
-#endif
 	mrdump_mini_add_misc_pa(task_info_va, task_info_pa,
 			sizeof(struct aee_process_info), 0, "PROC_CUR_TSK");
 	memset_io(&misc, 0, sizeof(struct mrdump_mini_elf_misc));
@@ -821,6 +812,11 @@ static void mrdump_mini_build_elf_misc(void)
 	memset_io(&misc, 0, sizeof(struct mrdump_mini_elf_misc));
 	aee_rr_get_desc_info(&misc.vaddr, &misc.size, &misc.start);
 	mrdump_mini_add_misc(misc.vaddr, misc.size, misc.start, "_RR_DESC_");
+#if defined(CONFIG_TRUSTY_LOG)
+	memset_io(&misc, 0, sizeof(struct mrdump_mini_elf_misc));
+	get_gz_log_buffer(&misc.vaddr, &misc.size, &misc.start);
+	mrdump_mini_add_misc(misc.vaddr, misc.size, misc.start, "_GZ_LOG_");
+#endif
 	memset_io(&misc, 0, sizeof(struct mrdump_mini_elf_misc));
 	get_disp_err_buffer(&misc.vaddr, &misc.size, &misc.start);
 	mrdump_mini_add_misc(misc.vaddr, misc.size, misc.start, "_DISP_ERR_");

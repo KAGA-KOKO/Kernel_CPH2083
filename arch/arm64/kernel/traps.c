@@ -284,8 +284,8 @@ void die(const char *str, struct pt_regs *regs, int err)
 	if (ESR_ELx_EC(err) == ESR_ELx_EC_DABT_CUR)
 		thread->cpu_excp++;
 
-	/*if (die_owner == -1)
-		aee_save_excp_regs(regs);*/
+	if (die_owner == -1)
+		aee_save_excp_regs(regs);
 
 	oops_enter();
 

@@ -355,16 +355,6 @@ static u64 gic_mpidr_to_affinity(unsigned long mpidr)
 static asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 {
 	u32 irqnr;
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM) && defined(CONFIG_OPPO_SPECIAL_BUILD)
-	/* Kui.Zhang@PSW.TEC.Kernel.Performance, 2019/02/27
-	 * collect interrupt doing time during process reclaim, only effect in age test
-	 */
-	struct task_struct *task = current;
-	unsigned long start_ns = 0;
-
-	if (task && (task->flags & PF_RECLAIM_SHRINK))
-		start_ns = sched_clock();
-#endif
 
 	do {
 		irqnr = gic_read_iar();
@@ -406,14 +396,6 @@ static asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs
 			continue;
 		}
 	} while (irqnr != ICC_IAR1_EL1_SPURIOUS);
-
-#if defined(VENDOR_EDIT) && defined(CONFIG_PROCESS_RECLAIM) && defined(CONFIG_OPPO_SPECIAL_BUILD)
-	/* Kui.Zhang@PSW.TEC.Kernel.Performance, 2019/02/27
-	 * collect interrupt doing time during process reclaim, only effect in age test
-	 */
-	if ((task == current) && (task->flags & PF_RECLAIM_SHRINK))
-		task->reclaim_intr_ns += sched_clock() - start_ns;
-#endif
 }
 
 static void __init gic_dist_init(void)

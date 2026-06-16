@@ -190,7 +190,6 @@ extern struct device_attribute dev_attr_adsp_A_status;
 
 extern struct bin_attribute bin_attr_adsp_dump;
 extern struct bin_attribute bin_attr_adsp_dump_ke;
-extern struct bin_attribute bin_attr_adsp_dump_log;
 #if ADSP_TRAX
 extern struct device_attribute dev_attr_adsp_A_trax;
 extern struct bin_attribute bin_attr_adsp_trax;
@@ -220,6 +219,7 @@ extern void adsp_logger_cleanup(void);
 
 /* adsp exception */
 extern int adsp_excep_init(void);
+extern void adsp_ram_dump_init(void);
 extern void adsp_excep_cleanup(void);
 extern void adsp_aee_last_reg(void);
 

@@ -10,28 +10,20 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
-#include "hq_devinfo.h"
-#include <soc/oppo/device_info.h>
-
+#include <linux/hq_devinfo.h>
+#include "oppoversion.h"
+#include "../../input/touchscreen/mediatek/tpd.h"
+#include "meta_display.c"
 #define devinfo_name "devinfo"
 
 extern char battery_name[20];
 extern struct mmc_card *card_devinfo;
-char emmc[32];
-cam_buff_t cam_buff;
-char buff[128];
-extern void meta_work_around(void);
-#ifdef ODM_HQ_EDIT
-/* Sunshiyue@ODM.Multimedia.LCD  2019/9/25 add for lcd devinfo */
 extern char *hq_lcm_name;
-char lcd_buff[128];
-/*Jiangrunran@ODM.BSP.TP 2019/10/11 add for tp devinfo*/
-extern struct manufacture_info tp_manufac_devinfo;
-char tp_buff[128];
+char buff[128];
+char sensor_vendor[3][80];
+Cam_buff cam_buff; 
 
-/* Yuzhe.Peng@ODM.HQ.BSP.Sensors.Config 2019/10/15 add for sensor information */
-char sensor_vendor[5][80];
-struct sensor_devinfo hqsensorinfo[] = {
+struct sensor_devinfo sensorinfo[] = {
 	{"lsm6ds3","ST"},
 	{"bmi160","BOSCH"},
 	{"bma253","BOSCH"},
@@ -44,24 +36,19 @@ struct sensor_devinfo hqsensorinfo[] = {
 	{"stk3x3x_l","SensorTek"},
 	{"STK3332_l","SensorTek"},
 	{"lsm6ds3","ST"},
-	{"stk3x3x_p", "SensorTek"},
-	{"tsl2540", "AMS"},
 };
-#endif
 
-/*qiaoweitao@ODM_WT.BSP.Kernel.Boot, 2019/12/26, Add for devinfo sub_mainboard*/
-#ifndef ODM_WT_EDIT
 static void match_sub_board(int boardid){
-	int MB = boardid & 0xff;
+	int MB = boardid & 0xf;
 	int KB = (boardid >> 10) & 0x3;
-	if(0x0 == KB){
-		if((0x0 == MB) || (0x3 == MB) || (0xc == MB) || (0xf == MB) || (0x3c == MB) || (0x3f == MB) || (0xc0 == MB) || (0xc3 == MB)){
+	if(0x0 == MB){
+		if(0x0 == KB){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-match");
 		}else{
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-unmatch");
 		}
-	}else if(0x2 == KB){
-		if((0x30 == MB) || (0x33 == MB)){
+	}else if((0x3 == MB) || (0xc == MB)){
+		if(0x2 == KB){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-match");
 		}else{
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-unmatch");
@@ -81,28 +68,6 @@ static void get_sub_board(void){
 		sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","UNKOWN");
 	}
 }
-#else
-static void get_sub_board(void){
-	char *ptr;
-	int sub_match = 0;
-	ptr = strstr(saved_command_line, "sub_mainboard=");
-	if(ptr != 0){
-		ptr += strlen("sub_mainboard=");
-		sub_match = simple_strtol(ptr, NULL, 10);
-
-		if(sub_match) {
-			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-match");
-		} else {
-			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-unmatch");
-		}
-
-	}else{
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","UNKOWN");
-	}
-	pr_info("[kernel]%s\n",buff);
-}
-
-#endif
 
 static void register_info(char name[]){
 	if(!strcmp(name, "emmc")){
@@ -125,141 +90,115 @@ static void register_info(char name[]){
 				strcpy(manfid, "UNKOWN");
 				break;
 		}
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s\n",card_devinfo->cid.prod_name, manfid);
+		sprintf(buff, "Device version: %s\nDevice manufacture: %s",card_devinfo->cid.prod_name, manfid);
 		return;
 	}else if(!strcmp(name, "emmc_version")){
 		
 		if(card_devinfo->ext_csd.rev < 7){
-			sprintf(buff, "Device version: 0x%x\nDevice manufacture: %s\n",card_devinfo->cid.prv,card_devinfo->cid.prod_name);
+			sprintf(buff, "Device version: %s\nDevice manufacture: 0x%x",card_devinfo->cid.prod_name, card_devinfo->cid.fwrev);
 		}else{
-			sprintf(buff, "Device version: 0x%02x,0x%llx\nDevice manufacture: %s\n", card_devinfo->cid.prv,*(unsigned long long*)card_devinfo->ext_csd.fwrev,card_devinfo->cid.prod_name );
+			u8 fwrev = card_devinfo->ext_csd.fwrev[0];
+			sprintf(buff, "Device version: %s\nDevice manufacture: 0x%x", card_devinfo->cid.prod_name, fwrev);
+		}		
+		return;
+	}else if(!strcmp(name, "lcd")){
+		if(!strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_txd_boe_zal1890")){
+			sprintf(buff, "Device version: %s\nDevice manufacture: %s","ili9881c","TXD_ILI");
+		}else if(!strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_ls_inx_zal1890")){
+			sprintf(buff, "Device version: %s\nDevice manufacture: %s","ili9881c","LS_ILI");
+		}else if(!strcmp(hq_lcm_name, "hx8394f_hd_dsi_vdo_hlt_hsd_zal1890")){
+			sprintf(buff, "Device version: %s\nDevice manufacture: %s","hx8394f","HLT_HX");
+		}else{
+			sprintf(buff, "Device version: %s\nDevice manufacture: %s","UNKOWN","UNKOWN");
 		}
 		return;
-	}else if(!strcmp(name, "camera_main")){
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.camera_main_name,"UNKOWN");
-		return;
-	}else if(!strcmp(name, "camera_aux")){
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.camera_aux_name,"UNKOWN");
-		return;
-	}else if(!strcmp(name, "camera_micro")){
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.camera_micro_name,"UNKOWN");
-		return;
-	}else if(!strcmp(name, "camera_front")){
-		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.camera_front_name,"UNKOWN");
-		return;
-	}else if(!strcmp(name, "lcd")){/* Sunshiyue@ODM.Multimedia.LCD  2019/9/25 add for lcd devinfo */
-		if(!strcmp(hq_lcm_name, "ili9881h_hdp_dsi_vdo_inx_al2350")){
-			sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","ili9881h","INX_ILI");
-		}else if(!strcmp(hq_lcm_name, "nt36525b_hdp_dsi_vdo_hlt_al2350")){
-			sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","nt36525b","HLT_NVT");
-		}else if(!strcmp(hq_lcm_name, "ili9881h_hdp_dsi_vdo_txd_al2350")){
-			sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","ili9881h","TXD_ILI");
-		}else if(!strcmp(hq_lcm_name, "ili9881h_hdp_dsi_vdo_txd")){
-		    sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","ili9881h","TXD_ILI");
-		}else if(!strcmp(hq_lcm_name, "ili9881h_hdp_dsi_vdo_txd_boe")){
-		    sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","ili9881h","config_ilitek");
-		}else if(!strcmp(hq_lcm_name, "ili9881h_hdp_dsi_vdo_hlt")){
-		    sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","ili9881h","config_hlt_lsi");
-		}else if(!strcmp(hq_lcm_name, "hx83102d_hdp_dsi_vdo_hlt")){
-		    sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","hx83102d","hlt_nvt");
-		}else if(!strcmp(hq_lcm_name, "nt36525b_huaxian_hdp_dsi_vdo")){
-			sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","nt36525b","DJN_NVT");
+	}else if(!strcmp(name, "tp")){
+		if(!strcmp(oppo_tp_data.tp_dev_name, "fts_ts") || !strcmp(oppo_tp_data.tp_dev_name, "himax_tp") || !strcmp(oppo_tp_data.tp_dev_name, "gt9xx")){
+			sprintf(buff, "Device version: 0x%x\nDevice manufacture: %s\nDevice fw_path: %s", oppo_tp_data.version, oppo_tp_data.manufacture, oppo_tp_data.fw_name);
 		}else{
-			sprintf(lcd_buff, "Device version:%s\nDevice manufacture:%s\n","UNKNOWN","UNKNOWN");
+			sprintf(buff, "Device version: %s\nDevice manufacture: %s\nDevice fw_path: %s","UNKOWN","UNKOWN","UNKOWN");
 		}
+		return;
+	}else if(!strcmp(name, "Sensor_gyro")){
+		sprintf(buff, "Device version: %s\nDevice manufacture: %s","UNKOWN","UNKOWN");
+		return;
+	}else if(!strcmp(name, "Cam_b")){
+		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.cam_b_name,"UNKOWN");
+		return;
+	}else if(!strcmp(name, "Cam_b2")){
+		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.cam_b2_name,"UNKOWN");
+		return;
+	}else if(!strcmp(name, "Cam_f")){
+		sprintf(buff, "Device version: %s\nDevice manufacture: %s",cam_buff.cam_f_name,"UNKOWN");
 		return;
 	}else if(!strcmp(name, "sub_mainboard")){
 		get_sub_board();
 		return;
-	}else if(!strcmp(name, "tp")){
-			sprintf(tp_buff, "Device version:%s\nDevice manufacture:%s\nDevice fw_path:%s",
-				    tp_manufac_devinfo.version,tp_manufac_devinfo.manufacture,tp_manufac_devinfo.fw_path);
-			return;
 	}
 }
 
-#ifdef ODM_HQ_EDIT
-/* Yuzhe.Peng@ODM.HQ.BSP.Sensors.Config 2019/10/15 add for sensor information */
-void hq_register_sensor_info(int sensor_type, char ic_name[]){
+static void hq_parse_sensor_devinfo(int type, char ic_name[], char vendor[]){
+	sprintf(sensor_vendor[type], "Device version:  %s\nDevice manufacture:  %s\n",
+			ic_name, vendor);
+}
+
+void hq_register_sensor_info(int type, char ic_name[]){
 	int i;
-	for (i = 0; i < sizeof(hqsensorinfo)/sizeof(struct sensor_devinfo); i++) {
-			if(!strncmp(ic_name, hqsensorinfo[i].ic_name, strlen(ic_name))) {
-				sprintf(sensor_vendor[sensor_type], "Device version:  %s\nDevice manufacture:  %s\n",
-					hqsensorinfo[i].ic_name, hqsensorinfo[i].vendor_name);
+	if(type >= 0 && type <3) {
+		for (i = 0; i < sizeof(sensorinfo)/sizeof(struct sensor_devinfo); i++) {
+			/* Jianmin.Niu@ODM.HQ.BSP.Sensors.Config 2019/2/1 Update string compare */
+			if(!strncmp(ic_name, sensorinfo[i].ic_name, strlen(ic_name))) {
+				hq_parse_sensor_devinfo(type, sensorinfo[i].ic_name, sensorinfo[i].vendor_name);
 				break;
 			}
+		}
 	}
 	return;
 }
-EXPORT_SYMBOL_GPL(hq_register_sensor_info);
-#endif
-
 
 static const char * const devinfo_proc_list[] = {
+	"Cam_b",
+	"Cam_f",
+	"Cam_b2",
 	"Sensor_accel",
-	"Sensor_als",
-	"Sensor_ps",
+	"Sensor_alsps",
+	"Sensor_gyro",
 	"Sensor_msensor",
-	"audio_mainboard",
-	"battery",
+	"lcd",
+	"tp",
 	"emmc",
 	"emmc_version",
-	"fastchg",
-	"gauge",
-	"lcd",
-	"mainboard",
-	"tp",
-	"vooc",
-	"camera_main",
-	"camera_aux",
-	"camera_micro",
-	"camera_front",
+	"battery",
 	"sub_mainboard"
 };
 
-#ifdef ODM_HQ_EDIT
-/* Yuzhe.Peng@ODM.HQ.BSP.Sensors.Config 2019/10/15 add for sensor information */
-HQ_DEVINFO_ATTR(Sensor_accel, "%s\n",sensor_vendor[HQ_ACCEL_DEVICE]);
-HQ_DEVINFO_ATTR(Sensor_als, "%s\n",sensor_vendor[HQ_LIGHT_DEVICE]);
-HQ_DEVINFO_ATTR(Sensor_ps, "%s\n",sensor_vendor[HQ_PROX_DEVICE]);
-HQ_DEVINFO_ATTR(Sensor_msensor, "%s\n",sensor_vendor[HQ_MAG_DEVICE]);
-#endif
-
-HQ_DEVINFO_ATTR(audio_mainboard, "%s\n","audio_mainboard");
-HQ_DEVINFO_ATTR(battery, "%s\n",battery_name);
-HQ_DEVINFO_ATTR(emmc, "%s\n",buff);
-HQ_DEVINFO_ATTR(emmc_version, "%s\n",buff);
-HQ_DEVINFO_ATTR(fastchg, "%s\n","gauge");
-HQ_DEVINFO_ATTR(gauge, "%s\n","gauge");
-HQ_DEVINFO_ATTR(lcd, "%s\n", lcd_buff);
-HQ_DEVINFO_ATTR(mainboard, "%s\n","mainboard");
-HQ_DEVINFO_ATTR(tp, "%s\n",tp_buff);
-HQ_DEVINFO_ATTR(vooc, "%s\n","vooc");
-HQ_DEVINFO_ATTR(camera_main, "%s",buff);
-HQ_DEVINFO_ATTR(camera_aux, "%s",buff);
-HQ_DEVINFO_ATTR(camera_micro, "%s",buff);
-HQ_DEVINFO_ATTR(camera_front, "%s",buff);
+HQ_DEVINFO_ATTR(Cam_b, "%s",buff);
+HQ_DEVINFO_ATTR(Cam_f, "%s",buff);
+HQ_DEVINFO_ATTR(Cam_b2, "%s",buff);
+HQ_DEVINFO_ATTR(Sensor_accel, "%s",sensor_vendor[ACCEL_HQ]);
+HQ_DEVINFO_ATTR(Sensor_alsps, "%s",sensor_vendor[ALSPS_HQ]);
+HQ_DEVINFO_ATTR(Sensor_gyro, "%s",buff);
+HQ_DEVINFO_ATTR(Sensor_msensor, "%s",sensor_vendor[MSENSOR_HQ]);
+HQ_DEVINFO_ATTR(lcd, "%s",buff);
+HQ_DEVINFO_ATTR(tp, "%s",buff);
+HQ_DEVINFO_ATTR(emmc, "%s",buff);
+HQ_DEVINFO_ATTR(emmc_version, "%s",buff);
+HQ_DEVINFO_ATTR(battery, "Device version: 4.4V NON_VOOC\nDevice manufacture: %s",battery_name);
 HQ_DEVINFO_ATTR(sub_mainboard, "%s",buff);
 
 static const struct file_operations *proc_fops_list[] = {
+	&Cam_b_fops,
+	&Cam_f_fops,
+	&Cam_b2_fops,
 	&Sensor_accel_fops,
-	&Sensor_als_fops,
-	&Sensor_ps_fops,
+	&Sensor_alsps_fops,
+	&Sensor_gyro_fops,
 	&Sensor_msensor_fops,
-	&audio_mainboard_fops,
-	&battery_fops,
+	&lcd_fops,
+	&tp_fops,
 	&emmc_fops,
 	&emmc_version_fops,
-	&fastchg_fops,
-	&gauge_fops,
-	&lcd_fops,
-	&mainboard_fops,
-	&tp_fops,
-	&vooc_fops,
-	&camera_main_fops,
-	&camera_aux_fops,
-	&camera_micro_fops,
-	&camera_front_fops,
+	&battery_fops,
 	&sub_mainboard_fops,
 };
 
@@ -267,14 +206,14 @@ static int __init devinfo_init(void){
 	struct proc_dir_entry *prEntry;
 	struct proc_dir_entry *devinfo_dir;
 	int i, num;
-
+	
 	devinfo_dir  = proc_mkdir(devinfo_name, NULL);
 
 	if (!devinfo_dir) {
 		pr_notice("[%s]: failed to create /proc/%s\n",__func__, devinfo_name);
 		return -1;
 	}
-
+	
 	num = ARRAY_SIZE(devinfo_proc_list);
 	for (i = 0; i < num; i++) {
 		prEntry = proc_create(devinfo_proc_list[i], 0444, devinfo_dir, proc_fops_list[i]);
@@ -282,8 +221,10 @@ static int __init devinfo_init(void){
 			continue;
 		pr_notice("[%s]: failed to create /proc/devinfo/%s\n", __func__, devinfo_proc_list[i]);
 	}
-
+	
+	oppoversion_init();
 	meta_work_around();
+	
 	return 0;
 }
 

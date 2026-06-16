@@ -47,7 +47,6 @@
 #include <mt-plat/mtk_rtc.h>
 extern int is_kernel_panic;
 #endif
-
 #ifndef __USING_DUMMY_WDT_DRV__
 #include <mt-plat/upmu_common.h>
 #endif
@@ -454,13 +453,12 @@ void wdt_arch_reset(char mode)
 	enum wdt_rst_modes rst_mode = WDT_RST_MODE_DEFAULT;
 
 	pr_debug("%s: mode=0x%x\n", __func__, mode);
-
-#ifdef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for reboot kernel panic mode */
+    #ifdef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for reboot kernel panic mode */
 	if (is_kernel_panic) {
 		oppo_rtc_mark_reboot_kernel();
 	}
-#endif
+	#endif
 
 	for_each_matching_node(np_rgu, rgu_of_match) {
 		pr_info("%s: compatible node found: %s\n",
@@ -509,7 +507,7 @@ void wdt_arch_reset(char mode)
 
 	/* make sure WDT mode is hw reboot mode, can not config isr mode */
 	wdt_mode_val &= (~(MTK_WDT_MODE_IRQ | MTK_WDT_MODE_IRQ_LEVEL_EN |
-			MTK_WDT_MODE_DUAL_MODE));
+			MTK_WDT_MODE_ENABLE | MTK_WDT_MODE_DUAL_MODE));
 
 	if (mode & WD_SW_RESET_BYPASS_PWR_KEY) {
 		/* Bypass power key reboot, We using auto_restart bit

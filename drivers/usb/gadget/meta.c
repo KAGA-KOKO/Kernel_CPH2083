@@ -1287,15 +1287,14 @@ void enable_meta_vcom(int mode)
 
 	if (mode == 1) {
 		strncpy(serial_string, "", sizeof(serial_string) - 1);
-	#ifndef VENDOR_EDIT
-	/*xing.xiong@BSP.Kernel.Debug, 2018/11/13, Modify for oppo meta vid&pid*/
+#ifdef ODM_HQ_EDIT
+		/* Duwenchao@ODM.Driver.meta 2018/12/18 meta mode change pid/vid*/
+		device_desc.idVendor = 0x22d9;
+		device_desc.idProduct = 0x0006;
+#else
 		device_desc.idVendor = 0x0e8d;
 		device_desc.idProduct = 0x2007;
-	#else
-		device_desc.idVendor = 0x22D9;
-		device_desc.idProduct = 0x0006;
-	#endif /*VENDOR_EDIT*/
-
+#endif
 		device_desc.bDeviceClass = 0x02;
 
 		/*ttyGS0*/
@@ -1306,14 +1305,14 @@ void enable_meta_vcom(int mode)
 
 
 		strncpy(serial_string, "", sizeof(serial_string) - 1);
-	#ifndef VENDOR_EDIT
-		/*xing.xiong@BSP.Kernel.Debug, 2018/11/13, Modify for oppo meta vid&pid*/
+#ifdef ODM_HQ_EDIT
+		/* Duwenchao@ODM.Driver.meta 2018/12/18 meta mode change pid/vid*/
+		device_desc.idVendor = 0x22d9;
+		device_desc.idProduct = 0x202d;
+#else
 		device_desc.idVendor = 0x0e8d;
 		device_desc.idProduct = 0x202d;
-	#else
-		device_desc.idVendor = 0x22D9;
-		device_desc.idProduct = 0x202d;
-	#endif /*VENDOR_EDIT*/
+#endif
 
 		/*ttyGS0 + ttyGS3*/
 		quick_vcom = (1 << 0) + (1 << 3);

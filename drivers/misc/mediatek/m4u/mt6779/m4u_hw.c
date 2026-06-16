@@ -35,7 +35,7 @@ static unsigned long gM4UBaseAddr[TOTAL_M4U_NUM];
 static unsigned long gLarbBaseAddr[SMI_LARB_NR];
 static unsigned long gM4UtfAddr[TOTAL_M4U_NUM];
 static unsigned long gPericfgBaseAddr;
-static unsigned int gM4UTagCount[TOTAL_M4U_NUM] = {64, 64};
+static unsigned int gM4UTagCount[] = { 64 };
 static unsigned long gM4USecAddr[TOTAL_M4U_NUM];
 static unsigned int M4USecIrq[TOTAL_M4U_NUM];
 
@@ -275,12 +275,12 @@ int mau_start_monitor(int m4u_id, int m4u_slave_id, int mau_set,
 	M4U_WriteReg32(m4u_base,
 		REG_MMU_MAU_START(m4u_slave_id, mau_set), start);
 	M4U_WriteReg32(m4u_base,
-		REG_MMU_MAU_START_BIT32(m4u_slave_id, mau_set), (bit32));
+		REG_MMU_MAU_START_BIT32(m4u_slave_id, mau_set), !!(bit32));
 	M4U_WriteReg32(m4u_base,
 		REG_MMU_MAU_END(m4u_slave_id, mau_set), end);
 	M4U_WriteReg32(m4u_base,
 		REG_MMU_MAU_END_BIT32(m4u_slave_id, mau_set),
-		(bit32));
+		!!(bit32));
 
 	M4U_WriteReg32(m4u_base,
 		REG_MMU_MAU_PORT_EN(m4u_slave_id, mau_set),
@@ -501,15 +501,16 @@ int m4u_dump_main_tlb(int m4u_id, int m4u_slave_id)
 	return 0;
 }
 
-int m4u_dump_valid_main0_tlb(int m4u_id, int m4u_slave_id)
+int m4u_dump_invalid_main_tlb(int m4u_id, int m4u_slave_id)
 {
 	unsigned int i = 0;
 	struct mmu_tlb_t tlb;
 
-	M4UMSG("dump main tlb start %d -- %d\n", m4u_id, m4u_slave_id);
+	M4UMSG("dump inv main tlb start\n");
 	for (i = 0; i < gM4UTagCount[m4u_id]; i++) {
 		m4u_get_main_tlb(m4u_id, m4u_slave_id, i, &tlb);
-		if ((tlb.tag & F_MAIN_TLB_VALID_BIT) == F_MAIN_TLB_VALID_BIT)
+		if ((tlb.tag & (F_MAIN_TLB_VALID_BIT | F_MAIN_TLB_INV_DES_BIT))
+		    == (F_MAIN_TLB_VALID_BIT | F_MAIN_TLB_INV_DES_BIT))
 			M4ULOG_HIGH("%d:0x%x:0x%x\n", i, tlb.tag, tlb.desc);
 
 	}
@@ -517,72 +518,6 @@ int m4u_dump_valid_main0_tlb(int m4u_id, int m4u_slave_id)
 
 	return 0;
 }
-
-#if 1
-unsigned int m4u_get_main1_descriptor(int m4u_id, int m4u_slave_id, int idx)
-{
-	unsigned int regValue = 0;
-	unsigned long m4u_base = gM4UBaseAddr[m4u_id];
-
-	regValue = F_READ_ENTRY_EN
-		   | F_READ_ENTRY_MMx_MAIN(m4u_slave_id)
-		   | F_READ_ENTRY_MMU1_IDX(idx);/* mmu1 */
-
-	M4U_WriteReg32(m4u_base, REG_MMU_READ_ENTRY, regValue);
-	while (M4U_ReadReg32(m4u_base, REG_MMU_READ_ENTRY) & F_READ_ENTRY_EN)
-		;
-	return M4U_ReadReg32(m4u_base, REG_MMU_DES_RDATA);
-}
-
-void m4u_get_main1_tlb(int m4u_id, int m4u_slave_id, int idx,
-		struct mmu_tlb_t *pTlb)
-{
-	pTlb->tag = m4u_get_main_tag(m4u_id, m4u_slave_id, idx);
-	pTlb->desc = m4u_get_main1_descriptor(m4u_id, m4u_slave_id, idx);
-}
-
-int m4u_dump_valid_main1_tlb(int m4u_id, int m4u_2nd_id)
-{
-	unsigned int i = 0;
-	struct mmu_tlb_t tlb;
-
-	M4UMSG("dump main tlb start %d -- %d\n", m4u_id, m4u_2nd_id);
-	for (i = 0; i < gM4UTagCount[m4u_id]; i++) {
-		m4u_get_main1_tlb(m4u_id, m4u_2nd_id, i, &tlb);
-		if ((tlb.tag & F_MAIN_TLB_VALID_BIT) == F_MAIN_TLB_VALID_BIT)
-			M4ULOG_HIGH("%d:0x%x:0x%x\n", i, tlb.tag, tlb.desc);
-
-	}
-	M4UMSG("dump mmu1 main tlb end\n");
-
-	return 0;
-}
-
-int dump_fault_mva_pfh_tlb(int m4u_id, unsigned int mva)
-{
-	int set;
-	int way, page, valid;
-	struct mmu_tlb_t tlb;
-	unsigned int regval;
-
-	set = (mva >> 15) & 0x7f;
-	for (way = 0; way < MMU_WAY_NR; way++) {
-		for (page = 0; page < MMU_PAGE_PER_LINE; page++) {
-			regval = M4U_ReadReg32(gM4UBaseAddr[m4u_id],
-				REG_MMU_PFH_VLD(m4u_id, set, way));
-			valid = !!(regval & F_MMU_PFH_VLD_BIT(set, way));
-
-			m4u_get_pfh_tlb(m4u_id, set, page, way, &tlb);
-			M4UMSG(
-				"fault_mva:0x%x, way:%d, set:%d, page:%d, valid:%d--0x%x, tag:0x%x, des:0x%x\n",
-				mva, way, set, page, valid,
-				regval, tlb.tag, tlb.desc);
-		}
-	}
-
-	return 0;
-}
-#endif
 
 static unsigned int imu_pfh_tag_to_va(int mmu,
 		int set, int way, unsigned int tag)
@@ -1678,7 +1613,6 @@ int m4u_reg_backup(void)
 		__M4U_BACKUP(m4u_base, REG_MMU_IVRP_PADDR, *(pReg++));
 		__M4U_BACKUP(m4u_base, REG_MMU_INT_L2_CONTROL, *(pReg++));
 		__M4U_BACKUP(m4u_base, REG_MMU_INT_MAIN_CONTROL, *(pReg++));
-		__M4U_BACKUP(m4u_base, REG_MMU_MMU_MISC_CTRL, *(pReg++));
 
 		for (m4u_slave = 0;
 			m4u_slave < M4U_SLAVE_NUM(m4u_id); m4u_slave++) {
@@ -1741,8 +1675,6 @@ int m4u_reg_restore(void)
 	unsigned int real_size;
 	int dist;
 
-	m4u_call_atf_debug(M4U_ATF_SECURITY_DEBUG_EN);
-
 	for (m4u_id = 0; m4u_id < TOTAL_M4U_NUM; m4u_id++) {
 		m4u_base = gM4UBaseAddr[m4u_id];
 		__M4U_RESTORE(m4u_base, REG_MMUg_PT_BASE, *(pReg++));
@@ -1758,7 +1690,6 @@ int m4u_reg_restore(void)
 		__M4U_RESTORE(m4u_base, REG_MMU_IVRP_PADDR, *(pReg++));
 		__M4U_RESTORE(m4u_base, REG_MMU_INT_L2_CONTROL, *(pReg++));
 		__M4U_RESTORE(m4u_base, REG_MMU_INT_MAIN_CONTROL, *(pReg++));
-		__M4U_RESTORE(m4u_base, REG_MMU_MMU_MISC_CTRL, *(pReg++));
 
 		for (m4u_slave = 0;
 			m4u_slave < M4U_SLAVE_NUM(m4u_id); m4u_slave++) {
@@ -2103,7 +2034,6 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 {
 	unsigned long m4u_base;
 	unsigned int m4u_index;
-	static int tf_cnt;
 
 	if (irq == gM4uDev->irq_num[0]) {
 		m4u_base = gM4UBaseAddr[0];
@@ -2212,12 +2142,8 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 
 		/* dump something quickly */
 		///m4u_dump_rs_info(m4u_index, slave_id);
-#if 0
-		if (m4u_slave_id == 0)
-			m4u_dump_valid_main0_tlb(m4u_index, m4u_slave_id);
-		else if (m4u_slave_id == 1)
-			m4u_dump_valid_main1_tlb(m4u_index, m4u_slave_id);
-#endif
+		if (m4u_index == 0)
+			m4u_dump_invalid_main_tlb(m4u_index, m4u_slave_id);
 		/* m4u_dump_reg(m4u_index, 0x860); */
 		/* m4u_dump_main_tlb(m4u_index, 0); */
 		/* m4u_dump_pfh_tlb(m4u_index); */
@@ -2258,38 +2184,9 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 
 			if (gM4uPort[m4u_port].enable_tf == 1 &&
 					bypass_DISP_TF == 0) {
-				int valid = 0;
-
-				valid = m4u_dump_pte_nolock(
+				m4u_dump_pte_nolock(
 					m4u_get_domain_by_port(m4u_port),
 							fault_mva);
-				if (valid) {
-					unsigned long long ts = sched_clock();
-
-					dump_fault_mva_pfh_tlb(m4u_index,
-						fault_mva);
-					if (m4u_slave_id == 0)
-						m4u_dump_valid_main0_tlb(
-							m4u_index,
-							m4u_slave_id);
-					else if (m4u_slave_id == 1)
-						m4u_dump_valid_main1_tlb(
-							m4u_index,
-							m4u_slave_id);
-
-					/* workaround */
-					if ((tf_cnt < 3) &&
-						(m4u_port ==
-						M4U_PORT_DISP_OVL0_2L)) {
-						M4UMSG("tf cnt:%d ts:%llu ns\n",
-							tf_cnt, ts);
-						tf_cnt++;
-						m4u_dump_buf_info(NULL,
-							m4u_index);
-						return IRQ_HANDLED;
-					}
-				}
-
 				m4u_print_port_status_ext(NULL, m4u_port);
 
 				if (m4u_index == 0) {
@@ -2316,11 +2213,10 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 				m4u_dump_buf_info(NULL, m4u_index);
 				if (m4u_index == 0)
 					m4u_aee_print(
-						"\nCRDISPATCH_KEY:M4U_%s\ntranslation fault: port=%s, mva=0x%x, pa=0x%x, cnt:%d\n",
+						"\nCRDISPATCH_KEY:M4U_%s\ntranslation fault: port=%s, mva=0x%x, pa=0x%x\n",
 					 m4u_get_port_name(m4u_port),
 					m4u_get_port_name(m4u_port),
-					fault_mva, fault_pa,
-					tf_cnt);
+					fault_mva, fault_pa);
 				else if (m4u_index == 1)
 					m4u_aee_print(
 						"\nCRDISPATCH_KEY:M4U_PORT_VPU(%s)\ntranslation fault: mva=0x%x, pa=0x%x, fault_id:0x%x\n",
@@ -2392,16 +2288,6 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 	}
 
 	return IRQ_HANDLED;
-}
-
-void m4u_call_atf_debug(int m4u_debug_id)
-{
-	size_t tf_port = 0;
-	size_t tf_en = 0;
-
-	M4UMSG("M4U CALL ATF ID:%d\n", m4u_debug_id);
-	tf_en = mt_secure_call_ret2(MTK_M4U_DEBUG_DUMP,
-				m4u_debug_id, 0, 0, 0, &tf_port);
 }
 
 irqreturn_t MTK_M4U_isr_sec(int irq, void *dev_id)
@@ -2575,6 +2461,14 @@ int m4u_reg_init(struct m4u_domain_t *m4u_domain,
 
 		m4u_invalid_tlb_all(m4u_id);
 
+		/* 3 non-standard AXI mode */
+		m4uHw_set_field_by_mask(gM4UBaseAddr[m4u_id],
+			REG_MMU_MMU_MISC_CTRL,
+			REG_MMU0_STANDARD_AXI_MODE, 0);
+		m4uHw_set_field_by_mask(gM4UBaseAddr[m4u_id],
+			REG_MMU_MMU_MISC_CTRL,
+			REG_MMU1_STANDARD_AXI_MODE, 0);
+
 		/* 4 write command throttling mode */
 		m4uHw_set_field_by_mask(gM4UBaseAddr[m4u_id], REG_MMU_WR_LEN,
 				F_MMU_MMU0_WR_THROT_DIS, 0);
@@ -2592,19 +2486,12 @@ int m4u_reg_init(struct m4u_domain_t *m4u_domain,
 		m4uHw_set_field_by_mask(m4u_base, REG_MMU_MMU_MISC_CTRL,
 			REG_MMU1_IN_ORDER_WR_EN, 0);
 #endif
-
-		/* 3 non-standard AXI mode */
-		m4uHw_set_field_by_mask(m4u_base,
-			REG_MMU_MMU_MISC_CTRL,
-			REG_MMU0_STANDARD_AXI_MODE, 0);
-		m4uHw_set_field_by_mask(m4u_base,
-			REG_MMU_MMU_MISC_CTRL,
-			REG_MMU1_STANDARD_AXI_MODE, 0);
+		M4UMSG("m4u inorder setting: 0x%x\n",
+			m4uHw_get_field_by_mask(m4u_base,
+				REG_MMU_MMU_MISC_CTRL,
+				REG_MMU1_IN_ORDER_WR_EN));
 	}
-	M4UMSG("0x48 reg setting: 0x%x, dom:%d\n",
-			M4U_ReadReg32(gM4UBaseAddr[m4u_id],
-			REG_MMU_MMU_MISC_CTRL),
-			m4u_id);
+
 	return 0;
 }
 
@@ -2675,11 +2562,6 @@ int m4u_hw_init(struct m4u_device *m4u_dev, int m4u_id)
 
 	spin_lock_init(&gM4u_reg_lock[m4u_id]);
 
-	if (m4u_id == 0) {
-		M4UMSG("m4u atf config\n");
-		m4u_call_atf_debug(M4U_ATF_SECURITY_DEBUG_EN);
-	}
-
 	m4u_reg_init(&gM4uDomain[m4u_id], ProtectPA, m4u_id);
 
 	/* register normal bank irq */
@@ -2748,7 +2630,7 @@ int m4u_dump_reg_for_smi_hang_issue(void)
 
 	int cnt;
 
-	M4UMSG("====== dump mm_iommu reg start =======>\n");
+	M4UMSG("====== dump m4u reg start =======>\n");
 
 	if (gM4UBaseAddr[0] == 0) {
 		M4UMSG("gM4UBaseAddr[0] is NULL\n");
@@ -2770,41 +2652,8 @@ int m4u_dump_reg_for_smi_hang_issue(void)
 		m4u_dump_rs_sta_info(0, 1);
 	}
 
-	M4UMSG("====== dump mm_iommu reg end =======>\n");
+	M4UMSG("====== dump m4u reg end =======>\n");
 
 	return 0;
 }
 
-int m4u_dump_reg_for_vpu_hang_issue(void)
-{
-	/*NOTES: m4u_monitor_start() must be called before using m4u */
-	/*please check m4u_hw_init() to ensure that */
-
-	int cnt;
-
-	M4UMSG("====== dump vpu_iommu reg start =======>\n");
-
-	if (gM4UBaseAddr[1] == 0) {
-		M4UMSG("gM4UBaseAddr[1] is NULL\n");
-		return 0;
-	}
-	/* control register */
-	M4UMSG("0x44 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x44));
-	M4UMSG("0x48 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x48));
-	M4UMSG("0x50 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x50));
-	M4UMSG("0x54 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x54));
-	M4UMSG("0xA0 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0xa0));
-	M4UMSG("0x110 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x110));
-
-	/* dump five times*/
-	for (cnt = 0; cnt < 5; cnt++) {
-		M4UMSG("0x08 = 0x%x\n", M4U_ReadReg32(gM4UBaseAddr[1], 0x08));
-		m4u_dump_debug_reg_info(1);
-		m4u_dump_rs_sta_info(1, 0);
-		m4u_dump_rs_sta_info(1, 1);
-	}
-
-	M4UMSG("====== dump vpu_iommu reg end =======>\n");
-
-	return 0;
-}

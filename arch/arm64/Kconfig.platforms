@@ -258,7 +258,6 @@ config MACH_MT6779
 	select MTK_L2C_PARITY_CHECK
 	select MTK_LASTBUS_INTERFACE
 	select MTK_ION_CACHE_OPTIMIZATION
-	select MTK_DEVMPU
 	help
 	  This enables support for MediaTek - MT6779
 	  Highly power-efficient, performance-oriented 4G LTE processor for premium,
@@ -314,7 +313,6 @@ config MACH_MT3967
 	select MTK_SYSTRACKER_V2
 	select MTK_PID_MAP
 	select DEBUG_TIMEKEEPING
-	select MTK_DEVMPU
 	help
 	  This enables support for MediaTek - MT3967
 	  Highly power-efficient, performance-oriented 4G LTE processor for premium,
@@ -512,10 +510,4 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
-#Wuzhenzhen.Wu 2019/12/17,Add for ODM_WT_EDIT maco in kernel
-config ODM_WT_EDIT
-	bool "Enable Support for ODM WT Projects"
-	help
-	  This enables support for the ODM Wingtech projects. If you do not
-	  wish to build a kernel that runs on this chipset, say 'N' here.
 endmenu

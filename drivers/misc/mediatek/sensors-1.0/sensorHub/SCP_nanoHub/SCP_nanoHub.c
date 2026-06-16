@@ -902,34 +902,6 @@ static void SCP_sensorHub_init_sensor_state(void)
 
 	mSensorState[SENSOR_TYPE_SAR].sensorType = SENSOR_TYPE_SAR;
 	mSensorState[SENSOR_TYPE_SAR].timestamp_filter = false;
-
-#ifdef VENDOR_EDIT
-/*QZL@PSW.BSP.Sensor, 2018/12/24, Add for oppo algo*/
-	mSensorState[SENSOR_TYPE_FFD].sensorType = SENSOR_TYPE_FFD;
-	mSensorState[SENSOR_TYPE_FFD].rate = SENSOR_RATE_ONCHANGE;
-	mSensorState[SENSOR_TYPE_FFD].timestamp_filter = false;
-
-	mSensorState[SENSOR_TYPE_FREE_FALL].sensorType = SENSOR_TYPE_FREE_FALL;
-	mSensorState[SENSOR_TYPE_FREE_FALL].rate = SENSOR_RATE_ONCHANGE;
-	mSensorState[SENSOR_TYPE_FREE_FALL].timestamp_filter = false;
-
-	mSensorState[SENSOR_TYPE_PICKUP_MOTION].sensorType = SENSOR_TYPE_PICKUP_MOTION;
-	mSensorState[SENSOR_TYPE_PICKUP_MOTION].rate = SENSOR_RATE_ONCHANGE;
-	mSensorState[SENSOR_TYPE_PICKUP_MOTION].timestamp_filter = false;
-
-	mSensorState[SENSOR_TYPE_ACTION_DETECT].sensorType = SENSOR_TYPE_ACTION_DETECT;
-	mSensorState[SENSOR_TYPE_ACTION_DETECT].rate = SENSOR_RATE_ONCHANGE;
-	mSensorState[SENSOR_TYPE_ACTION_DETECT].timestamp_filter = false;    
-
-    mSensorState[SENSOR_TYPE_SAR_MODEM].sensorType = SENSOR_TYPE_SAR_MODEM;
-    mSensorState[SENSOR_TYPE_SAR_MODEM].rate = SENSOR_RATE_ONCHANGE;
-    mSensorState[SENSOR_TYPE_SAR_MODEM].timestamp_filter = false;
-
-    mSensorState[SENSOR_TYPE_LUX_AOD].sensorType = SENSOR_TYPE_LUX_AOD;
-    mSensorState[SENSOR_TYPE_LUX_AOD].rate = SENSOR_RATE_ONCHANGE;
-    mSensorState[SENSOR_TYPE_LUX_AOD].timestamp_filter = false;
-
-#endif /*VENDOR_EDIT*/
 }
 
 static void init_sensor_config_cmd(struct ConfigCmd *cmd,
@@ -1380,7 +1352,6 @@ int sensor_calibration_to_hub(uint8_t handle)
 	struct ConfigCmd cmd;
 	int ret = 0;
 
-	pr_err("sensor(%d) send calibration command to hub\n", sensor_type);
 	if (mSensorState[sensor_type].sensorType) {
 		init_sensor_config_cmd(&cmd, sensor_type);
 		cmd.cmd = CONFIG_CMD_CALIBRATE;
@@ -1669,58 +1640,12 @@ int sensor_get_data_from_hub(uint8_t sensorType,
 		data->floor_counter_t.accumulated_floor_count
 		    = data_t->floor_counter_t.accumulated_floor_count;
 		break;
-#ifdef VENDOR_EDIT
-/*Fei.Mo@PSW.BSP.Sensor, 2017/12/13, Add for oppo sensor type to send some info to scp*/
-	case ID_OPPO_SENSOR:
-		data->data[0] = data_t->data[0];
-		break;
-#endif /* VENDOR_EDIT */
-
 	case ID_SAR:
 		data->time_stamp = data_t->time_stamp;
 		data->sar_event.data[0] = data_t->sar_event.data[0];
 		data->sar_event.data[1] = data_t->sar_event.data[1];
 		data->sar_event.data[2] = data_t->sar_event.data[2];
 		break;
-
-#ifdef VENDOR_EDIT
-/*QZL@PSW.BSP.Sensor, 2018/12/24, Add for oppo algo*/
-	case ID_FFD:
-		data->time_stamp = data_t->time_stamp;
-		data->ffd_data_t.value = data_t->ffd_data_t.value;
-		data->ffd_data_t.report_count = data_t->ffd_data_t.report_count;
-        break;
-
-	case ID_FREE_FALL:
-		data->time_stamp = data_t->time_stamp;
-		data->free_fall_data_t.free_fall_time = data_t->free_fall_data_t.free_fall_time;
-		data->free_fall_data_t.angle = data_t->free_fall_data_t.angle;
-		data->free_fall_data_t.report_count = data_t->free_fall_data_t.report_count;
-        break;
-
-	case ID_PICKUP_MOTION:
-		data->time_stamp = data_t->time_stamp;
-		data->pickup_motion_data_t.value = data_t->pickup_motion_data_t.value;
-		data->pickup_motion_data_t.report_count = data_t->pickup_motion_data_t.report_count;
-        break;
-
-	case ID_ACTION_DETECT:
-		data->time_stamp = data_t->time_stamp;
-		data->action_detect_data_t.value = data_t->action_detect_data_t.value;
-		data->action_detect_data_t.report_count = data_t->action_detect_data_t.report_count;
-        break;
-
-    case ID_SAR_MODEM:
-        data->time_stamp = data_t->time_stamp;
-        data->sar_modem_event.state = data_t->sar_modem_event.state;
-        break;
-
-    case ID_LUX_AOD:
-        data->time_stamp = data_t->time_stamp;
-        data->lux_aod_event.state = data_t->lux_aod_event.state;
-        data->lux_aod_event.report_count = data_t->lux_aod_event.report_count;
-        break;
-#endif /* VENDOR_EDIT */
 	default:
 		err = -1;
 		break;
@@ -1799,30 +1724,6 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 			    + sizeof(req.set_cust_req.getInfo);
 			break;
-#ifdef VENDOR_EDIT
-//ye.zhang@PSE.BSP.Sensor, 2017-12-20, add for sensor self test
-		case CUST_ACTION_SELFTEST:
-			printk("::set CUST_ACTION_SELFTEST\n");
-			req.set_cust_req.showSelftest.action = CUST_ACTION_SELFTEST;
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, showSelftest)
-			    + sizeof(req.set_cust_req.showSelftest);
-			err = scp_sensorHub_req_send(&req, &len, 1);
-			if (err == 0) {
-				if (req.set_cust_rsp.action != SENSOR_HUB_SET_CUST
-				    || 0 != req.set_cust_rsp.errCode) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  1!\n");
-					return -1;
-				}
-				if (req.set_cust_rsp.showSelftest.action != CUST_ACTION_SELFTEST) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  2!\n");
-					return -1;
-				}
-				*((int32_t *) data) = req.set_cust_rsp.showSelftest.testResult;
-			} else {
-				pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  3!\n");
-			}
-			return 0;
-#endif//VENDOR_EDIT
 		default:
 			return -1;
 		}
@@ -1831,14 +1732,6 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 		req.set_cust_req.sensorType = ID_LIGHT;
 		req.set_cust_req.action = SENSOR_HUB_SET_CUST;
 		switch (action) {
-#ifdef VENDOR_EDIT
-		case CUST_ACTION_SET_CALI:
-			req.set_cust_req.setCali.action = CUST_ACTION_SET_CALI;
-			req.set_cust_req.setCali.int32_data[0] = *((int32_t *) data);
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
-			    + sizeof(req.set_cust_req.setCali);
-			break;
-#endif
 		case CUST_ACTION_GET_RAW_DATA:
 			req.set_cust_req.getRawData.action =
 				CUST_ACTION_GET_RAW_DATA;
@@ -1898,22 +1791,10 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			break;
 		case CUST_ACTION_SET_CALI:
 			req.set_cust_req.setCali.action = CUST_ACTION_SET_CALI;
-#ifndef VENDOR_EDIT
-//zhq@PSE.BSP.Sensor, 2018-10-30, add for prox cali data from ap to scp
-			req.set_cust_req.setCali.int32_data[0] = *((int32_t *) data);
+			req.set_cust_req.setCali.int32_data[0] =
+				*((int32_t *) data);
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 			    + sizeof(req.set_cust_req.setCali);
-#else
-			req.set_cust_req.setCali.action = CUST_ACTION_SET_CALI;
-			req.set_cust_req.setCali.int32_data[SCP_SENSOR_HUB_X]
-			    = *((int32_t *) data + SCP_SENSOR_HUB_X);
-			req.set_cust_req.setCali.int32_data[SCP_SENSOR_HUB_Y]
-			    = *((int32_t *) data + SCP_SENSOR_HUB_Y);
-			req.set_cust_req.setCali.int32_data[SCP_SENSOR_HUB_Z]
-			    = *((int32_t *) data + SCP_SENSOR_HUB_Z);
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
-			    + sizeof(req.set_cust_req.setCali);
-#endif
 			break;
 		case CUST_ACTION_SET_TRACE:
 			req.set_cust_req.setTrace.action =
@@ -1922,16 +1803,6 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 			    + sizeof(req.set_cust_req.setTrace);
 			break;
-#ifdef VENDOR_EDIT
-/* Weiqin.Tang@PSW.BSP.Sensor, 2020/1/2, add for set factory flag to scp */
-        case CUST_ACTION_SET_FACTORY_FLAG:
-			req.set_cust_req.setFactoryFlag.action =
-				CUST_ACTION_SET_FACTORY_FLAG;
-			req.set_cust_req.setFactoryFlag.flag = *((int32_t *)data);
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
-			    + sizeof(req.set_cust_req.setFactoryFlag);
-			break;
-#endif
 		case CUST_ACTION_SHOW_REG:
 			req.set_cust_req.showReg.action = CUST_ACTION_SHOW_REG;
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
@@ -1978,65 +1849,6 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 				+ sizeof(req.set_cust_req.getInfo);
 			break;
-#ifdef VENDOR_EDIT
-	/*zhye@PSW.BSP.Sensor, 2017-12-28, add for read write als&prx register interface*/
-		case CUST_ACTION_RW_REGISTER:
-			printk("::set CUST_ACTION_RW_REGISTER\n");
-			req.set_cust_req.showSelftest.action = CUST_ACTION_RW_REGISTER;
-			req.set_cust_req.showSelftest.buff[0]= ((u8 *) data)[0];
-			req.set_cust_req.showSelftest.buff[1]= ((u8 *) data)[1];
-			req.set_cust_req.showSelftest.buff[2]= ((u8 *) data)[2];
-
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, showSelftest)
-			    + sizeof(req.set_cust_req.showSelftest);
-			err = scp_sensorHub_req_send(&req, &len, 1);
-			if (err == 0) {
-				if (req.set_cust_rsp.action != SENSOR_HUB_SET_CUST
-				    || 0 != req.set_cust_rsp.errCode) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_RW_REGISTER::failed  1!\n");
-					return -1;
-				}
-				if (req.set_cust_rsp.showSelftest.action != CUST_ACTION_RW_REGISTER) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_RW_REGISTER::failed  2!\n");
-					return -1;
-				}
-				((uint8_t*)data)[0] = (uint8_t)req.set_cust_rsp.showSelftest.buff[0];
-			} else {
-				pr_err("::scp_sensorHub_req_send::CUST_ACTION_RW_REGISTER::failed  3!\n");
-			}
-			return 0;
-		case CUST_ACTION_SCP_SYNC_UTC:
-			req.set_cust_req.syncUTC.action = CUST_ACTION_SCP_SYNC_UTC;
-			req.set_cust_req.syncUTC.u32_data[0] = ((u32 *) data)[0];
-			req.set_cust_req.syncUTC.u32_data[1] = ((u32 *) data)[1];
-			req.set_cust_req.syncUTC.u32_data[2] = ((u32 *) data)[2];
-			req.set_cust_req.syncUTC.u32_data[3] = ((u32 *) data)[3];
-
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, syncUTC)
-			    + sizeof(req.set_cust_req.syncUTC);
-			break;
-		case CUST_ACTION_SELFTEST:
-			printk("::set CUST_ACTION_SELFTEST\n");
-			req.set_cust_req.showSelftest.action = CUST_ACTION_SELFTEST;
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, showSelftest)
-					+ sizeof(req.set_cust_req.showSelftest);
-			err = scp_sensorHub_req_send(&req, &len, 1);
-			if (err == 0) {
-  				if (req.set_cust_rsp.action != SENSOR_HUB_SET_CUST
-      			|| 0 != req.set_cust_rsp.errCode) {
-    				pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  1!\n");
-    				return -1;
-  				}
-  				if (req.set_cust_rsp.showSelftest.action != CUST_ACTION_SELFTEST) {
-    				pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  2!\n");
-    				return -1;
-  				}
-  				*((int32_t *) data) = req.set_cust_rsp.showSelftest.testResult;
-			} else {
-  				pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  3!\n");
-			}
-			return 0;
-#endif//VENDOR_EDIT
 		default:
 			return -1;
 		}
@@ -2177,30 +1989,15 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
 			    + sizeof(req.set_cust_req.getInfo);
 			break;
-	#ifdef VENDOR_EDIT
-	//ye.zhang@PSE.BSP.Sensor, 2017-12-20, add for sensor self test
-		case CUST_ACTION_SELFTEST:
-			printk("::set CUST_ACTION_SELFTEST\n");
-			req.set_cust_req.showSelftest.action = CUST_ACTION_SELFTEST;
-			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, showSelftest)
-			    + sizeof(req.set_cust_req.showSelftest);
-			err = scp_sensorHub_req_send(&req, &len, 1);
-			if (err == 0) {
-				if (req.set_cust_rsp.action != SENSOR_HUB_SET_CUST
-				    || 0 != req.set_cust_rsp.errCode) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  1!\n");
-					return -1;
-				}
-				if (req.set_cust_rsp.showSelftest.action != CUST_ACTION_SELFTEST) {
-					pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  2!\n");
-					return -1;
-				}
-				*((int32_t *) data) = req.set_cust_rsp.showSelftest.testResult;
-			} else {
-				pr_err("::scp_sensorHub_req_send::CUST_ACTION_SELFTEST::failed  3!\n");
-			}
-			return 0;
-	#endif//VENDOR_EDIT
+		#ifdef ODM_HQ_EDIT
+		/* GuJianchao@ODM_HQ.Sensors.SCP.BSP, 2018/12/28, add sensors func for msensor selftest */
+		case CUST_ACTION_SELF_TEST:
+			req.set_cust_req.selfTest.action =
+				CUST_ACTION_SELF_TEST;
+			len = offsetof(SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+			    + sizeof(req.set_cust_req.selfTest);
+			break;
+		#endif
 		default:
 			return -1;
 		}
@@ -2257,6 +2054,19 @@ int sensor_set_cmd_to_hub(uint8_t sensorType,
 			&req.set_cust_rsp.getInfo.sensorInfo,
 			sizeof(struct sensorInfo_t));
 		break;
+	#ifdef ODM_HQ_EDIT
+	/* GuJianchao@ODM_HQ.Sensors.SCP.BSP, 2018/12/28, add sensors func for msensor selftest */
+	case CUST_ACTION_SELF_TEST:
+		if (req.set_cust_rsp.selfTest.action !=
+			CUST_ACTION_SELF_TEST) {
+			pr_info("scp_sensorHub_req_send failed action!\n");
+			return -1;
+		}
+		memcpy((int32_t *)data,
+			&req.set_cust_rsp.selfTest.int32_data,
+			sizeof(int32_t));
+		break;
+	#endif
 	default:
 		break;
 	}

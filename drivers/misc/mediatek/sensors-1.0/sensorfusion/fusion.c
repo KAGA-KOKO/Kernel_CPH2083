@@ -82,25 +82,6 @@ static int handle_to_index(int handle)
 	case ID_GYRO_TEMPERATURE:
 		index = ungyro_temperature;
 		break;
-#ifdef VENDOR_EDIT
-/*QZL@PSW.BSP.Sensor, 2018/12/24, Add for oppo algo*/
-        case ID_FFD:
-            index = ffd;
-            break;
-        case ID_FREE_FALL:
-            index = free_fall;
-            break;
-        case ID_PICKUP_MOTION:
-            index = pickup_motion;
-            break;
-        case ID_ACTION_DETECT:
-            index = action_detect;
-            break;
-        case ID_LUX_AOD:
-            index = lux_aod;
-            break;
-#endif /*VENDOR_EDIT*/
-
 	default:
 		index = -1;
 		pr_err("handle_to_index invalid handle:%d, index:%d\n",
@@ -487,16 +468,7 @@ int fusion_register_control_path(struct fusion_control_path *ctl,
 		ctl->is_support_batch;
 	cxt->fusion_context[index].fusion_ctl.is_report_input_direct =
 		ctl->is_report_input_direct;
-        #ifdef VENDOR_EDIT
-        cxt->fusion_context[index].fusion_ctl.is_support_wake_lock =
-		ctl->is_support_wake_lock;
-        cxt->wake_lock_name[index] = kzalloc(64, GFP_KERNEL);
-        if (!cxt->wake_lock_name[index])
-	    return -1;
-        sprintf(cxt->wake_lock_name[index], "fusion_wakelock-%d", index);
-        wakeup_source_init(&cxt->ws[index], cxt->wake_lock_name[index]);
-        #endif	
-        return 0;
+	return 0;
 }
 
 static int fusion_data_report(int x, int y, int z,
@@ -505,11 +477,8 @@ static int fusion_data_report(int x, int y, int z,
 	/* pr_debug("+fusion_data_report! %d, %d, %d, %d\n",x,y,z,status); */
 	struct sensor_event event;
 	int err = 0;
-        int index = -1;
-	struct fusion_context *cxt = NULL;
-	cxt = fusion_context_obj;
 
-        memset(&event, 0, sizeof(struct sensor_event));
+	memset(&event, 0, sizeof(struct sensor_event));
 
 	event.handle = handle;
 	event.flush_action = DATA_ACTION;
@@ -519,21 +488,8 @@ static int fusion_data_report(int x, int y, int z,
 	event.word[1] = y;
 	event.word[2] = z;
 	event.word[3] = scalar;
-        #ifdef VENDOR_EDIT
-	index = handle_to_index(handle);
-	if (index < 0) {
-		pr_err("[%s] invalid handle\n", __func__);
-		return -1;
-	}
-        #endif
+
 	err = sensor_input_event(fusion_context_obj->mdev.minor, &event);
-        #ifdef VENDOR_EDIT
-        if (cxt->fusion_context[index].fusion_ctl.open_report_data != NULL &&
-		cxt->fusion_context[index].fusion_ctl.is_support_wake_lock){
-          pr_err("wake_lock index=%d\n",index);
-          __pm_wakeup_event(&cxt->ws[index], 250);
-        }
-        #endif 
 	return err;
 }
 
@@ -670,58 +626,6 @@ int uncali_mag_flush_report(void)
 {
 	return uncali_sensor_flush_report(ID_MAGNETIC_UNCALIBRATED);
 }
-
-#ifdef VENDOR_EDIT
-/*QZL@PSW.BSP.Sensor, 2018/12/24, Add for oppo algo*/
-int ffd_data_report(int x, int y, int64_t nt)
-{
-	return fusion_data_report(x, y, 0, 0, 0, nt, ID_FFD);
-}
-int ffd_flush_report(void)
-{
-	return fusion_flush_report(ID_FFD);
-}
-
-int free_fall_data_report(int x, int y, int z, int64_t nt)
-{
-	return fusion_data_report(x, y, z, 0, 0, nt, ID_FREE_FALL);
-}
-int free_fall_flush_report(void)
-{
-	return fusion_flush_report(ID_FREE_FALL);
-}
-
-int pickup_motion_data_report(int x, int y, int64_t nt)
-{
-        pr_err("pickup_motion_data_report:x=%d,y=%d\n",x,y);
-	return fusion_data_report(x, y, 0, 0, 0, nt, ID_PICKUP_MOTION);
-}
-int pickup_motion_flush_report(void)
-{
-	return fusion_flush_report(ID_PICKUP_MOTION);
-}
-
-int action_detect_data_report(int x, int y, int64_t nt)
-{
-        pr_err("action_detect_data_report:x=%d,y=%d\n",x,y);
-	return fusion_data_report(x, y, 0, 0, 0, nt, ID_ACTION_DETECT);
-}
-int action_detect_flush_report(void)
-{
-	return fusion_flush_report(ID_ACTION_DETECT);
-}
-
-int lux_aod_data_report(int x, int y, int64_t nt)
-{
-	return fusion_data_report(x, y, 0, 0, 0, nt, ID_LUX_AOD);
-}
-int lux_aod_flush_report(void)
-{
-	return fusion_flush_report(ID_LUX_AOD);
-}
-
-#endif /*VENDOR_EDIT*/
-
 static int fusion_probe(void)
 {
 

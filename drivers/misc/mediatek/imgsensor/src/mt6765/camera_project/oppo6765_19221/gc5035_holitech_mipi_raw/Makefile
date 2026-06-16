@@ -1,1 +1,0 @@
-obj-y += gc5035holitechmipi_Sensor.o

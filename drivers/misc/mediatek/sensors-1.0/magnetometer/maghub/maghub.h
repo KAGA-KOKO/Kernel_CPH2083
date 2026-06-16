@@ -31,9 +31,4 @@
 
 #define CONVERT_M_DIV		100
 
-#ifdef ODM_HQ_EDIT
-/* Yuzhe.Peng@ODM_HQ.BSP.Sensors.Config, 2019/10/15, add sensor devinfo to proc/devinfo */
-extern void hq_register_sensor_info(int sensor_type, char ic_name[]);
-#endif
-
 #endif

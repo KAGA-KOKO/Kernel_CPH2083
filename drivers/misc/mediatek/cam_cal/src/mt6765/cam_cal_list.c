@@ -17,18 +17,6 @@
 #include "kd_imgsensor.h"
 
 struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
-#ifdef ODM_WT_EDIT
-	/* Cola Project */
-	/* 1.First Vendor */
-	{HI1336_SENSOR_ID, 0xA0, Common_read_region, 0xCDF},
-	{GC5035_HOLITECH_SENSOR_ID, 0xA8, Common_read_region, 0x79D},
-	/* 2.Second Vendor */
-	{HI556_LCE_SENSOR_ID, 0xA8, Common_read_region, 0x79D},
-	{HI1336_HOLITECH_SENSOR_ID, 0xA0, Common_read_region, 0xCDF},
-	/* 3.Third Vendor */
-	{HI1336_HAOZE_SENSOR_ID, 0xA0, Common_read_region, 0xCDF},
-	{GC5035_B_SENSOR_ID, 0xA8, Common_read_region, 0x79D},
-#else
 	/*Below is commom sensor */
 	{IMX230_SENSOR_ID, 0xA0, Common_read_region},
 	{S5K2T7SP_SENSOR_ID, 0xA4, Common_read_region},
@@ -65,19 +53,15 @@ struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 	{IMX214_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX214_MONO_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX486_SENSOR_ID, 0xA8, Common_read_region},
-	{OV12A10_SENSOR_ID, 0xA0, Common_read_region},
-	{OV12A10_ST_SENSOR_ID, 0xA0, Common_read_region},
+	{OV12A10_SENSOR_ID, 0xA8, Common_read_region},
 	{OV13855_SENSOR_ID, 0xA0, Common_read_region},
 	{S5K3L8_SENSOR_ID, 0xA0, Common_read_region},
-	{HI556_SENSOR_ID, 0x51, Common_read_region},
 	{S5K5E8YX_SENSOR_ID, 0x5a, Common_read_region},
 	{S5K5E8YXREAR2_SENSOR_ID, 0x5a, Common_read_region},
-	{GC2375H_SENSOR_ID, 0xA4, Common_read_region},
-	{GC2385_SENSOR_ID, 0xA4, Common_read_region},
-	{S5K4H7YX_HLT_SENSOR_ID, 0x20, s5k4h7yx_hlt_read_region},
-	{GC02M0_SENSOR_ID, 0xA2, Common_read_region},
-	{GC2385_BW_SENSOR_ID, 0xA2, Common_read_region},
-#endif
+    #ifdef ODM_HQ_EDIT
+    {HI556_SENSOR_ID, 0x40, Hi556_read_region},
+    {S5K3H7YX_SENSOR_ID, 0x20, s5k3h7yx_read_region},
+    #endif
 	/*  ADD before this line */
 	{0, 0, 0}       /*end of list */
 };

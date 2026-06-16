@@ -114,6 +114,8 @@ int adsp_register_feature(enum adsp_feature_id id)
 
 int adsp_deregister_feature(enum adsp_feature_id id)
 {
+	int adsp_A_ready = is_adsp_ready(ADSP_A_ID);
+
 	if (id >= ADSP_NUM_FEATURE_ID)
 		return -EINVAL;
 
@@ -129,9 +131,9 @@ int adsp_deregister_feature(enum adsp_feature_id id)
 		adsp_feature_table[id].counter -= 1;
 
 	/* no feature registered, delay 1s and then suspend adsp. */
-	if (!adsp_feature_is_active() && (is_adsp_ready(ADSP_A_ID) == 1)) {
+	if (!adsp_feature_is_active() && (adsp_A_ready == 1)) {
 		pr_debug("[%s]%s, adsp_ready=%x\n", __func__,
-			 adsp_feature_table[id].name, is_adsp_ready(ADSP_A_ID));
+			 adsp_feature_table[id].name, adsp_A_ready);
 		adsp_start_suspend_timer();
 	}
 	mutex_unlock(&adsp_feature_mutex);

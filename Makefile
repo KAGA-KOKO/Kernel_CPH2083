@@ -409,34 +409,7 @@ KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 GCC_PLUGINS_CFLAGS :=
 
-#ifdef VENDOR_EDIT
-#Haiping.Zhong@PSW.AD.BuildConfig.BaseConfig.0, 2019/01/08, Add for build root disable dm verity
-ifeq ($(OPPO_BUILD_ROOT_DISABLE_DM_VERITY),true)
-    KBUILD_CFLAGS += -DOPPO_BUILD_ROOT_DISABLE_DM_VERITY
-endif
-#endif /* VENDOR_EDIT */
 
-
-
-#ifdef VENDOR_EDIT
-#Tong.Han@Bsp.Group.Stability, 2017/07/28, Add for aging test version config
-ifeq ($(SPECIAL_OPPO_CONFIG),1)
-KBUILD_CFLAGS += -DCONFIG_OPPO_SPECIAL_BUILD
-#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, Add for aging test, MTK_SCHED_MONITOR debug config
-OPPO_AGING_TEST := true
-endif
-#endif /* VENDOR_EDIT */
-
-#ifdef VENDOR_EDIT
-#//Liang.Zhang@PSW.TECH.Bootup, 2018/10/19, Add for kernel monitor whole bootup
-#ifdef HANG_OPPO_ALL
-#Kun Hu@TECH.BSP.Stability.PROJECT_PHOENIX, 2019/06/08, Remove phoenix for Self Stability Test Version
-ifneq ($(SPECIAL_OPPO_CONFIG),1)
-KBUILD_CFLAGS +=   -DHANG_OPPO_ALL
-KBUILD_CPPFLAGS += -DHANG_OPPO_ALL
-CFLAGS_KERNEL +=   -DHANG_OPPO_ALL
-CFLAGS_MODULE +=   -DHANG_OPPO_ALL
-endif
 #ifdef VENDOR_EDIT
 #Bin.Yan@PSW.AD.BuildConfig.BaseConfig.1068615, 2017/08/28,Add for disallow system remount
 ifneq ($(SPECIAL_OPPO_CONFIG),1)
@@ -453,50 +426,13 @@ endif
 #endif /* VENDOR_EDIT */
 
 #ifdef VENDOR_EDIT
-#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, Add for Debug Config, slub/kmemleak/kasan config
-ifeq ($(OPPO_SLUB_CONFIG),1)
-OPPO_SLUB_TEST := true
-endif
-
-ifeq ($(OPPO_KASAN_CONFIG),1)
-OPPO_KASAN_TEST := true
-OPPO_SLUB_TEST := true
-endif
-
-ifeq ($(OPPO_KMEMLEAK_CONFIG),1)
-OPPO_KMEMLEAK_TEST := true
-OPPO_SLUB_TEST := true
-endif
-
-#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, Before agingtest enable slub debug except release
-#Wen.Luo@Bsp.Kernel.Stability, 2019/04/09, PVT default disable Slub debug
-#OPPO_SLUB_TEST := true
-
-
-ifeq ($(BUILD_CONFIG),release)
-    ifneq ($(SPECIAL_OPPO_CONFIG),1)
-        OPPO_SLUB_TEST :=
-        OPPO_KASAN_TEST :=
-        OPPO_KMEMLEAK_TEST :=
-    endif
-endif
-#endif
-
-#ifdef VENDOR_EDIT
-#Jianchao.Shi@PSW.BSP.CHG.Basic, 2018/12/13, sjc Add for recogonizing release build
-ifeq ($(OPPO_BUILD_TYPE),release)
-KBUILD_CFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
-KBUILD_CPPFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
+#Haiping.Zhong@PSW.AD.BuildConfig.BaseConfig.0, 2019/01/08, Add for build root disable dm verity
+ifeq ($(OPPO_BUILD_ROOT_DISABLE_DM_VERITY),true)
+    KBUILD_CFLAGS += -DOPPO_BUILD_ROOT_DISABLE_DM_VERITY
 endif
 #endif /* VENDOR_EDIT */
 
-#ifdef VENDOR_EDIT
-#Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/05/09, sjc Add for 806 high/low temp aging test
-ifeq ($(OPPO_HIGH_TEMP_VERSION),true)
-KBUILD_CFLAGS += -DCONFIG_HIGH_TEMP_VERSION
-KBUILD_CPPFLAGS += -DCONFIG_HIGH_TEMP_VERSION
-endif
-#endif /* VENDOR_EDIT */
+
 
 #ifdef  VENDOR_EDIT
 #LiPing-m@PSW.MM.Display.LCD.Machine, 2017/11/03, Add for VENDOR_EDIT macro in kernel
@@ -504,45 +440,6 @@ KBUILD_CFLAGS +=   -DVENDOR_EDIT
 KBUILD_CPPFLAGS += -DVENDOR_EDIT
 CFLAGS_KERNEL +=   -DVENDOR_EDIT
 CFLAGS_MODULE +=   -DVENDOR_EDIT
-#endif /* VENDOR_EDIT */
-
-
-
-#ifdef VENDOR_EDIT
-#runyu.ouyang@BSP.storage.sdcard, 2019/05/23, Add for sdcard
-ifneq ($(filter full_oppo6779_19011 full_oppo6779_19301, $(TARGET_PRODUCT)),)
-KBUILD_CFLAGS += -DOPPO_P90M_SDCARD_FLAG
-KBUILD_CPPFLAGS += -DOPPO_P90M_SDCARD_FLAG
-CFLAGS_KERNEL +=   -DOPPO_P90M_SDCARD_FLAG
-CFLAGS_MODULE +=   -DOPPO_P90M_SDCARD_FLAG
-endif
-
-
-#ifdef VENDOR_EDIT
-#ye.zhang@Sensor.config,2016-09-09, add for CTSI support external storage or not
-$(info @@@@@@@@@@@ OPPO_BUILD_CUSTOMIZE is $(OPPO_BUILD_CUSTOMIZE))
-KBUILD_CFLAGS += -DMOUNT_EXSTORAGE_IF
-KBUILD_CPPFLAGS += -DMOUNT_EXSTORAGE_IF
-CFLAGS_KERNEL += -DMOUNT_EXSTORAGE_IF
-CFLAGS_MODULE += -DMOUNT_EXSTORAGE_IF
-
-#ifdef VENDOR_EDIT
-#Tong.Han@Bsp.Group.Stability, 2017/07/28, Add for aging test version config
-ifeq ($(SPECIAL_OPPO_CONFIG),1)
-KBUILD_CFLAGS += -DCONFIG_OPPO_SPECIAL_BUILD
-endif
-#endif /* VENDOR_EDIT */
-#xing.xiong@BSP.Kernel.Driver, 2018/12/14, Add for recogonizing release build
-ifneq ($(filter release cts cta,$(OPPO_BUILD_TYPE)),)
-KBUILD_CFLAGS += -DOPPO_RELEASE_FLAG
-KBUILD_CPPFLAGS += -DOPPO_RELEASE_FLAG
-KBUILD_CFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
-KBUILD_CPPFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
-endif
-ifneq ($(filter cmcctest cmccfield allnetcttest,$(NET_BUILD_TYPE)),)
-KBUILD_CFLAGS += -DOPPO_RELEASE_FLAG
-KBUILD_CPPFLAGS += -DOPPO_RELEASE_FLAG
-endif
 #endif /* VENDOR_EDIT */
 
 #ifdef ODM_HQ_EDIT
@@ -554,23 +451,48 @@ CFLAGS_MODULE   += -DODM_HQ_EDIT
 export ODM_HQ_EDIT=yes
 #endif
 
-#Wuzhenzhen.Wu 2019/12/17,Add for ODM_WT_EDIT maco in kernel
-KBUILD_CFLAGS   += -DODM_WT_EDIT
-KBUILD_CPPFLAGS += -DODM_WT_EDIT
-CFLAGS_KERNEL   += -DODM_WT_EDIT
-CFLAGS_MODULE   += -DODM_WT_EDIT
-export ODM_WT_EDIT=yes
+#ifdef VENDOR_EDIT
+#ye.zhang@Sensor.config,2016-09-09, add for CTSI support external storage or not
+$(info @@@@@@@@@@@ 111 OPPO_BUILD_CUSTOMIZE is $(OPPO_BUILD_CUSTOMIZE))
+ifneq ($(OPPO_BUILD_CUSTOMIZE),)
+$(info @@@@@@@@@@@ 222 OPPO_BUILD_CUSTOMIZE is $(OPPO_BUILD_CUSTOMIZE))
+KBUILD_CFLAGS += -DMOUNT_EXSTORAGE_IF
+KBUILD_CPPFLAGS += -DMOUNT_EXSTORAGE_IF
+CFLAGS_KERNEL += -DMOUNT_EXSTORAGE_IF
+CFLAGS_MODULE += -DMOUNT_EXSTORAGE_IF
+endif
+#endif
+
+#ifdef VENDOR_EDIT
+#ifdef VENDOR_EDIT
+#Qiao.Hu@BSP.CHG.Basic, 2017/12/18,add for recogonizing release build
+ifeq ($(OPPO_BUILD_TYPE),release)
+KBUILD_CFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
+KBUILD_CPPFLAGS += -DCONFIG_OPPO_REALEASE_BUILD
+endif
+
+#Guohua.Zhong@BSP.Storage.Sdcard 2018/01/18 ,add for recogonizing release build
+ifneq ($(filter release cts cta,$(OPPO_BUILD_TYPE)),)
+KBUILD_CFLAGS += -DOPPO_RELEASE_FLAG
+KBUILD_CPPFLAGS += -DOPPO_RELEASE_FLAG
+endif
+ifneq ($(filter cmcctest cmccfield allnetcttest,$(NET_BUILD_TYPE)),)
+KBUILD_CFLAGS += -DOPPO_RELEASE_FLAG
+KBUILD_CPPFLAGS += -DOPPO_RELEASE_FLAG
+endif
+#endif /* VENDOR_EDIT */
+#Ling.Guo@PSW.MM.Display.LCD, 2018/01/24, Add for cmcc test.
+ifneq ($(filter allnetcmccfield allnetcmcctest allnetctfield allnetcttest allnetcutest,$(NET_BUILD_TYPE)),)
+KBUILD_CFLAGS += -DOPPO_CTTEST_FLAG
+KBUILD_CPPFLAGS += -DOPPO_CTTEST_FLAG
+endif
+#endif /* VENDOR_EDIT */
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
 
-#ifdef VENDOR_EDIT
-#Wen.Luo@Bsp.Kernel.Stability, 2018/12/05, Add for aging test, slub debug config
-export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION OPPO_SLUB_TEST OPPO_KASAN_TEST OPPO_KMEMLEAK_TEST OPPO_AGING_TEST
-#else
-#export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
-#endif
+export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
 export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP
 export MAKE AWK GENKSYMS INSTALLKERNEL PERL PYTHON UTS_MACHINE

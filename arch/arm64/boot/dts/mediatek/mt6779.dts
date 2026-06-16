@@ -34,7 +34,7 @@
 	/* chosen */
 	chosen: chosen {
 		bootargs = "console=tty0 console=ttyS0,921600n1 root=/dev/ram \
-			firmware_class.path=/vendor/firmware loop.max_part=7 swiotlb=noforce";
+firmware_class.path=/vendor/firmware loop.max_part=7";
 		kaslr-seed = <0 0>;
 	};
 
@@ -273,7 +273,7 @@
 	pmu {
 		compatible = "arm,armv8-pmuv3";
 		interrupt-parent = <&gic>;
-		interrupts = <GIC_PPI 7 IRQ_TYPE_LEVEL_LOW>;
+		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_LOW>;
 	};
 
 	dsu-pmu-0 {
@@ -954,7 +954,7 @@
 	keypad: kp@10010000 {
 		compatible = "mediatek,kp";
 		reg = <0 0x10010000 0 0x1000>;
-		interrupts = <GIC_SPI 168 IRQ_TYPE_EDGE_FALLING>;/*xing.xiong@BSP.Kernel.Driver, 2019/01/26, Modify irq from 75->168*/
+		interrupts = <GIC_SPI 75 IRQ_TYPE_EDGE_FALLING>;
 	};
 
 	mrdump_ext_rst: mrdump_ext_rst {
@@ -1074,7 +1074,6 @@
 		reg = <0 0x10204000 0 0x1000>;
 		mediatek,cirq_num = <271>;
 		mediatek,spi_start_offset = <64>;
-		sw_reset = <1>;
 		interrupts = <GIC_SPI 335 IRQ_TYPE_LEVEL_LOW>;
 	};
 
@@ -1200,14 +1199,10 @@
 	infra_device_mpu@1021a000 {
 		compatible = "mediatek,infra_device_mpu";
 		reg = <0 0x1021a000 0 0x1000>;
-		prot-base = <0x0 0x40000000>;
-		prot-size = <0x2 0x00000000>;
-		page-size = <0x200000>;
-		interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
-	infra_device_mpu_acp@1021b000 {
-		compatible = "mediatek,infra_device_mpu_acp";
+	infra_device_mpu@1021b000 {
+		compatible = "mediatek,infra_device_mpu";
 		reg = <0 0x1021b000 0 0x1000>;
 	};
 
@@ -2154,12 +2149,7 @@
 		mtk_dsp_primary = <0x0 0x0 0xffffffff 0xffffffff>;
 		mtk_dsp_offload = <0x1 0x6 0xffffffff 0xffffffff>;
 		mtk_dsp_deep = <0x0 0x3 0xffffffff 0xffffffff>;
-		//#ifdef VENDOR_EDIT
-		//Yongzhi.Zhang@PSW.MM.AudioDriver.Feature.1209435, 2019/03/09, add for P90 KTV
-		mtk_dsp_playback = <0x1 0x4 0xf 0xffffffff>;
-		//#else /* VENDOR_EDIT */
-		//mtk_dsp_playback = <0x0 0x4 0xf 0xffffffff>;
-		//#endif /* VENDOR_EDIT */
+		mtk_dsp_playback = <0x0 0x4 0xf 0xffffffff>;
 		mtk_dsp_capture1 = <0x1 0xffffffff 0xc 0x12>;
 		mtk_dsp_a2dp = <0x1 0xffffffff 0xffffffff 0xffffffff>;
 		mtk_dsp_dataprovider = <0x1 0xffffffff 0xf 0xffffffff>;
@@ -2204,17 +2194,9 @@
 	};
 	//#endif /* VENDOR_EDIT */
 
-//#ifdef VENDOR_EDIT
-//Anhui.Sun@PSW.NW.RF, 2018/12/19, Add for SWTP - RF cable detection
-	swtp: swtp {
-	};
-	swtp_1: swtp_1 {
-	};
-//#endif  /*VENDOR_EDIT*/
-
 	i2c_common: i2c_common {
 		compatible = "mediatek,i2c_common";
-		dma_support = /bits/ 8 <3>;
+		dma_support = /bits/ 8 <2>;
 		idvfs = /bits/ 8 <1>;
 		set_dt_div = /bits/ 8 <1>;
 		check_max_freq = /bits/ 8 <1>;
@@ -2421,7 +2403,20 @@
 			 <&topckgen TOP_MUX_SPI>,
 			 <&infracfg_ao INFRACFG_AO_SPI0_CG>;
 		clock-names = "parent-clk", "sel-clk", "spi-clk";
-    };
+                //#ifdef VENDOR_EDIT
+                /* Long.Liu@PSW.BSP.Fingerprint.Basic, 2018/11/19, Add for FPC driver baseon trustonic tee */
+                #address-cells = <1>;
+                #size-cells = <0>;
+                fpc_spi: spi@0 {
+                        //status = "ok";
+                        compatible = "fpc,fpc1020";
+                        reg = <0>;
+                        spi-max-frequency = <5000000>;
+                        netlink-event = <30>;
+                        status = "okay";
+                };
+                //#endif //VENDOR_EDIT
+	};
 
 	eem_fsm: eem_fsm@1100b000 {
 		compatible = "mediatek,eem_fsm";
@@ -2643,12 +2638,7 @@
 	};
 
 	goodix_fp: fingerprint {
-		compatible = "goodix,goodix_fp";
-	};
-
-        /* Bangxiong.Wu@PSW.BSP.Fingerprint.Basic, 2019/01/24, Add for silead driver baseon trustonic tee */
-	silead_fp: silead_fp@{
-		compatible = "sil,silead_fp-pins";
+		compatible = "mediatek,goodix-fp";
 	};
 
         //#ifdef VENDOR_EDIT
@@ -2840,7 +2830,7 @@
 		/* status = "disabled"; */
 		/* #else */
 		interrupt-parent = <&pio>;
-		interrupts = <43 IRQ_TYPE_EDGE_RISING 43 1>;
+		interrupts = <43 IRQ_TYPE_LEVEL_HIGH 43 1>;
 		status = "okay";
 		/* #endif VENDOR_EDIT*/
 	};
@@ -3000,7 +2990,7 @@
 		ipe_step1 = <416 1 3 15>;
 		ipe_step2 = <315 1 3 17>;
 		dpe_step0 = <546 1 6 12>;
-		dpe_step1 = <450 1 6 14>;
+		dpe_step1 = <416 1 6 15>;
 		dpe_step2 = <364 1 6 16>;
 		venc_step0 = <630 1 4 8>;
 		venc_step1 = <450 1 4 14>;
@@ -3367,7 +3357,6 @@
 		clocks = <&scpsys SCP_SYS_CONN>,
 			<&infracfg_ao INFRACFG_AO_CCIF4_AP_CG>;
 		clock-names = "conn", "ccif";
-		wifi_ant_swap_gpio = <&pio 108 0x0>;
 	};
 
 	camsys: camsys@1a000000 {
@@ -4041,7 +4030,7 @@
 
 	flashlights_mt6360: flashlights_mt6360 {
 		compatible = "mediatek,flashlights_mt6360";
-		decouple = <0>;
+		decouple = <1>;
 		channel@1 {
 			type = <0>;
 			ct = <0>;
@@ -4115,10 +4104,6 @@
 #endif
 				};
 #endif
-
-//#ifndef VENDO_EDIT
-//#Haoran.Zhang@PSW.TECH.OppoFeature.Customize.1881073, 2018/08/15, Modify for use mount odm image at special point
-/*
 #ifdef CONFIG_TARGET_COPY_OUT_ODM
 				odm {
 					compatible = "android,odm";
@@ -4148,19 +4133,6 @@
 #endif
 				};
 #endif
-*/
-//#else
-                           odm {
-                                        compatible = "android,odm";
-                                        dev = "/dev/block/platform/bootdevice/by-name/odm";
-                                        type = "ext4";
-                                        mnt_flags = "ro";
-                                        fsmgr_flags = "wait";
-                                        mnt_point ="/proc/euclid/custom";
-
-                                };
-//#endif
-
 			};
 		};
 	};
@@ -4321,11 +4293,6 @@
 	alsps_mtk: alsps_mtk {
 	};
 
-	//#ifdef VENDOR_EDIT
-	//Yan.Chen@BSP.PSW.sensor,2019/03/04, add for sar Int
-	sar_eint: sar_eint {
-	};
-	//#endif
 	hall_1: hall_1 {
 	};
 
@@ -4645,14 +4612,6 @@
 			pinmux = <PINMUX_GPIO70__FUNC_I2S0_DI>;
 		};
 	};
-	//#ifdef VENDOR_EDIT
-	//Yongzhi.Zhang@PSW.MM.AudioDriver.Platform.2135693, 2019/07/03, remove useless I2S1 pinctrl
-	aud_gpio_i2s1_off: aud_gpio_i2s1_off {
-	};
-	aud_gpio_i2s1_on: aud_gpio_i2s1_on {
-	};
-	//#else /* VENDOR_EDIT */
-	/*
 	aud_gpio_i2s1_off: aud_gpio_i2s1_off {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO30__FUNC_GPIO30>,
@@ -4669,8 +4628,6 @@
 				 <PINMUX_GPIO34__FUNC_I2S1_DO>;
 		};
 	};
-	*/
-	//#endif /* VENDOR_EDIT */
 	aud_gpio_i2s2_off: aud_gpio_i2s2_off {
 	};
 	aud_gpio_i2s2_on: aud_gpio_i2s2_on {
@@ -4704,3 +4661,8 @@
 #endif
 #include "mt6360.dtsi"
 #include "mt6360_pd.dtsi"
+
+//#ifdef VENDOR_EDIT
+//#Yongzhi.Zhang@PSW.MM.AudioDriver.feature, 2018/09/12, add for dbmdx soundtrigger
+#include "d4-spi-aispeech.dtsi"
+//#endif /* VENDOR_EDIT */

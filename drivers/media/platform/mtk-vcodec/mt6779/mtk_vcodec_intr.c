@@ -148,9 +148,6 @@ irqreturn_t mtk_vcodec_enc_irq_handler(int irq, void *priv)
 	ctx = dev->curr_ctx;
 	spin_unlock_irqrestore(&dev->irqlock, flags);
 
-	if (!ctx)
-		return IRQ_HANDLED;
-
 	mtk_v4l2_debug(1, "id=%d", ctx->id);
 	addr = dev->enc_reg_base[VENC_SYS] + MTK_VENC_IRQ_ACK_OFFSET;
 
@@ -176,9 +173,6 @@ irqreturn_t mtk_vcodec_enc_lt_irq_handler(int irq, void *priv)
 	spin_lock_irqsave(&dev->irqlock, flags);
 	ctx = dev->curr_ctx;
 	spin_unlock_irqrestore(&dev->irqlock, flags);
-
-	if (!ctx)
-		return IRQ_HANDLED;
 
 	mtk_v4l2_debug(1, "id=%d", ctx->id);
 	ctx->irq_status = readl(dev->enc_reg_base[VENC_LT_SYS] +

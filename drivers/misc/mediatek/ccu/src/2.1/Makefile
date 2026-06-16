@@ -21,10 +21,6 @@ ccflags-y += -I$(srctree)/drivers/i2c/busses
 
 ccflags-y += -I$(srctree)/drivers/iommu/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/imgsensor/inc
-#Yijun.Tan@Camera add for resole CCU assert 20190319
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/smi/
-
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/smi/
 
 #$(warning $(subdir-ccflags-y))
 

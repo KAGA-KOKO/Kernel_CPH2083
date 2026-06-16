@@ -54,13 +54,6 @@
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-#include <linux/device.h>
-#include <linux/of_gpio.h>
-#include <asm-generic/gpio.h>
-#endif
-
 #if 1
 struct pinctrl *pinctrlaud;
 
@@ -161,21 +154,12 @@ static unsigned int extbuck_fan53526_exist;
 
 static DEFINE_MUTEX(gpio_request_mutex);
 
-
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-static int gpio_audio_pa_ctrl = -1;
-#endif
 void AudDrv_GPIO_probe(void *dev)
 {
 #if 1
 	int ret;
 	int i = 0;
 
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-	struct device *device = (struct device *) dev;
-#endif
 	pr_debug("%s\n", __func__);
 
 	pinctrlaud = devm_pinctrl_get(dev);
@@ -185,13 +169,6 @@ void AudDrv_GPIO_probe(void *dev)
 		return;
 	}
 
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-	gpio_audio_pa_ctrl = of_get_named_gpio(device->of_node, "gpio_audio_pa_ctrl", 0);
-	if (gpio_audio_pa_ctrl < 0) {
-		pr_err("Cannot find gpio_audio_pa_ctrl");
-	}
-#endif
 	/* update hpdepop gpio by PCB version - extbuck fan53526 use gpio111
 	 * which may be used by hpdepop
 	 */
@@ -517,29 +494,13 @@ int AudDrv_GPIO_EXTAMP_Select(int bEnable, int mode)
 		else if (mode == 2)
 			extamp_mode = 2;
 		else
-			extamp_mode = 3; /* default mode is 3 */
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
 #ifdef ODM_HQ_EDIT
-		retval = gpio_request(gpio_audio_pa_ctrl, "pa");
-		if (retval < 0) {
-			pr_err("cannot request audio pa ctrl gpio");
-		}
-
-		retval = gpio_direction_output(gpio_audio_pa_ctrl, 0);
-		if (retval < 0) {
-			pr_err("cannot set audio pa ctrl gpio output");
-		}
-#endif
+//chenxinjiang@ODM_HQ.MM.AudioDriver.Hal, 2018/12/05, modify for setting ext pa mode to 3
+			extamp_mode = 3; /* default mode is 3 */
+#endif /* ODM_HQ_EDIT */
 
 		if (aud_gpios[GPIO_EXTAMP_HIGH].gpio_prepare) {
 			for (i = 0; i < extamp_mode; i++) {
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-				gpio_set_value(gpio_audio_pa_ctrl, 0);
-				udelay(2);
-				gpio_set_value(gpio_audio_pa_ctrl, 1);
-				udelay(2);
-#else
 				retval = pinctrl_select_state(
 					pinctrlaud,
 					aud_gpios[GPIO_EXTAMP_LOW].gpioctrl);
@@ -552,28 +513,17 @@ int AudDrv_GPIO_EXTAMP_Select(int bEnable, int mode)
 				if (retval)
 					pr_info("could not set aud_gpios[GPIO_EXTAMP_HIGH] pins\n");
 				udelay(2);
-#endif
 			}
 		}
 	} else {
 		if (aud_gpios[GPIO_EXTAMP_LOW].gpio_prepare) {
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-			gpio_set_value(gpio_audio_pa_ctrl, 0);
-#else
 			retval = pinctrl_select_state(
 				pinctrlaud,
 				aud_gpios[GPIO_EXTAMP_LOW].gpioctrl);
 			if (retval)
 				pr_info("could not set aud_gpios[GPIO_EXTAMP_LOW] pins\n");
-#endif
 		}
 	}
-
-/* xuyechen@ODM.Multimedia.Aduio  2019/11/21 add for reduce the time of operating the PA CTRL PIN */
-#ifdef ODM_HQ_EDIT
-        gpio_free(gpio_audio_pa_ctrl);
-#endif
 	mutex_unlock(&gpio_request_mutex);
 #endif
 	return retval;

@@ -468,6 +468,28 @@ uint32_t adsp_power_on(uint32_t enable)
 }
 EXPORT_SYMBOL_GPL(adsp_power_on);
 
+/*
+ * TODO: what should we do when hibernation ?
+ */
+static int adsp_pm_event(struct notifier_block *notifier,
+			 unsigned long pm_event, void *unused)
+{
+
+	switch (pm_event) {
+	case PM_POST_HIBERNATION:
+		pr_debug("[ADSP] %s ADSP reboot\n", __func__);
+		adsp_reset();
+		return NOTIFY_DONE;
+	}
+	return NOTIFY_OK;
+}
+
+static struct notifier_block adsp_pm_notifier_block = {
+	.notifier_call = adsp_pm_event,
+	.priority = 0,
+};
+
+
 static inline ssize_t adsp_A_status_show(struct device *kobj,
 					 struct device_attribute *attr,
 					 char *buf)
@@ -999,12 +1021,6 @@ static int create_files(void)
 	if (unlikely(ret != 0))
 		return ret;
 
-	ret = device_create_bin_file(adsp_device.this_device,
-					&bin_attr_adsp_dump_log);
-
-	if (unlikely(ret != 0))
-		return ret;
-
 	ret = device_create_file(adsp_device.this_device,
 				 &dev_attr_adsp_A_reg_status);
 
@@ -1321,12 +1337,8 @@ void adsp_sys_reset_ws(struct work_struct *ws)
 
 		/*wait adsp ee finished in 10s*/
 		if (wait_for_completion_interruptible_timeout(&adsp_sys_reset_cp
-					, jiffies_to_msecs(10000)) == 0) {
+						, jiffies_to_msecs(10000)) == 0)
 			pr_info("%s: adsp ee time out\n", __func__);
-			/*timeout check adsp status again*/
-			if (is_adsp_ready(ADSP_A_ID) != -1)
-				goto END;
-		}
 	}
 
 	/* enable clock for access ADSP Reg*/
@@ -1340,13 +1352,17 @@ void adsp_sys_reset_ws(struct work_struct *ws)
 		adsp_bus_monitor_dump();
 	}
 
-	if (adsp_reset_type == ADSP_RESET_TYPE_AWAKE)
-		pr_info("%s(): adsp awake fail, wait system back\n", __func__);
-
+	if (adsp_reset_type == ADSP_RESET_TYPE_AWAKE) {
+		/* reset type awake fail */
+		pr_info("%s(): adsp awake fail,trigger wdt by AP\n", __func__);
+		adsp_deregister_feature(SYSTEM_FEATURE_ID);
+		atomic_set(&adsp_reset_status, ADSP_RESET_STATUS_STOP);
+		adsp_wdt_reset(ADSP_A_ID, 10);
+		goto END;
+	}
 	/* make sure adsp is in idle state */
 	while (--timeout) {
-		if ((readl(ADSP_SLEEP_STATUS_REG) & ADSP_A_IS_WFI) &&
-		    (readl(ADSP_DBG_PEND_CNT) == 0)) {
+		if (readl(ADSP_SLEEP_STATUS_REG) & ADSP_A_IS_WFI) {
 			adsp_reset();
 			if (readl(ADSP_SLEEP_STATUS_REG) &
 			    ADSP_A_IS_ACTIVE) {
@@ -1426,7 +1442,6 @@ void adsp_recovery_init(void)
 	wakeup_source_init(&adsp_reset_lock, "adsp reset wakelock");
 	/* init reset by cmd flag*/
 	adsp_reset_by_cmd = 0;
-	adsp_recovery_flag[ADSP_A_ID] = ADSP_RECOVERY_OK;
 #endif
 }
 static int adsp_system_sleep_suspend(struct device *dev)
@@ -1434,7 +1449,7 @@ static int adsp_system_sleep_suspend(struct device *dev)
 	mutex_lock(&adsp_suspend_mutex);
 	if ((is_adsp_ready(ADSP_A_ID) == 1) || adsp_feature_is_active()) {
 		sys_timer_timesync_sync_adsp(SYS_TIMER_TIMESYNC_FLAG_FREEZE);
-		/* adsp_awake_unlock_adsppll(ADSP_A_ID, 1); */
+		adsp_awake_unlock_adsppll(ADSP_A_ID, 1);
 	}
 	mutex_unlock(&adsp_suspend_mutex);
 	return 0;
@@ -1445,7 +1460,7 @@ static int adsp_system_sleep_resume(struct device *dev)
 	mutex_lock(&adsp_suspend_mutex);
 	if ((is_adsp_ready(ADSP_A_ID) == 1) || adsp_feature_is_active()) {
 		/*wake adsp up*/
-		/* adsp_awake_unlock_adsppll(ADSP_A_ID, 0); */
+		adsp_awake_unlock_adsppll(ADSP_A_ID, 0);
 		sys_timer_timesync_sync_adsp(SYS_TIMER_TIMESYNC_FLAG_UNFREEZE);
 	}
 	mutex_unlock(&adsp_suspend_mutex);
@@ -1665,6 +1680,14 @@ static int __init adsp_module_init(void)
 
 	adsp_ipi_registration(ADSP_IPI_ADSP_A_READY, adsp_A_ready_ipi_handler,
 			      "adsp_A_ready");
+
+	/* adsp ramdump initialise */
+	pr_debug("[ADSP] ramdump init\n");
+	adsp_ram_dump_init();
+	ret = register_pm_notifier(&adsp_pm_notifier_block);
+
+	if (ret)
+		pr_debug("[ADSP] failed to register PM notifier %d\n", ret);
 
 	/* adsp sysfs initialise */
 	pr_debug("[ADSP] sysfs init\n");

@@ -65,10 +65,10 @@ static void notify_vibr_to_sensor(int enable) {
 static int vibr_Enable(void)
 {
 	if (!g_mt_vib->ldo_state) {
-	#ifdef VENDOR_EDIT
-	/*Fei.Mo@EXP.BSP.Sensor, 2017/06/13, Add for solve vibrator noise in gsensor*/
+		#ifdef VENDOR_EDIT
+		/*Fei.Mo@EXP.BSP.Sensor, 2017/06/13, Add for solve vibrator noise in gsensor*/
 		notify_vibr_to_sensor(1);
-	#endif /* VENDOR_EDIT */
+		#endif /* VENDOR_EDIT */
 		vibr_Enable_HW();
 		g_mt_vib->ldo_state = 1;
 	}
@@ -80,19 +80,18 @@ static int vibr_Disable(void)
 	if (g_mt_vib->ldo_state) {
 		vibr_Disable_HW();
 		g_mt_vib->ldo_state = 0;
-	#ifdef VENDOR_EDIT
-	/*Fei.Mo@EXP.BSP.Sensor, 2017/06/13, Add for solve vibrator noise in gsensor*/
+		#ifdef VENDOR_EDIT
+		/*Fei.Mo@EXP.BSP.Sensor, 2017/06/13, Add for solve vibrator noise in gsensor*/
 		notify_vibr_to_sensor(0);
-	#endif /* VENDOR_EDIT */
+		#endif /* VENDOR_EDIT */
 	}
 	return 0;
 }
 
 #ifdef VENDOR_EDIT
 /* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
-static int vibr_time = 0;
+static int vibe_time = 0;
 #endif /*VENDOR_EDIT*/
-
 static void update_vibrator(struct work_struct *work)
 {
 	struct mt_vibr *vibr = container_of(work, struct mt_vibr, vibr_work);
@@ -101,24 +100,24 @@ static void update_vibrator(struct work_struct *work)
 		vibr_Disable();
 	else
 		vibr_Enable();
-#ifdef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
-	if (vibr_time) {
-		hrtimer_start(&vibr->vibr_timer, ktime_set(vibr_time / 1000, (vibr_time % 1000) * 1000000), HRTIMER_MODE_REL);
-		vibr_time=0;
+	#ifdef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+	if (vibe_time) {
+		hrtimer_start(&g_mt_vib->vibr_timer, ktime_set(vibe_time / 1000, (vibe_time % 1000) * 1000000), HRTIMER_MODE_REL);
+		vibe_time = 0;
 	}
-#endif /*VENDOR_EDIT*/
+	#endif /*VENDOR_EDIT*/
 }
 
 static void vibrator_enable(unsigned int dur, unsigned int activate)
 {
 	unsigned long flags;
 	struct vibrator_hw *hw = mt_get_cust_vibrator_hw();
-#ifdef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
-	pr_info("vibrator_enable: vibrator first in value = %d\n", dur);
-#endif /* VENDOR_EDIT */
 
+	#ifdef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+	pr_debug(VIB_TAG "vibrator_enable: vibrator first in value = %d\n", dur);
+	#endif /* VENDOR_EDIT */
 	spin_lock_irqsave(&g_mt_vib->vibr_lock, flags);
 	hrtimer_cancel(&g_mt_vib->vibr_timer);
 	pr_debug(VIB_TAG "cancel hrtimer, cust:%dms, value:%u, shutdown:%d\n",
@@ -136,27 +135,28 @@ static void vibrator_enable(unsigned int dur, unsigned int activate)
 
 		dur = (dur > 15000 ? 15000 : dur);
 		atomic_set(&g_mt_vib->vibr_state, 1);
-#ifndef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+		#ifndef VENDOR_EDIT
+		/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
 		hrtimer_start(&g_mt_vib->vibr_timer,
 			      ktime_set(dur / 1000, (dur % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
-#endif
+		#endif /* VENDOR_EDIT */
 	}
-#ifdef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
-	vibr_time = dur;
-#endif /*VENDOR_EDIT*/
-#ifndef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+	#ifdef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+	vibe_time = dur;
+	#endif /* VENDOR_EDIT */
+	#ifndef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
 	spin_unlock_irqrestore(&g_mt_vib->vibr_lock, flags);
-
+	#endif /*VENDOR_EDIT*/
+	#ifndef VENDOR_EDIT
 	queue_work(g_mt_vib->vibr_queue, &g_mt_vib->vibr_work);
-#else /*VENDOR_EDIT*/
+	#else /* VENDOR_EDIT */
 	update_vibrator(&g_mt_vib->vibr_work);
 	spin_unlock_irqrestore(&g_mt_vib->vibr_lock, flags);
-	pr_info("vibrator_enable: end\n");
-#endif /*VENDOR_EDIT*/
+	pr_debug(VIB_TAG "vibrator_enable: end\n");
+	#endif /* VENDOR_EDIT */
 }
 
 static void vibrator_oc_handler(void)
@@ -170,12 +170,12 @@ static enum hrtimer_restart vibrator_timer_func(struct hrtimer *timer)
 	struct mt_vibr *vibr = container_of(timer, struct mt_vibr, vibr_timer);
 
 	atomic_set(&vibr->vibr_state, 0);
-#ifndef VENDOR_EDIT
-/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
+	#ifndef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
 	queue_work(vibr->vibr_queue, &vibr->vibr_work);
-#else
+	#else /* VENDOR_EDIT */
 	vibr_Disable();
-#endif /*VENDOR_EDIT*/
+	#endif /* VENDOR_EDIT */
 	return HRTIMER_NORESTART;
 }
 

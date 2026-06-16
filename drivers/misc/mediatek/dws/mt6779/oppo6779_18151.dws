@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--dct_version="2.5" buid_sn="161102" dws_modification_time="03.27.2019.22:56:28"-->
+<!--dct_version="2.5" buid_sn="161102" dws_modification_time="11.30.2018.15:46:48"-->
 <dct_cfg>
     <general chip="MT6779">
         <proj>k79v1_64</proj>
@@ -73,10 +73,10 @@
             </eint8>
             <eint9>
                 <varName>TCPC_PD</varName>
-                <debounce_time>0</debounce_time>
+                <debounce_time>256</debounce_time>
                 <polarity>Low</polarity>
-                <sensitive_level>Edge</sensitive_level>
-                <debounce_en>Disable</debounce_en>
+                <sensitive_level>Level</sensitive_level>
+                <debounce_en>Enable</debounce_en>
             </eint9>
             <eint10>
                 <varName>GYRO</varName>
@@ -106,6 +106,13 @@
                 <sensitive_level>Level</sensitive_level>
                 <debounce_en>Disable</debounce_en>
             </eint13>
+            <eint43>
+                <varName>DSI_TE</varName>
+                <debounce_time>0</debounce_time>
+                <polarity>High</polarity>
+                <sensitive_level>Edge</sensitive_level>
+                <debounce_en>Disable</debounce_en>
+            </eint43>
             <eint69>
                 <varName>SMART_PA</varName>
                 <debounce_time>0</debounce_time>
@@ -229,7 +236,7 @@
                 <inpull_selhigh>true</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
-                <varName0>GPIO_TCPC_PD_IRQB</varName0>
+                <varName0>GPIO_HEADSET_INSERT_PIN</varName0>
                 <smt>true</smt>
                 <ies>true</ies>
             </gpio9>
@@ -608,8 +615,8 @@
             <gpio45>
                 <eint_mode>false</eint_mode>
                 <def_mode>1</def_mode>
-                <inpull_en>false</inpull_en>
-                <inpull_selhigh>false</inpull_selhigh>
+                <inpull_en>true</inpull_en>
+                <inpull_selhigh>true</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
                 <varName0>GPIO_I2C6_SCA_PIN</varName0>
@@ -619,8 +626,8 @@
             <gpio46>
                 <eint_mode>false</eint_mode>
                 <def_mode>1</def_mode>
-                <inpull_en>false</inpull_en>
-                <inpull_selhigh>false</inpull_selhigh>
+                <inpull_en>true</inpull_en>
+                <inpull_selhigh>true</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
                 <varName0>GPIO_I2C6_SDA_PIN</varName0>
@@ -2267,7 +2274,7 @@
         <module name="kpd">
             <row>8</row>
             <column>9</column>
-            <keyMatrix>NC VOLUMEDOWN NC NC NC NC NC NC NC
+            <keyMatrix>VOLUMEDOWN NC NC NC NC NC NC NC NC
 				NC NC NC NC NC NC NC NC NC
 				NC NC NC NC NC NC NC NC NC
 				NC NC NC NC NC NC NC NC NC
@@ -2276,7 +2283,7 @@
 				NC NC NC NC NC NC NC NC NC
 				NC NC NC NC NC NC NC NC NC</keyMatrix>
             <keyMatrix_ext></keyMatrix_ext>
-            <downloadKey>VOLUMEUP NC POWER</downloadKey>
+            <downloadKey>VOLUMEUP VOLUMEDOWN POWER</downloadKey>
             <modeKey>NC VOLUMEUP VOLUMEDOWN</modeKey>
             <pwrKeyEint_gpioNum>0</pwrKeyEint_gpioNum>
             <pwrKeyUtility>POWER</pwrKeyUtility>

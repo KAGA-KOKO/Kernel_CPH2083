@@ -37,6 +37,6 @@ obj-$(CONFIG_RMI4_CORE)		+= rmi4/
 obj-y          += misc/oppo_seccommon_drivers/
 
 #Long.Liu@BSP.Fingerprint.Basic,2018/11/15,Add for Fingerprint Driver
-obj-$(CONFIG_OPPO_FINGERPRINT)          += oppo_fp_drivers/
+#obj-$(CONFIG_OPPO_FINGERPRINT)          += oppo_fp_drivers/
 #endif //VENDOR_EDIT
 

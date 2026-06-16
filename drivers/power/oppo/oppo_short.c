@@ -4,13 +4,13 @@
 * Description: For short circuit battery check
 * Version   : 1.0
 * Date      : 2017-10-01
-* Author    : SJC@PhoneSW.BSP
+* Author    : SJC@PhoneSW.BSP		   	
 * ------------------------------ Revision History: --------------------------------
 * <version>       <date>        	<author>              		<desc>
 * Revision 1.0    2017-10-01  	SJC@PhoneSW.BSP    		Created for new architecture
 ***********************************************************************************/
 #include <linux/delay.h>
-#include <linux/power_supply.h>
+#include <linux/power_supply.h>	
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
 
@@ -37,15 +37,10 @@
 #include <linux/debugfs.h>
 #include <linux/leds.h>
 #include <linux/rtc.h>
-#include <linux/version.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 #include <linux/qpnp/qpnp-adc.h>
-#endif
 #include <linux/batterydata-lib.h>
 #include <linux/of_batterydata.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0))
 #include <linux/msm_bcl.h>
-#endif
 #include <linux/ktime.h>
 #include <linux/kernel.h>
 #include <soc/oppo/boot_mode.h>
@@ -61,17 +56,16 @@
 #ifdef CONFIG_OPPO_SHORT_C_BATT_CHECK
 static bool short_d_on = false;
 #define short_debug(fmt,...) \
-	do { \
-		if (short_d_on == true) { \
+  do { \
+    if (short_d_on == true) { \
 		printk(KERN_CRIT pr_fmt("=====[OPPO_CHG]"fmt),##__VA_ARGS__); \
-		} \
-	} while (0)
+    } \
+  } while (0)
 
 static int short_c_battery_status = SHORT_C_BATT_STATUS__NORMAL;
 static int short_c_switch_status = SHORT_C_BATT_SW_STATUS__OFF;
 static int short_c_feature_sw_status = SHORT_C_BATT_FEATURE_SW_STATUS__ON;
 static int short_c_feature_hw_status = SHORT_C_BATT_FEATURE_HW_STATUS__OFF;
-
 static int __init oppo_short_c_battery_status_init(char *str)
 {
 	sscanf(str, "%d", &short_c_battery_status);
@@ -124,7 +118,7 @@ int oppo_short_c_batt_feature_hw_status_init(void)
 	return short_c_feature_hw_status;
 }
 
-static struct short_c_batt_item short_c_batt_items[] =  {
+static struct short_c_batt_item short_c_batt_items[] = {
 	/*batt chging cycle*/
 	{
 		.name = "batt_chging_cycle_threshold",
@@ -261,7 +255,6 @@ static bool oppo_is_normal_boot(struct oppo_chg_chip *chip)
 }
 #else /* CONFIG_OPPO_CHARGER_MTK */
 extern bool qpnp_is_power_off_charging(void);
-
 static bool oppo_is_power_off_chg(struct oppo_chg_chip *chip)
 {
 	return qpnp_is_power_off_charging();
@@ -276,19 +269,18 @@ static bool oppo_is_normal_boot(struct oppo_chg_chip *chip)
 #endif /* CONFIG_OPPO_CHARGER_MTK */
 
 extern void sort(void *base, size_t num, size_t size,
-	int (*cmp_func)(const void *, const void *),
-	void (*swap_func)(void *, void *, int size));
+	  int (*cmp_func)(const void *, const void *),
+	  void (*swap_func)(void *, void *, int size));
 
 static int oppo_digit_num_len(const char *str)
 {
 	int len = 0;
 
 	while (*str) {
-		if (*str >= '0' && *str <= '9') {
+		if (*str >= '0' && *str <= '9')
 			len++;
-		} else {
+		else
 			break;
-		}
 		str++;
 	}
 	return len;
@@ -305,31 +297,31 @@ bool oppo_short_c_batt_is_prohibit_chg(struct oppo_chg_chip *chip)
 		chg_err("limit chg!\n");
 		return true;
 	}
-	if (chip->short_c_batt.is_feature_hw_on
-			== SHORT_C_BATT_FEATURE_HW_STATUS__ON) {
+
+	if (chip->short_c_batt.is_feature_hw_on == SHORT_C_BATT_FEATURE_HW_STATUS__ON) {
 		if (chip->short_c_batt.shortc_gpio_status == 0) {
 			return true;
 		}
 	}
-	if (chip->short_c_batt.is_feature_hw_on
-			== SHORT_C_BATT_FEATURE_HW_STATUS__ON) {
-		if (chip->short_c_batt.ic_short_otp_st == false) {
+
+	if (chip->short_c_batt.is_feature_hw_on == SHORT_C_BATT_FEATURE_HW_STATUS__ON){
+		if (chip->short_c_batt.ic_short_otp_st == false){
 			return true;
 		}
 	}
-	if (chip->short_c_batt.is_feature_sw_on
-			== SHORT_C_BATT_FEATURE_SW_STATUS__OFF) {
+
+	if (chip->short_c_batt.is_feature_sw_on == SHORT_C_BATT_FEATURE_SW_STATUS__OFF)
 		return false;
-	}
+
 	if (chip->short_c_batt.is_switch_on) {
 		if (chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__CV_ERR_CODE1
 				|| chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__FULL_ERR_CODE2
 				|| chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__FULL_ERR_CODE3
 				|| chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4
-				|| chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5) {
+				|| chip->short_c_batt.err_code == SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5)
 			return true;
-		}
 	}
+
 	return false;
 }
 
@@ -339,9 +331,10 @@ bool oppo_short_c_batt_is_disable_rechg(struct oppo_chg_chip *chip)
 		chg_err("limit rechg!\n");
 		return true;
 	}
-	if (chip->short_c_batt.is_feature_sw_on == SHORT_C_BATT_FEATURE_SW_STATUS__OFF) {
+
+	if (chip->short_c_batt.is_feature_sw_on == SHORT_C_BATT_FEATURE_SW_STATUS__OFF)
 		return false;
-	}
+
 	return chip->short_c_batt.disable_rechg;
 }
 
@@ -430,16 +423,13 @@ static int oppo_short_c_batt_read_file(struct oppo_chg_chip *chip)
 
 	chip->short_c_batt.batt_chging_cycle_threshold = short_c_batt_items[0].value;
 	chip->short_c_batt.batt_chging_cycles = short_c_batt_items[1].value;
-	chip->short_c_batt.cv_timer1
-		= short_c_batt_items[2].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
-	chip->short_c_batt.full_timer2
-		= short_c_batt_items[3].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
-	chip->short_c_batt.full_timer3
-		= short_c_batt_items[4].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
-	chip->short_c_batt.full_timer4
-		= short_c_batt_items[5].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
-	chip->short_c_batt.full_timer5
-		= short_c_batt_items[6].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+
+	chip->short_c_batt.cv_timer1 = short_c_batt_items[2].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+	chip->short_c_batt.full_timer2 = short_c_batt_items[3].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+	chip->short_c_batt.full_timer3 = short_c_batt_items[4].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+	chip->short_c_batt.full_timer4 = short_c_batt_items[5].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+	chip->short_c_batt.full_timer5 = short_c_batt_items[6].value / OPPO_CHG_UPDATE_INTERVAL_SEC;
+
 	chip->short_c_batt.cool_temp_rbatt = short_c_batt_items[7].value;
 	chip->short_c_batt.little_cool_temp_rbatt = short_c_batt_items[8].value;
 	chip->short_c_batt.normal_temp_rbatt = short_c_batt_items[9].value;
@@ -529,14 +519,15 @@ static int oppo_short_c_batt_write_err_code(int err_code,
 
 	/*add ",#" and the end of the string for userspace*/
 	sprintf(buf, "err_code%d:%d,%d,%d,%d,%d,#", err_code,
-		temp1, temp2, vbatt1_mv, vbatt2_mv, timer_counts);
-		old_fs = get_fs();
-		set_fs(KERNEL_DS);
-		pos = 0;
-		len = vfs_write(fp, buf, strlen(buf), &pos);
-	if (len < 0) {
+			temp1, temp2, vbatt1_mv, vbatt2_mv, timer_counts);
+
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	pos = 0;
+	len = vfs_write(fp, buf, strlen(buf), &pos);
+	if (len < 0)
 		chg_err("write %s file error\n", ERR_CODE_FILE);
-	}
+
 	pos = 0;
 	vfs_read(fp, buf_log, sizeof(buf), &pos);
 	chg_err("%s\n", buf_log);
@@ -549,15 +540,15 @@ static int oppo_short_c_batt_write_err_code(int err_code,
 
 #define INVALID_CODE								INVALID_DATA
 #define EXIT_CODE__OVER_DELTA_TEMP_IN_TIMER3		1
-#define EXIT_CODE__TIMER4_OVERFLOW					2
+#define EXIT_CODE__TIMER4_OVERFLOW				2
 #define EXIT_CODE__OVER_DELTA_TEMP_IN_TIMER4		3
-#define EXIT_CODE__EX2_OVER_LOW_IBATT				5
-#define EXIT_CODE__EX2_OVER_HIGH_IBATT				6
-#define EXIT_CODE__EX2_OVER_LOWER_IBATT				7
-#define EXIT_CODE__EX5_OUT_OF_TEMP_0_45				11
+#define EXIT_CODE__EX2_OVER_LOW_IBATT			5
+#define EXIT_CODE__EX2_OVER_HIGH_IBATT			6
+#define EXIT_CODE__EX2_OVER_LOWER_IBATT			7
+#define EXIT_CODE__EX5_OUT_OF_TEMP_0_45			11
 #define EXIT_CODE__OVER_RBATT						12
 #define EXIT_CODE__NOT_OVER_RBATT					100
-#define EXIT_CODE__TIMER3_OVERFLOW_INFO				101
+#define EXIT_CODE__TIMER3_OVERFLOW_INFO			101
 
 /* exit_code1:T1,Tn,VBAT1,VBAT2 */
 static int oppo_short_c_batt_write_exit_code(int exit_code,
@@ -583,9 +574,9 @@ static int oppo_short_c_batt_write_exit_code(int exit_code,
 	set_fs(KERNEL_DS);
 	pos = 0;
 	len = vfs_write(fp, buf, strlen(buf), &pos);
-	if (len < 0) {
+	if (len < 0)
 		chg_err("write %s file error\n", EXIT_CODE_FILE);
-	}
+
 	pos = 0;
 	vfs_read(fp, buf_log, sizeof(buf), &pos);
 	chg_err("%s\n", buf_log);
@@ -644,17 +635,16 @@ static int oppo_short_c_batt_write_chg_data(int current_ma, int volt_mv,
 
 #define SHORT_C_BATT_UPDATE_RESET		0
 #define SHORT_C_BATT_UPDATE_PARM		1
-#define SHORT_C_BATT_CLR_ERR_CODE		2
+#define SHORT_C_BATT_CLR_ERR_CODE	2
 #define SHORT_C_BATT_DEBUG_ON			98
 void oppo_short_c_batt_update_change(struct oppo_chg_chip *chip, int update_value)
 {
-	if (update_value == SHORT_C_BATT_UPDATE_PARM) {
+	if (update_value == SHORT_C_BATT_UPDATE_PARM)
 		oppo_short_c_batt_read_file(chip);
-	} else if (update_value == SHORT_C_BATT_CLR_ERR_CODE) {
+	else if (update_value == SHORT_C_BATT_CLR_ERR_CODE)
 		oppo_short_c_batt_write_err_code(0, 0, 0, 0, 0, 0);
-	}else if (update_value == SHORT_C_BATT_DEBUG_ON) {
+	else if (update_value == SHORT_C_BATT_DEBUG_ON)
 		short_d_on = true;
-	}
 }
 
 /* when get 10 valid vbatt, return avg_vbatt_mv, or return 0 */
@@ -673,13 +663,11 @@ static int oppo_short_c_batt_get_average_vbatt_mv(struct oppo_chg_chip *chip, bo
 
 	if (abs(chip->icharging) < 10) {
 		if (valid_vbatt_count == 0) {
-			for (i = 0; i < ARRAY_SIZE(buf); i++) {
+			for (i = 0; i < ARRAY_SIZE(buf); i++)
 				buf[i] = chip->batt_volt;
-			}
 		}
-		if (valid_vbatt_count < ARRAY_SIZE(buf)) {
+		if (valid_vbatt_count < ARRAY_SIZE(buf))
 			buf[valid_vbatt_count] = chip->batt_volt;
-		}
 		valid_vbatt_count++;
 	}
 #if 0
@@ -706,40 +694,43 @@ static int oppo_short_c_batt_get_average_vbatt_mv(struct oppo_chg_chip *chip, bo
 }
 
 
+
 #define D_SHORTC_HW_CNT				3
 void oppo_chg_short_c_hw_check(struct oppo_chg_chip *chip)
 {
-	static int short_c_hw_check_counts = 0;
-	bool shortc_gpio_status = true;
-	if (!chip || !chip->chg_ops->get_shortc_hw_gpio_status) {
-		return;
-	}
-	shortc_gpio_status = chip->short_c_batt.shortc_gpio_status;
+        static int short_c_hw_check_counts = 0;
+        bool shortc_gpio_status = true;
+
+        if (!chip || !chip->chg_ops->get_shortc_hw_gpio_status) {
+                return;
+        }
+
+        shortc_gpio_status = chip->short_c_batt.shortc_gpio_status;
+
 	if (chip->chg_ops->get_shortc_hw_gpio_status() == 0) {
 		short_c_hw_check_counts ++;
-		chg_debug("[Shortc_HW] shorc_HW gpio low, count = %d, status = %d\n",
-				short_c_hw_check_counts, chip->short_c_batt.shortc_gpio_status);
-		if(short_c_hw_check_counts >= D_SHORTC_HW_CNT) {
-			short_c_hw_check_counts = 0;
+        chg_debug("[Shortc_HW] shorc_HW gpio low, count = %d, status = %d\n",
+			short_c_hw_check_counts, chip->short_c_batt.shortc_gpio_status);
+		if(short_c_hw_check_counts >= D_SHORTC_HW_CNT){	
+			short_c_hw_check_counts = 0;	
 			chip->short_c_batt.shortc_gpio_status = 0;
 		}
 	} else {
 		short_c_hw_check_counts = 0;
 		chip->short_c_batt.shortc_gpio_status = 1;
 	}
-	if (chip->short_c_batt.is_feature_hw_on
-			== SHORT_C_BATT_FEATURE_HW_STATUS__OFF) {
+
+	if (chip->short_c_batt.is_feature_hw_on == SHORT_C_BATT_FEATURE_HW_STATUS__OFF) {
 		return;
 	}
-	if (chip->charger_exist && (shortc_gpio_status
-				!= chip->short_c_batt.shortc_gpio_status)) {
-		if (oppo_vooc_get_fastchg_started() == true) {
-			oppo_chg_set_chargerid_switch_val(0);
-			oppo_vooc_switch_mode(NORMAL_CHARGER_MODE);
-		}
+
+	if (chip->charger_exist && (shortc_gpio_status != chip->short_c_batt.shortc_gpio_status)) {
+	 	if (oppo_vooc_get_fastchg_started() == true) {
+            oppo_chg_set_chargerid_switch_val(0);
+            oppo_vooc_switch_mode(NORMAL_CHARGER_MODE);
+        }
 		oppo_chg_turn_on_charging(chip);
-		chg_debug("[Shortc_HW] shorc_HW gpio status changed! \
-			gpio_stat_pre = %d, gpio_stat = %d\n",
+		chg_debug("[Shortc_HW] shorc_HW gpio status changed! gpio_stat_pre = %d, gpio_stat = %d\n",
 			shortc_gpio_status, chip->short_c_batt.shortc_gpio_status);
 	}
 }
@@ -749,24 +740,23 @@ void oppo_chg_short_c_ic_check(struct oppo_chg_chip *chip)
 	bool short_ic_otp_st = true;
 
 	if (!chip) {
-		return;
+			return;
 	}
 
 	short_ic_otp_st = chip->short_c_batt.ic_short_otp_st;
 	chip->short_c_batt.ic_short_otp_st = oppo_short_ic_otp_check();
-	if (chip->short_c_batt.is_feature_hw_on
-			== SHORT_C_BATT_FEATURE_HW_STATUS__OFF) {
+
+	if (chip->short_c_batt.is_feature_hw_on == SHORT_C_BATT_FEATURE_HW_STATUS__OFF) {
 		return;
 	}
-	if (chip->charger_exist && (short_ic_otp_st
-				!= chip->short_c_batt.ic_short_otp_st)) {
-		if (oppo_vooc_get_fastchg_started() == true) {
-			oppo_chg_set_chargerid_switch_val(0);
-			oppo_vooc_switch_mode(NORMAL_CHARGER_MODE);
-		}
+
+	if (chip->charger_exist && (short_ic_otp_st != chip->short_c_batt.ic_short_otp_st)) {
+	 	if (oppo_vooc_get_fastchg_started() == true) {
+            oppo_chg_set_chargerid_switch_val(0);
+            oppo_vooc_switch_mode(NORMAL_CHARGER_MODE);
+        }
 		oppo_chg_turn_on_charging(chip);
-		chg_debug("[Shortc_ic] oppo_shorc_ic status changed! \
-			ic_otp_pre = %d, ic_otp = %d\n",
+		chg_debug("[Shortc_ic] oppo_shorc_ic status changed! ic_otp_pre = %d, ic_otp = %d\n",
 			short_ic_otp_st, chip->short_c_batt.ic_short_otp_st);
 	}
 }
@@ -774,7 +764,7 @@ void oppo_chg_short_c_ic_check(struct oppo_chg_chip *chip)
 #define INPUT_LIMIT_MA_THRESHOLD	900
 //#define CV_VBATT_MV_THRESHOLD	4350
 #define CV_IBATT_MA_THRESHOLD		300
-#define CV_PRE_CHECK_COUNT			5
+#define CV_PRE_CHECK_COUNT		5
 #define CV_DELTA_IBATT_COUNT		10
 #define CV_DELTA_IBATT_MA_THRESHOLD	50
 
@@ -782,9 +772,9 @@ void oppo_chg_short_c_ic_check(struct oppo_chg_chip *chip)
 #define CV_VBATT_COUNT				10
 
 #define LITTLE_COLD_TEMP_THRESHOLD	20
-#define COOL_TEMP_THRESHOLD			120
-#define NORMAL_TEMP_THRESHOLD		250
-#define WARM_TEMP_THRESHOLD			430
+#define COOL_TEMP_THRESHOLD		120
+#define NORMAL_TEMP_THRESHOLD	250
+#define WARM_TEMP_THRESHOLD		430
 #define DELTA_TEMP_THRESHOLD		50
 
 //#define FULL_TIMER2_30MIN_COUNT	360 //1800/5
@@ -828,9 +818,9 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 
 	if (chip->short_c_batt.short_c_bat_cv_mv == -EINVAL
 			|| chip->limits.short_c_bat_vfloat_mv == -EINVAL
-			|| chip->limits.short_c_bat_fastchg_current_ma == -EINVAL) {
+			|| chip->limits.short_c_bat_fastchg_current_ma == -EINVAL)
 		return;
-	}
+
 	/*If this feature is OFF, clear anything about charging control and goto cv_reset for doing nothing*/
 	if (chip->short_c_batt.is_feature_sw_on == SHORT_C_BATT_FEATURE_SW_STATUS__OFF) {
 		chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__NORMAL;
@@ -840,14 +830,12 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 	if (chip->charger_type == POWER_SUPPLY_TYPE_USB_DCP) {
 		if (oppo_is_power_off_chg(chip) == true) {
 			data_mounted_count++;
-			if (data_mounted_count < 30
-					&& oppo_short_c_batt_data_is_mounted() == true) {//3min
+			if (data_mounted_count < 30 && oppo_short_c_batt_data_is_mounted() == true) {//3min
 				oppo_short_c_batt_read_file(chip);
 				data_mounted_count = 30;
 			}
-			if (data_mounted_count > 30) {
+			if (data_mounted_count > 30)
 				data_mounted_count = 30;
-			}
 		} else if (oppo_is_normal_boot(chip) == false) {
 			chg_err("oppo_is_normal_boot[false]\n");
 			return;
@@ -937,43 +925,41 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 	if (chip->batt_full == true && chip->chging_on == false
 			&& chip->charging_state == CHARGING_STATUS_FULL) {
 		chip->short_c_batt.cv_satus = true;
-		if (chip->icharging > chip->short_c_batt.ex2_lower_ibatt_ma) {
+		if (chip->icharging > chip->short_c_batt.ex2_lower_ibatt_ma)
 			full_over_10ma_count++;
-		} else {
+		else
 			full_over_10ma_count = 0;
-		}
-		if (chip->icharging > chip->short_c_batt.ex2_low_ibatt_ma) {
+		if (chip->icharging > chip->short_c_batt.ex2_low_ibatt_ma)
 			full_over_20ma_count++;
-		}
-		if (chip->icharging > chip->short_c_batt.ex2_high_ibatt_ma) {
+		if (chip->icharging > chip->short_c_batt.ex2_high_ibatt_ma)
 			full_over_50ma_count++;
-		} else {
+		else
 			full_over_50ma_count = 0;
-		}
+
 		oppo_short_c_batt_write_chg_data(chip->icharging, chip->batt_volt,
-			full_over_10ma_count, full_over_20ma_count, full_over_50ma_count);
+				full_over_10ma_count, full_over_20ma_count, full_over_50ma_count);
 
 		if (full_over_10ma_count >= chip->short_c_batt.ex2_lower_ibatt_count) {
 			oppo_short_c_batt_write_exit_code(EXIT_CODE__EX2_OVER_LOWER_IBATT,
-				INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
+					INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
 			chg_err("don't exit_check, over [%d]mA [%d]times\n",
-				chip->short_c_batt.ex2_lower_ibatt_ma, chip->short_c_batt.ex2_lower_ibatt_count);
+					chip->short_c_batt.ex2_lower_ibatt_ma, chip->short_c_batt.ex2_lower_ibatt_count);
 			short_debug("don't exit_check, full_over_10ma_count[%d]\n", full_over_10ma_count);
 			goto cv_reset;
 		}
 		if (full_over_20ma_count >= chip->short_c_batt.ex2_low_ibatt_count) {
 			oppo_short_c_batt_write_exit_code(EXIT_CODE__EX2_OVER_LOW_IBATT,
-				INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
+					INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
 			chg_err("don't exit_check, over [%d]mA [%d]times\n",
-				chip->short_c_batt.ex2_low_ibatt_ma, chip->short_c_batt.ex2_low_ibatt_count);
+					chip->short_c_batt.ex2_low_ibatt_ma, chip->short_c_batt.ex2_low_ibatt_count);
 			short_debug("don't exit_check, full_over_20ma_count[%d]\n", full_over_20ma_count);
 			goto cv_reset;
 		}
 		if (full_over_50ma_count >= chip->short_c_batt.ex2_high_ibatt_count) {
 			oppo_short_c_batt_write_exit_code(EXIT_CODE__EX2_OVER_HIGH_IBATT,
-				INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
+					INVALID_CODE, INVALID_CODE, INVALID_CODE, INVALID_CODE);
 			chg_err("don't exit_check, over [%d]mA [%d]times\n",
-				chip->short_c_batt.ex2_high_ibatt_ma, chip->short_c_batt.ex2_high_ibatt_count);
+					chip->short_c_batt.ex2_high_ibatt_ma, chip->short_c_batt.ex2_high_ibatt_count);
 			short_debug("don't exit_check, full_over_50ma_count[%d]\n", full_over_50ma_count);
 			goto cv_reset;
 		}
@@ -996,38 +982,33 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 			if (full_vbatt_2 > 0 && chip->limits.iterm_ma != 0) {
 				full_timer5_count = chip->short_c_batt.full_timer5 + 2;//goto the next step
 				if (cv_avg_vbatt > chip->short_c_batt.short_c_bat_cv_mv + 1000
-						|| cv_avg_vbatt < chip->short_c_batt.short_c_bat_cv_mv - 1000) {
+						|| cv_avg_vbatt < chip->short_c_batt.short_c_bat_cv_mv - 1000)
 					cv_avg_vbatt = -1 * chip->short_c_batt.short_c_bat_cv_mv;
-				}
-				if (chip->limits.iterm_ma != 0) {
+				if (chip->limits.iterm_ma != 0)
 					rbatt = (cv_avg_vbatt - full_vbatt_2) * 1000 / chip->limits.iterm_ma;
-				} else {
+				else
 					rbatt = -1;
-				}
-				if (chip->temperature <= COOL_TEMP_THRESHOLD) {			//2~12
-					if (rbatt > chip->short_c_batt.cool_temp_rbatt) {
+				if (chip->temperature <= COOL_TEMP_THRESHOLD) {//2~12
+					if (rbatt > chip->short_c_batt.cool_temp_rbatt)
 						exit_check_status = true;
-					}
 				} else if (chip->temperature <= NORMAL_TEMP_THRESHOLD) {//12~25
-					if (rbatt > chip->short_c_batt.little_cool_temp_rbatt) {
+					if (rbatt > chip->short_c_batt.little_cool_temp_rbatt)
 						exit_check_status = true;
-					}
-				} else {												//25~43
-					if (rbatt > chip->short_c_batt.normal_temp_rbatt) {
+				} else {//25~43
+					if (rbatt > chip->short_c_batt.normal_temp_rbatt)
 						exit_check_status = true;
-					}
 				}
 				short_debug("cv_avg_vbatt[%d], full_vbatt_2[%d], rbatt[%d]\n", cv_avg_vbatt, full_vbatt_2, rbatt);
 				if (exit_check_status == true) {
 					oppo_short_c_batt_write_exit_code(EXIT_CODE__OVER_RBATT,
-						chip->temperature, chip->temperature, full_vbatt_2, rbatt);
+							chip->temperature, chip->temperature, full_vbatt_2, rbatt);
 					chg_err("exit_check, temp [%d] full_vbatt_2[%d] rbatt[%d]\n",
-						chip->temperature, full_vbatt_2, rbatt);
+							chip->temperature, full_vbatt_2, rbatt);
 					short_debug("exit_check, rbatt[%d]\n", rbatt);
 					return;
 				} else {
 					oppo_short_c_batt_write_exit_code(EXIT_CODE__NOT_OVER_RBATT,
-						chip->temperature, chip->temperature, full_vbatt_2, rbatt);
+							chip->temperature, chip->temperature, full_vbatt_2, rbatt);
 					short_debug("exit_code: EXIT_CODE__NOT_OVER_RBATT\n");
 				}
 			}
@@ -1085,7 +1066,7 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 						short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__FULL_ERR_CODE2);
 						chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__FULL_ERR_CODE2;
 						oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-							chip->temperature, full_vbatt1, full_vbatt_n, full_timer3_count * 5);
+								chip->temperature, full_vbatt1, full_vbatt_n, full_timer3_count * 5);
 					}
 				}
 				/* dynamic */
@@ -1100,7 +1081,7 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 								short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4);
 								chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4;
 								oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-									chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
+										chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
 							}
 						}
 					} else {//12~43
@@ -1112,14 +1093,14 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 								short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4);
 								chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4;
 								oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-									chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
+										chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
 							}
 						}
 					}
 					if (chip->short_c_batt.err_code != SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE4) {
 						short_debug("exit_code, EXIT_CODE__TIMER3_OVERFLOW_INFO\n");
 						oppo_short_c_batt_write_exit_code(EXIT_CODE__TIMER3_OVERFLOW_INFO,
-							full_temp1, chip->temperature, full_vbatt1, full_vbatt_n);
+								full_temp1, chip->temperature, full_vbatt1, full_vbatt_n);
 					}
 				}
 			} else {
@@ -1136,7 +1117,7 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 			oppo_short_c_batt_get_average_vbatt_mv(chip, true);//reset
 			if (full_temp1 != INVALID_TEMP && abs(full_temp1 - chip->temperature) > DELTA_TEMP_THRESHOLD) {
 				oppo_short_c_batt_write_exit_code(EXIT_CODE__OVER_DELTA_TEMP_IN_TIMER4,
-					full_temp1, chip->temperature, INVALID_CODE, INVALID_CODE);
+						full_temp1, chip->temperature, INVALID_CODE, INVALID_CODE);
 				chg_err("don't exit_check, temperature[%d]\n", chip->temperature);
 				short_debug("don't exit_check, T1[%d], T2[%d]\n", full_temp1, chip->temperature);
 				goto cv_reset;
@@ -1156,7 +1137,7 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 						short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__FULL_ERR_CODE3);
 						chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__FULL_ERR_CODE3;
 						oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-							chip->temperature, full_vbatt1, full_vbatt_n, full_timer4_count * 5);
+								chip->temperature, full_vbatt1, full_vbatt_n, full_timer4_count * 5);
 					}
 				}
 				/* dynamic */
@@ -1171,7 +1152,7 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 								short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5);
 								chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5;
 								oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-									chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
+										chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
 							}
 						}
 					} else {//12~43
@@ -1183,14 +1164,14 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 								short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5);
 								chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5;
 								oppo_short_c_batt_write_err_code(chip->short_c_batt.err_code, full_temp1,
-									chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
+										chip->temperature, full_vbatt1, full_vbatt_n, INVALID_CODE);
 							}
 						}
 					}
 					if (chip->short_c_batt.err_code != SHORT_C_BATT_STATUS__DYNAMIC_ERR_CODE5) {
 						short_debug("exit_check, EXIT_CODE__TIMER4_OVERFLOW\n");
 						oppo_short_c_batt_write_exit_code(EXIT_CODE__TIMER4_OVERFLOW,
-							full_temp1, chip->temperature, full_vbatt1, full_vbatt_n);
+								full_temp1, chip->temperature, full_vbatt1, full_vbatt_n);
 					}
 					//timer4 overflow, exit check
 					exit_check_status = true;
@@ -1208,9 +1189,8 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 	if (chip->batt_volt > chip->short_c_batt.short_c_bat_cv_mv && chip->icharging < 0
 			&& (-1 * chip->icharging) < CV_IBATT_MA_THRESHOLD) {
 		cv_pre_check_count++;
-		if (chip->short_c_batt.cv_satus == false) {
+		if (chip->short_c_batt.cv_satus == false)
 			short_debug("cv_pre_check_count[%d]\n", cv_pre_check_count);
-		}
 		if (cv_pre_check_count == CV_PRE_CHECK_COUNT) {
 			if (chip->short_c_batt.cv_satus == false) {
 				//reset exit code
@@ -1219,9 +1199,8 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 				cv_temp = chip->temperature;
 			}
 		}
-		if (cv_pre_check_count > CV_PRE_CHECK_COUNT) {
+		if (cv_pre_check_count > CV_PRE_CHECK_COUNT)
 			cv_pre_check_count = CV_PRE_CHECK_COUNT + 1;
-		}
 	} else {
 		if (chip->short_c_batt.cv_satus == false) {
 			short_debug("short_c_batt.cv_satus == false\n");
@@ -1243,12 +1222,10 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 		} else {
 			if ((-1 * chip->icharging) < chip->limits.iterm_ma + 50) {
 				cv_iterm_count++;
-				if (cv_vbatt_count < CV_VBATT_COUNT) {
+				if (cv_vbatt_count < CV_VBATT_COUNT)
 					short_debug("cv_iterm_count[%d], cv_avg_vbatt[%d]\n", cv_iterm_count, cv_avg_vbatt);
-				}
-				if (cv_iterm_count > CV_ITERM_COUNT) {
+				if (cv_iterm_count > CV_ITERM_COUNT)
 					cv_iterm_count = CV_ITERM_COUNT;
-				}
 			} else if (cv_iterm_count < CV_ITERM_COUNT) {
 				cv_iterm_count = 0;
 			}
@@ -1274,11 +1251,10 @@ void oppo_chg_short_c_battery_check(struct oppo_chg_chip *chip)
 			short_debug("set err_code[%d]\n", SHORT_C_BATT_STATUS__CV_ERR_CODE1);
 			chip->short_c_batt.err_code = SHORT_C_BATT_STATUS__CV_ERR_CODE1;
 			oppo_short_c_batt_write_err_code(SHORT_C_BATT_STATUS__CV_ERR_CODE1,
-				cv_temp, chip->temperature, INVALID_CODE, INVALID_CODE, INVALID_CODE);
+					cv_temp, chip->temperature, INVALID_CODE, INVALID_CODE, INVALID_CODE);
 			//turnoff charging
-			if (chip->short_c_batt.is_switch_on) {
+			if (chip->short_c_batt.is_switch_on)
 				chip->chg_ops->charging_disable();
-			}
 		}
 	}
 

@@ -66,9 +66,9 @@
 #define KREE_SESSION uint32_t
 #define KREE_HANDLE  uint32_t
 /***************************************************/
-#define KREE_DEBUG(fmt...) pr_debug("[KREE]" fmt)
-#define KREE_INFO(fmt...) pr_info("[KREE]" fmt)
-#define KREE_ERR(fmt...) pr_info("[KREE][ERR]" fmt)
+#define KREE_DEBUG(fmt...) pr_debug("[%d][KREE]", __LINE__, fmt)
+#define KREE_INFO(fmt...) pr_info("[%d][KREE]", __LINE__, fmt)
+#define KREE_ERR(fmt...) pr_info("[%d][KREE][ERR]", __LINE__, fmt)
 
 static const char mem_srv_name[] = "com.mediatek.geniezone.srv.mem";
 static const char echo_srv_name[] = "com.mediatek.geniezone.srv.echo";
@@ -206,8 +206,8 @@ static int ssmr_put(u32 feat)
 
 void _set_test_CM_info(void)
 {
-	uint64_t pa = 0x0ULL;
-	uint32_t size = 0x0;
+	uint64_t pa;
+	uint32_t size;
 	int i, test_mcm_num;
 
 #if ssmr_ready_for_mcm
@@ -366,7 +366,7 @@ int _alloc_chmem_and_check(uint32_t test_type,
 		int alloc_size, int alignment, int flags,
 		KREE_HANDLE *alloc_hd)
 {
-	int i = 0;
+	int i;
 	int ret;
 
 	TEST_BEGIN("====> call alloc_chmem_and_check");
@@ -416,7 +416,7 @@ int _free_chmem_and_check(uint32_t test_type,
 	KREE_SESSION alloc_sn, KREE_HANDLE alloc_hd)
 {
 
-	int i = 0;
+	int i;
 	int ret;
 
 	TEST_BEGIN("====> call free_chmem_and_check");

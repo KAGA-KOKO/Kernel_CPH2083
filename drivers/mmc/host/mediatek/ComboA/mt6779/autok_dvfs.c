@@ -857,38 +857,6 @@ static int autok_opp[AUTOK_VCORE_NUM] = {
 };
 #endif
 
-#ifdef CONFIG_MTK_EMMC_HW_CQ
-static int emmc_autok_switch_cqe(struct msdc_host *host, bool enable)
-{
-	bool cmdq_mode = 0;
-	int err = 0;
-
-	if (host->mmc->card) {
-		cmdq_mode = !!mmc_card_cmdq(host->mmc->card);
-		if (cmdq_mode && !enable) {
-			err = host->mmc->cmdq_ops->halt(host->mmc, 1);
-			if (err) {
-				pr_notice("%s: halt:failed: %d\n",
-					__func__, err);
-				return err;
-			}
-			/* disable for xf data */
-			host->mmc->cmdq_ops->disable(host->mmc, true);
-		} else if (cmdq_mode && enable) {
-			/* enable for cqhci */
-			host->mmc->cmdq_ops->enable(host->mmc);
-			err = host->mmc->cmdq_ops->halt(host->mmc, 0);
-			if (err) {
-				pr_notice("%s: unhalt:failed: %d\n",
-					__func__, err);
-				return err;
-			}
-		}
-	}
-	return err;
-}
-#endif
-
 /*
  * Vcore dvfs module MUST ensure having executed
  * the function before mmcblk0 inited + 3s,
@@ -928,8 +896,8 @@ int emmc_autok(void)
 	mmc_claim_host(host->mmc);
 
 #ifdef CONFIG_MTK_EMMC_HW_CQ
-	if (emmc_autok_switch_cqe(host, 0))
-		pr_notice("WARN:%s:cqe disable fail", __func__);
+	if (host->mmc->card)
+		(void)mmc_blk_cmdq_switch(host->mmc->card, 0);
 #endif
 
 	pm_qos_add_request(&autok_force, PM_QOS_VCORE_DVFS_FORCE_OPP,
@@ -987,8 +955,8 @@ int emmc_autok(void)
 	pm_qos_remove_request(&autok_force);
 
 #ifdef CONFIG_MTK_EMMC_HW_CQ
-	if (emmc_autok_switch_cqe(host, 1))
-		pr_notice("WARN:%s:cqe enable fail", __func__);
+	if (host->mmc->card)
+		(void)mmc_blk_cmdq_switch(host->mmc->card, 1);
 #endif
 
 	mmc_release_host(host->mmc);
