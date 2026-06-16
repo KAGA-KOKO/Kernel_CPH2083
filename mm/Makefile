@@ -107,3 +107,7 @@ obj-$(CONFIG_IDLE_PAGE_TRACKING) += page_idle.o
 obj-$(CONFIG_FRAME_VECTOR) += frame_vector.o
 obj-$(CONFIG_DEBUG_PAGE_REF) += debug_page_ref.o
 obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
+#ifdef VENDOR_EDIT
+#/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
+obj-$(CONFIG_OPPO_MEM_MONITOR) += memory_monitor.o
+#endif /*VENDOR_EDIT*/

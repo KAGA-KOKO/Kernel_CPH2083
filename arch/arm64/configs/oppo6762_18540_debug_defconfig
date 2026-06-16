@@ -123,7 +123,8 @@ CONFIG_MTK_PMIC_WRAP_HAL=y
 CONFIG_MTK_THERMAL_PA_VIA_ATCMD=y
 # ifdef ODM_HQ_EDIT
 #Yankun.Zhai@ODM_HQ.Multimedia.camera, 2018/12/7, modify for camera bring up
-CONFIG_CUSTOM_KERNEL_IMGSENSOR="hi846_mipi_raw s5k3h7yx_mipi_raw s5k3h7yx_txd_mipi_raw s5k3h7yx_ts_mipi_raw hi556_mipi_raw gc5035_mipi_raw gc5035_ofg_mipi_raw gc2375h_mipi_raw sp2509v_mipi_raw gc2375h_ly_mipi_raw"
+#fengbin@ODM_HQ.Multimedia.camera, 2019/03/01, modify for camera bring up
+CONFIG_CUSTOM_KERNEL_IMGSENSOR="hi556_mipi_raw gc5035_mipi_raw gc2375h_mipi_raw sp2509v_mipi_raw gc2375h_ly_mipi_raw hi1336_mipi_raw s5k3l6_mipi_raw"
 # endif #ODM_HQ_EDIT
 CONFIG_MTK_VIDEOCODEC_DRIVER=y
 CONFIG_MTK_CAMERA_ISP_DPE_SUPPORT=y
@@ -136,7 +137,7 @@ CONFIG_MTK_CAM_CAL=y
 CONFIG_MTK_JPEG=y
 CONFIG_MTK_LCM=y
 #wangxianfei@ODM_HQ.BSP.LCM 2018.11.29 modify for bring up lcm
-CONFIG_CUSTOM_KERNEL_LCM="ili9881c_hd_dsi_vdo_txd_boe_zal1890 ili9881c_hd_dsi_vdo_ls_inx_zal1890 hx8394f_hd_dsi_vdo_hlt_hsd_zal1890"
+CONFIG_CUSTOM_KERNEL_LCM="ili9881c_hd_dsi_vdo_txd_boe_zal1890 ili9881c_hd_dsi_vdo_ls_inx_zal1890 hx8394f_hd_dsi_vdo_hlt_hsd_zal1890 ili9881c_hd_dsi_vdo_inx_boe_zal1890"
 CONFIG_MTK_SYNC=y
 CONFIG_MTK_FB=y
 CONFIG_MTK_LCM_PHYSICAL_ROTATION="0"
@@ -562,6 +563,19 @@ CONFIG_NTFS_RW=y
 #ifdef VENDOR_EDIT
 #ShiXing.Ke@PSW.CN.WiFi.Connect, 2018/12/06, Add for WAPI support in 18540
 CONFIG_MTK_WAPI_SUPPORT=y
+#/*Huacai.Zhou@PSW.BSP.Kernel.Performance,2018-09-05,add zstd support*/
+CONFIG_CRYPTO_ZSTD=y
+CONFIG_CRYPTO_MANAGER2=y
+#endif
+
+# ifdef VENDOR_EDIT
+# YiXue.Ge@PSW.BSP.Kernel.Driver,2017/07/03, Add for enable lz4 compress for zram
+CONFIG_CRYPTO_LZ4=y
+# endif
+# ifdef VENDOR_EDIT
+# YiXue.Ge@PSW.BSP.Kernel.Driver,2017/07/03, Add for enable PGTABLE_MAPPING
+CONFIG_PGTABLE_MAPPING=y
+# endif
 
 # ifdef ODM_HQ_EDIT
 # tianxu@ODM.Android.kernel.config 2018/12/10 add for add reserve memory
@@ -591,7 +605,25 @@ CONFIG_JOYSTICK_XPAD_LEDS=y
 CONFIG_OPPO_KTV_DEV=y
 #endif
 
+#/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
+CONFIG_OPPO_MEM_MONITOR=y
+CONFIG_OPPO_FG_OPT=y
+#endif /*VENDOR_EDIT*/
+
+#ifdef VENDOR_EDIT //fangpan@Swdp.shanghai,2015/11/12 add the hung task detect
+CONFIG_DETECT_HUNG_TASK=y
+CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=60
+#endif
+#ifdef VENDOR_EDIT //Wen.Luo@BSP.Kernel.Debug, 2018/11/20 enable hung_task BUG/panic
+CONFIG_DEATH_HEALER=y
+#endif
+
 #ifdef ODM_HQ_EDIT
 #Xinjiang.Chen@ODM_HQ.MM.AudioDriver.Hal, 2019/01/28, add for  MTK_FM_50KHZ_SUPPORT
 CONFIG_MTK_FM_50KHZ_SUPPORT=y
 #endif ODM_HQ_EDIT
+
+#ifdef VENDOR_EDIT
+#//yh@PSW.BSP.Storage.EXT4, 2018-11-26 add for ext4 async discard suppot
+CONFIG_EXT4_ASYNC_DISCARD_SUPPORT=y
+#endif

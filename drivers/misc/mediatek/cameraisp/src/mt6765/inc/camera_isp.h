@@ -30,6 +30,11 @@ m4u_callback_ret_t ISP_M4U_TranslationFault_callback(
 #define KERNEL_LOG
 #define ISR_LOG_ON
 
+/*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+#ifndef VENDOR_EDIT
+#define VENDOR_EDIT
+#endif
+
 #define SIG_ERESTARTSYS 512
 /*******************************************************************************
  *
@@ -844,6 +849,12 @@ enum ISP_HALT_DMA_ENUM {
 #define COMPAT_ISP_SET_MEM_INFO       \
 	_IOWR(ISP_MAGIC, ISP_CMD_SET_MEM_INFO, \
 					struct compat_ISP_MEM_INFO_STRUCT)
+#ifdef VENDOR_EDIT
+/*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+#define COMPAT_ISP_TRANSFOR_CCU_REG \
+     _IOWR(ISP_MAGIC, ISP_TRANSFOR_CCU_REG, \
+	                struct compat_ISP_MEM_INFO_STRUCT)
+#endif
 #endif
 
 int32_t ISP_MDPClockOnCallback(uint64_t engineFlag);

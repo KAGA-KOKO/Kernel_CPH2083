@@ -131,6 +131,10 @@ struct pm_qos_constraints {
 	s32 default_value;
 	s32 no_constraint_value;
 	enum pm_qos_type type;
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	struct mutex qos_lock;
+#endif /*ODM_HQ_EDIT*/
 	struct blocking_notifier_head *notifiers;
 };
 

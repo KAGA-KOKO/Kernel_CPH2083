@@ -1216,24 +1216,12 @@ static int fts_test_main_exit(void)
       Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/03 modified for black screen ito test*/
     if (!oppo_fts_black_screen_test_flag) {
         FTS_TEST_INFO("save ito test data");
-	/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-        if(vendor_id == FTS_VENDOR_ID){
-	    fts_test_save_test_data(FTS_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
-            fts_test_save_test_data(FTS_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
-	}else if(vendor_id == FTS_VENDOR_ID2){
-	    fts_test_save_test_data(FTS_EACH_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
-            fts_test_save_test_data(FTS_EACH_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
-	}
+        fts_test_save_test_data(FTS_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
+        fts_test_save_test_data(FTS_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
     } else {
         FTS_TEST_INFO("save black screen ito test data");
-	/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-	if(vendor_id == FTS_VENDOR_ID){
-            fts_test_save_test_data(FTS_BLACK_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
-            fts_test_save_test_data(FTS_BLACK_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
-        }else if(vendor_id == FTS_VENDOR_ID2){
-	    fts_test_save_test_data(FTS_EACH_BLACK_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
-            fts_test_save_test_data(FTS_EACH_BLACK_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
-	}
+        fts_test_save_test_data(FTS_BLACK_TESTDATA_FILE_NAME, test_data.store_all_data, data_len);
+        fts_test_save_test_data(FTS_BLACK_TESTRESULT_FILE_NAME, test_data.testresult, test_data.testresult_len);
     }
     /* free memory */
     free_struct_DetailThreshold();

@@ -44,6 +44,11 @@
 #include "mtk/ion_profile.h"
 #include "mtk/mtk_ion.h"
 #include "mtk/ion_drv_priv.h"
+#ifdef VENDOR_EDIT
+// wenbin.liu@PSW.BSP.MM, 2018/07/11
+// Add for ion used cnt
+#include <linux/module.h>
+#endif /*VENDOR_EDIT*/
 
 bool ion_buffer_fault_user_mappings(struct ion_buffer *buffer)
 {
@@ -101,6 +106,17 @@ static void ion_buffer_add(struct ion_device *dev,
 	rb_link_node(&buffer->node, parent, p);
 	rb_insert_color(&buffer->node, &dev->buffers);
 }
+#ifdef VENDOR_EDIT
+/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-06-26, add ion total used account*/
+static atomic_long_t ion_total_size;
+bool ion_cnt_enable = true;
+unsigned long ion_total(void)
+{
+	if (!ion_cnt_enable)
+		return 0;
+	return (unsigned long)atomic_long_read(&ion_total_size);
+}
+#endif /*VENDOR_EDIT*/
 
 /* this function should only be called while dev->lock is held */
 static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
@@ -219,6 +235,11 @@ exit:
 	mutex_lock(&dev->buffer_lock);
 	ion_buffer_add(dev, buffer);
 	mutex_unlock(&dev->buffer_lock);
+#ifdef VENDOR_EDIT
+/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-06-26, add ion total used account*/
+	if (ion_cnt_enable)
+		atomic_long_add(buffer->size, &ion_total_size);
+#endif
 	return buffer;
 
 err1:
@@ -235,6 +256,11 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 			     __func__);
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
 	}
+	#ifdef VENDOR_EDIT
+	/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-06-26, add ion total used account*/
+	if (ion_cnt_enable)
+		atomic_long_sub(buffer->size, &ion_total_size);
+	#endif /*VENDOR_EDIT*/
 	buffer->heap->ops->free(buffer);
 	vfree(buffer->pages);
 	kfree(buffer);
@@ -1824,6 +1850,7 @@ struct ion_heap *ion_drv_get_heap(struct ion_device *dev,
 
 	if (need_lock)
 		up_read(&dev->lock);
+
 	return heap;
 }
 
@@ -1855,5 +1882,9 @@ file2buf_exit:
 	else
 		return ERR_PTR(-EINVAL);
 }
-
+#ifdef VENDOR_EDIT
+// wenbin.liu@PSW.BSP.MM, 2018/07/11
+// Add for ion show switch
+module_param_named(ion_cnt_enable, ion_cnt_enable, bool, S_IRUGO | S_IWUSR);
+#endif /*VENDOR_EDIT*/
 /* ============================================================================================= */

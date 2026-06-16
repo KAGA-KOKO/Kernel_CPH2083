@@ -58,7 +58,15 @@ struct page *selinux_kernel_status_page(void)
 
 			status->version = SELINUX_KERNEL_STATUS_VERSION;
 			status->sequence = 0;
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+			status->enforcing = is_selinux_enforcing();
+#else
 			status->enforcing = selinux_enforcing;
+#endif /* VENDOR_EDIT */
 			/*
 			 * NOTE: the next policyload event shall set
 			 * a positive value on the status->policyload,

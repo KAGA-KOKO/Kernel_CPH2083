@@ -1923,6 +1923,39 @@ static ssize_t silence_store(struct device *dev,
 	return num;
 }
 static DEVICE_ATTR(silence, 0644, silence_show, silence_store);
+
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+* add for face fill light node
+*/
+unsigned int ffl_set_mode = 0;
+unsigned int ffl_backlight_on = 0;
+extern bool ffl_trigger_finish;
+extern void ffl_set_enable(unsigned int enable);
+static ssize_t FFL_SET_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	printk("%s ffl_set_mode=%d\n", __func__, ffl_set_mode);
+	return sprintf(buf, "%d\n", ffl_set_mode);
+}
+
+static ssize_t FFL_SET_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t num)
+{
+	int ret;
+
+	ret = kstrtouint(buf, 10, &ffl_set_mode);
+
+	printk("%s ffl_set_mode=%d\n", __func__, ffl_set_mode);
+
+	if (ffl_trigger_finish && (ffl_backlight_on == 1) && (ffl_set_mode == 1)) {
+		ffl_set_enable(1);
+	}
+
+	return num;
+}
+
+static DEVICE_ATTR(FFL_SET, 0644, FFL_SET_show, FFL_SET_store);
 #endif /* VENDOR_EDIT */
 
 static int mtk_disp_mgr_probe(struct platform_device *pdev)
@@ -1983,6 +2016,16 @@ static int mtk_disp_mgr_probe(struct platform_device *pdev)
 	if (ret < 0)
 	{
 		printk("%s device create file failed!\n", __func__);
+	}
+
+	/*
+	* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+	* add for face fill light node
+	*/
+	ret = device_create_file(dev, &dev_attr_FFL_SET);
+	if (ret < 0)
+	{
+		printk("%s FFL_SET device create file failed!\n", __func__);
 	}
 	#endif /*VENDOR_EDIT*/
 

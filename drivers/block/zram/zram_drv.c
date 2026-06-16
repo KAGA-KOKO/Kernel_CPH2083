@@ -47,7 +47,15 @@ static DEFINE_MUTEX(zram_index_mutex);
 
 static int zram_major;
 static struct zram *zram_devices;
+#ifdef VENDOR_EDIT //YiXue.Ge@PSW.kernel.drv 20170703 modify for enable lz4 default
+#ifdef CONFIG_CRYPTO_LZ4
+static const char *default_compressor = "lz4";
+#else /*CONFIG_ZRAM_LZ4_COMPRESS*/
 static const char *default_compressor = "lzo";
+#endif /*CONFIG_ZRAM_LZ4_COMPRESS*/
+#else /*VENDOR_EDIT*/
+static const char *default_compressor = "lzo";
+#endif/*VENDOR_EDIT*/
 
 /* Module params (documentation at end) */
 static unsigned int num_devices = 1;
@@ -867,7 +875,12 @@ compress_again:
 
 		handle = zs_malloc(meta->mem_pool, clen,
 				GFP_NOIO | __GFP_HIGHMEM |
+#ifdef VENDOR_EDIT
+/*Huacai.Zhou@PSW.Tech.Kernel.MM, 2019-03-26, add GFP_ATOMIC*/
+				__GFP_MOVABLE | GFP_ATOMIC);
+#else
 				__GFP_MOVABLE);
+#endif /*VENDOR_EDIT*/
 #ifdef CONFIG_MTK_ENG_BUILD
 		if (handle) {
 			need_update_len = true;

@@ -1727,7 +1727,7 @@ static irqreturn_t mt_pmic_wrap_irq(int irqno, void *dev_id)
 		g_case_flag = 1;
 	}
 
-	if (g_wrap_wdt_irq_count == 10)
+	if (g_wrap_wdt_irq_count == 10 || g_case_flag == 1)
 		WARN_ON(1);
 
 	return IRQ_HANDLED;

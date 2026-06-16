@@ -190,6 +190,8 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_OTG_SWITCH,
 	POWER_SUPPLY_PROP_NOTIFY_CODE,
 	POWER_SUPPLY_PROP_BATT_RM,
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+	POWER_SUPPLY_PROP_CHARGING_LIMIT_TIME,
 #endif /*ODM_HQ_EDIT*/
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_PROP_CHARGE_COUNTER_EXT,

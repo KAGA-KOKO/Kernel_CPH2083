@@ -54,6 +54,8 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 #include <linux/io.h>
+#include <mt-plat/mtk_boot.h>
+
 /* #include "mach/eint.h" */
 #if defined(CONFIG_MTK_LEGACY)
 #include <mach/mtk_gpio.h>
@@ -134,8 +136,13 @@ static unsigned int _need_do_esd_check(void)
 	int ret = 0;
 
 #ifdef CONFIG_OF
-	if ((primary_get_lcm()->params->dsi.esd_check_enable == 1) &&
-		(islcmconnected == 1))
+        #ifndef VENDOR_EDIT
+	//caiwutang@RM.Display.LCD.Machine for esd open only nornal boot
+	if ((primary_get_lcm()->params->dsi.esd_check_enable == 1) && (islcmconnected == 1))
+	#else /* VENDOR_EDIT */
+	if ((primary_get_lcm()->params->dsi.esd_check_enable == 1) && (islcmconnected == 1)
+		&& (get_boot_mode() == NORMAL_BOOT))
+	#endif /* VENDOR_EDIT */
 		ret = 1;
 #else
 	if (primary_get_lcm()->params->dsi.esd_check_enable == 1)

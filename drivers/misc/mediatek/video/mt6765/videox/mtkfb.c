@@ -358,12 +358,43 @@ static int mtkfb_blank(int blank_mode, struct fb_info *info)
 }
 #endif
 
+#ifdef VENDOR_EDIT
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+* add for face fill light node
+*/
+unsigned int ffl_backlight_backup;
+extern unsigned int ffl_set_mode;
+extern unsigned int ffl_backlight_on;
+extern bool ffl_trigger_finish;
+#endif /* VENDOR_EDIT */
 int mtkfb_set_backlight_level(unsigned int level)
 {
 	MTKFB_FUNC();
 	DISPDBG("mtkfb_set_backlight_level:%d Start\n",
 		level);
+	#ifndef VENDOR_EDIT
+	/*
+	* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+	* add for face fill light node,ffl set need after backlight on.
+	*/
 	primary_display_setbacklight(level);
+	#else
+	if (level > 0) {
+		ffl_backlight_on = 1;
+	} else {
+		ffl_backlight_on = 0;
+	}
+	ffl_backlight_backup = level;
+	if (ffl_trigger_finish || (level == 0)) {
+		if ((ffl_set_mode != 1) || (level == 0)) {
+			primary_display_setbacklight(level);
+		}
+		if ((level > 0) && (ffl_set_mode == 1)) {
+			ffl_set_enable(1);
+		}
+	}
+	#endif /* VENDOR_EDIT */
 	DISPDBG("mtkfb_set_backlight_level End\n");
 	return 0;
 }

@@ -209,9 +209,8 @@
  * FTS_GET_VENDOR_ID_NUM >= 2, compatible with FTS_VENDOR_ID2
  * FTS_GET_VENDOR_ID_NUM >= 3, compatible with FTS_VENDOR_ID3
  */
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_VENDOR_ID                          0x67//DJ
-#define FTS_VENDOR_ID2                         0x80//Each
+#define FTS_VENDOR_ID                          0x0000
+#define FTS_VENDOR_ID2                         0x0000
 #define FTS_VENDOR_ID3                         0x0000
 
 /*
@@ -224,9 +223,6 @@
  *Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/26 modified for oppo fw update*/
 #define FTS_UPGRADE_FW_FILE                      "tp/18540/touch_FT5446_fw.bin"
 #define FTS_UPGRADE_FW_FILE_SIGNED               "tp/18540/touch_FT5446_fw_signed.bin"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_UPGRADE_EACH_FW_FILE                 "tp/18540/touch_FT5446_Each_fw.bin"
-#define FTS_UPGRADE_EACH_FW_FILE_SIGNED          "tp/18540/touch_FT5446_Each_fw_signed.bin"
 
 /*
  * if FTS_GET_VENDOR_ID_NUM >= 2, fw corrsponding with FTS_VENDOR_ID2

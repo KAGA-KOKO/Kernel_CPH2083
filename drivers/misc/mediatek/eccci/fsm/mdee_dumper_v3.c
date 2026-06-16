@@ -21,6 +21,11 @@
 #include "ccci_config.h"
 #include "ccci_fsm_sys.h"
 
+#ifdef VENDOR_EDIT
+//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
+//Add for monitor modem crash
+#include <soc/oppo/mmkey_log.h>
+#endif /*VENDOR_EDIT*/
 
 #ifndef DB_OPT_DEFAULT
 #define DB_OPT_DEFAULT    (0)	/* Dummy macro define to avoid build error */
@@ -53,7 +58,13 @@ static void ccci_aed_v3(struct ccci_fsm_ee *mdee, unsigned int dump_flag,
 	struct ccci_per_md *per_md_data = ccci_get_per_md_data(mdee->md_id);
 	int md_dbg_dump_flag = per_md_data->md_dbg_dump_flag;
 #endif
-
+#ifdef VENDOR_EDIT
+//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
+//Add for monitor modem crash
+	unsigned int hashId = 0;
+	char *logBuf;
+	char *aed_str_for_hash = NULL;
+#endif /*VENDOR_EDIT*/
 	buff = kmalloc(AED_STR_LEN, GFP_ATOMIC);
 	if (buff == NULL) {
 		CCCI_ERROR_LOG(md_id, FSM, "Fail alloc Mem for buff!\n");
@@ -71,6 +82,31 @@ static void ccci_aed_v3(struct ccci_fsm_ee *mdee, unsigned int dump_flag,
 	snprintf(buff, AED_STR_LEN, "md%d:%s%s%s",
 		md_id + 1, aed_str, mdee->ex_start_time, img_inf);
 	memset(mdee->ex_start_time, 0x0, sizeof(mdee->ex_start_time));
+	#ifdef VENDOR_EDIT
+	//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
+	//Add for monitor modem crash
+		#define MCU_CORE_MSG "(MCU_core"
+		aed_str_for_hash = aed_str;
+        if( aed_str_for_hash != NULL ) {
+            if( (strncmp(aed_str_for_hash, MCU_CORE_MSG, strlen(MCU_CORE_MSG)) == 0) ) {
+                while(aed_str_for_hash[0] != '\n') {
+                    ++aed_str_for_hash;
+                }
+                ++aed_str_for_hash; //skip '\n'
+            }
+            hashId = BKDRHash(aed_str_for_hash, strlen(aed_str_for_hash));
+        }
+        else {
+			CCCI_ERROR_LOG(md_id, FSM, "aed_str_for_hash is null!!");
+        }
+		logBuf = vmalloc(BUF_LOG_LENGTH);
+		if (logBuf != NULL) {
+			snprintf(logBuf, BUF_LOG_LENGTH, "fid:%u;cause:%s", hashId, aed_str_for_hash);
+			CCCI_NORMAL_LOG(md_id, FSM, "modem crash wirte to critical log. aed_str_for_hash = %s.", logBuf);
+			mm_keylog_write(logBuf, "modem_crash\n", MODEM_MONITOR_ID);
+			vfree(logBuf);
+		}
+	#endif /*VENDOR_EDIT*/
 	/* MD ID must sync with aee_dump_ccci_debug_info() */
  err_exit1:
 	if (dump_flag & CCCI_AED_DUMP_CCIF_REG) {
@@ -795,3 +831,23 @@ int mdee_dumper_v3_alloc(struct ccci_fsm_ee *mdee)
 	return 0;
 }
 
+#ifdef VENDOR_EDIT
+//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
+//Add for monitor modem crash
+unsigned int BKDRHash(const char* str, unsigned int len)
+{
+     unsigned int seed = 131; /* 31 131 1313 13131 131313 etc.. */
+     unsigned int hash = 0;
+     int i    = 0;
+
+    if (str == NULL) {
+        return 0;
+    }
+
+    for(i = 0; i < len; str++, i++) {
+        hash = (hash * seed) + (*str);
+    }
+
+    return hash;
+}
+#endif /*VENDOR_EDIT*/

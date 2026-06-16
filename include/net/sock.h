@@ -183,6 +183,11 @@ struct sock_common {
 	struct proto		*skc_prot;
 	possible_net_t		skc_net;
 
+	//#ifdef VENDOR_EDIT
+	//Junyuan.Huang@PSW.CN.WiFi.Network.internet.1197891, 2018/04/10,
+	//Add code for appo sla function
+	u32 skc_oppo_mark;
+	//#endif /* VENDOR_EDIT */
 
 #ifdef VENDOR_EDIT
 //Jiemin.Zhu@PSW.Android.OppoFeature.TrafficMonitor, 2018/06/28, Add for net comsuption statistics for
@@ -354,6 +359,11 @@ struct sock {
 #define sk_cmdline		__sk_common.skc_cmdline
 #endif /* VENDOR_EDIT */
 
+//#ifdef VENDOR_EDIT
+//Junyuan.Huang@PSW.CN.WiFi.Network.internet.1197891, 2018/04/10,
+//Add code for appo sla function
+#define oppo_sla_mark   __sk_common.skc_oppo_mark
+//#endif /* VENDOR_EDIT */
 	socket_lock_t		sk_lock;
 	struct sk_buff_head	sk_receive_queue;
 	/*

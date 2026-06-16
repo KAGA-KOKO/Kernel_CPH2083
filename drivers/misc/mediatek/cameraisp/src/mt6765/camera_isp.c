@@ -107,6 +107,10 @@
 struct pm_qos_request isp_qos;
 struct pm_qos_request camsys_qos_request[ISP_IRQ_TYPE_INT_CAM_B_ST+1];
 static struct ISP_PM_QOS_STRUCT G_PM_QOS[ISP_IRQ_TYPE_INT_CAM_B_ST+1];
+#ifdef VENDOR_EDIT
+/*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+struct pm_qos_request opp_request;
+#endif
 static u32 PMQoS_BW_value;
 static u32 target_clk;
 #endif
@@ -8026,6 +8030,8 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		break;
 
 	case ISP_TRANSFOR_CCU_REG:
+	        #ifndef VENDOR_EDIT
+		/*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
 		{
 			uint64_t hwTickCnt, ccu_reg_trans_Time;
 
@@ -8045,7 +8051,46 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 			}
 		}
 		break;
+                #else
+		{
+			unsigned int hwTickCnt[2];
+			unsigned int globaltime[2];
+			unsigned long long reg_trans_Time;
+			unsigned long long sum;
 
+			if (copy_from_user(hwTickCnt, (void *)Param,
+				sizeof(unsigned int)*2) == 0) {
+
+				pr_debug("hwTickCnt[0]:%u , hwTickCnt[1]:%u",
+					hwTickCnt[0], hwTickCnt[1]);
+
+				sum =
+				(unsigned long long)hwTickCnt[0] +
+				((unsigned long long)hwTickCnt[1]<<32);
+
+				pr_debug("sum of hwTickCnt:%llu", sum);
+
+				reg_trans_Time =
+				archcounter_timesync_to_boot(sum);
+
+				globaltime[1] =
+				do_div(reg_trans_Time, 1000000000);
+				globaltime[1] = globaltime[1]/1000;
+				globaltime[0] = reg_trans_Time;
+				pr_debug("sec:%u , usec:%u",
+					globaltime[0], globaltime[1]);
+
+				if (copy_to_user((void *)Param,
+					globaltime,
+					sizeof(unsigned int)*2) != 0) {
+					Ret = -EFAULT;
+				}
+			} else {
+				Ret = -EFAULT;
+			}
+		}
+		break;
+               #endif
 #ifdef EP_NO_PMQOS
 	case ISP_DFS_CTRL:
 		/* Fall through */
@@ -8221,6 +8266,12 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 							DebugFlag[1]],
 						  PM_QOS_MM_MEMORY_BANDWIDTH,
 						  PM_QOS_DEFAULT_VALUE);
+                                                #ifdef VENDOR_EDIT
+                                                /*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+						pm_qos_add_request(&opp_request,
+							PM_QOS_VCORE_DVFS_FORCE_OPP, 1);
+						pm_qos_update_request(&opp_request, 1);
+                                                #endif
 					}
 					Ret = ISP_SetPMQOS(DebugFlag[0],
 							   DebugFlag[1]);
@@ -8231,6 +8282,10 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 							   DebugFlag[1]);
 					pm_qos_remove_request(
 					    &camsys_qos_request[DebugFlag[1]]);
+                                        #ifdef VENDOR_EDIT
+                                        /*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+					pm_qos_remove_request(&opp_request);
+                                        #endif
 					bw_request[DebugFlag[1]] = 0;
 				}
 			} else {
@@ -9084,6 +9139,14 @@ static long ISP_ioctl_compat(struct file *filp, unsigned int cmd,
 			(unsigned long)data);
 		return ret;
 	}
+        #ifdef VENDOR_EDIT
+        /*Cong.Zhou@ODM_HQ 20190423 patch for video ALPS04387815*/
+	case COMPAT_ISP_TRANSFOR_CCU_REG: {
+		ret = filp->f_op->unlocked_ioctl(filp, ISP_TRANSFOR_CCU_REG,
+		        (unsigned long)compat_ptr(arg));
+		return ret;
+	}
+        #endif
 	case ISP_GET_DUMP_INFO:
 	case ISP_WAIT_IRQ:
 	case ISP_CLEAR_IRQ: /* structure (no pointer) */

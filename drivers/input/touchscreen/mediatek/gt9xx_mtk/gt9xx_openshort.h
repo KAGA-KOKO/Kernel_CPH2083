@@ -360,11 +360,11 @@ const u8 dsp_short[] = {
 #define MAX_DRIVER_NUM            42
 #define MIN_SENSOR_NUM            15
 #define MAX_SENSOR_NUM            30
-/*Jianchao.Gu@ODM_HQ.BSP.TP.Function, 2019/05/25 modified for ITO test threshold */
+
 unsigned short gt900_short_threshold = 10;
-unsigned short gt900_resistor_threshold = 150;
-unsigned short gt900_resistor_warn_threshold = 100;
-unsigned short gt900_gnd_resistor_threshold = 100;
+unsigned short gt900_resistor_threshold = 800;
+unsigned short gt900_resistor_warn_threshold = 500;
+unsigned short gt900_gnd_resistor_threshold = 500;
 
 //QFN88 package TX Pin, used for get channel number from Chip to Pad
 const u8 ChannelPackage_TX[MAX_DRIVER_NUM] =  { 

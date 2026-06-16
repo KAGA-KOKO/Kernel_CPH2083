@@ -52,6 +52,11 @@ u8 spm_snapshot_golden_setting;
 struct wake_status spm_wakesta; /* record last wakesta */
 unsigned int spm_sleep_count;
 
+#ifdef VENDOR_EDIT
+/* Yichun.Chen  PSW.BSP.CHG  2019-01-25  for power analysis */
+extern void mt_eint_print_status(void);
+#endif
+
 int __attribute__ ((weak)) mtk_enter_idle_state(int idx)
 {
 	pr_info("NO %s !!!\n", __func__);
@@ -201,8 +206,17 @@ static unsigned int spm_output_wake_reason(struct wake_status *wakesta)
 		pr_info("r7[ap_mdsrc_req] = 0x%x\n",
 			spm_read(SPM_POWER_ON_VAL1) & (1 << 17));
 	}
+
+#ifndef VENDOR_EDIT
+/* Yichun.Chen  PSW.BSP.CHG  2019-01-25  for power analysis */
+#if defined(CONFIG_MTK_EIC) || defined(CONFIG_PINCTRL_MTK)
 	if (wakesta->r12 & WAKE_SRC_R12_EINT_EVENT_B)
 		mt_eint_print_status();
+#endif
+#else
+	if (wakesta->r12 & WAKE_SRC_R12_EINT_EVENT_B)
+		mt_eint_print_status();
+#endif
 
 #ifdef CONFIG_MTK_CCCI_DEVICES
 		exec_ccci_kern_func_by_md_id(0, ID_DUMP_MD_SLEEP_MODE,

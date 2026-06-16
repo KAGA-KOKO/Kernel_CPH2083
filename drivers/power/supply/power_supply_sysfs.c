@@ -228,6 +228,8 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(otg_switch),
 	POWER_SUPPLY_ATTR(notify_code),
 	POWER_SUPPLY_ATTR(batt_rm),
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+POWER_SUPPLY_ATTR(charging_limit_time),
 #endif /*ODM_HQ_EDIT*/
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_ATTR(charge_counter_ext),

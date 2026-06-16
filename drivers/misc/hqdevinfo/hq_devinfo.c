@@ -40,15 +40,15 @@ struct sensor_devinfo sensorinfo[] = {
 
 static void match_sub_board(int boardid){
 	int MB = boardid & 0xf;
-	int KB = (boardid >> 10) & 0x3;
+	int KB = (boardid >> 8) & 0x3;
 	if(0x0 == MB){
 		if(0x0 == KB){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-match");
 		}else{
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-unmatch");
 		}
-	}else if((0x3 == MB) || (0xc == MB)){
-		if(0x2 == KB){
+	}else if((0x3 == MB) || (0xc == MB) || (0xf == MB)){
+		if((0x2 == KB) || ((0x0 == KB) && (0xc == MB))){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-match");
 		}else{
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","MTK","sub-unmatch");
@@ -93,16 +93,10 @@ static void register_info(char name[]){
 		sprintf(buff, "Device version: %s\nDevice manufacture: %s",card_devinfo->cid.prod_name, manfid);
 		return;
 	}else if(!strcmp(name, "emmc_version")){
-		
-		if(card_devinfo->ext_csd.rev < 7){
-			sprintf(buff, "Device version: %s\nDevice manufacture: 0x%x",card_devinfo->cid.prod_name, card_devinfo->cid.fwrev);
-		}else{
-			u8 fwrev = card_devinfo->ext_csd.fwrev[0];
-			sprintf(buff, "Device version: %s\nDevice manufacture: 0x%x", card_devinfo->cid.prod_name, fwrev);
-		}		
+		sprintf(buff,"Device version: %s\nDevice manufacture: 0x%02x,0x%llx",card_devinfo->cid.prod_name,card_devinfo->cid.prv,*(unsigned long long*)card_devinfo->ext_csd.fwrev);	
 		return;
 	}else if(!strcmp(name, "lcd")){
-		if(!strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_txd_boe_zal1890")){
+		if(!strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_txd_boe_zal1890") || !strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_inx_boe_zal1890")){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","ili9881c","TXD_ILI");
 		}else if(!strcmp(hq_lcm_name, "ili9881c_hd_dsi_vdo_ls_inx_zal1890")){
 			sprintf(buff, "Device version: %s\nDevice manufacture: %s","ili9881c","LS_ILI");

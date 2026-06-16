@@ -1193,11 +1193,15 @@ void self_test_output(uint8_t *RB1H, uint16_t *mutual_bank, uint16_t *self_bank)
     } else {
         fn = filp_open(g_sensor_black_result_file, O_TRUNC|O_CREAT|O_RDWR, 0660);
     }
-
+    /*Kai.Zhang@ODM_HQ.BSP.TP.Function, 2019/05/27 modified for ito*/
     if (!IS_ERR(fn)) {
         I("%s create data file and ready to write\n", __func__);
         vfs_write(fn, output_buffer, ret * sizeof(uint8_t), &pos);
-    }
+    } else {
+        fn = NULL;
+        set_fs(fs);
+        return;
+    } 
  /*   if (RB1H[0] == 0xAA)
     {
         fn = filp_open(g_test_ok_file, O_TRUNC|O_CREAT|O_RDWR, 0660);
@@ -1232,9 +1236,10 @@ void self_test_output(uint8_t *RB1H, uint16_t *mutual_bank, uint16_t *self_bank)
         filp_close(fn, NULL);
     }
 
-    if (fn != NULL) {
+    /*Kai.Zhang@ODM_HQ.BSP.TP.Function, 2019/05/27 modified for ito*/
+    /* if (fn != NULL) {
         filp_close(fn, NULL);
-    }
+    }  */
     set_fs(fs);
     //kfree(output_buffer);
 OPEN_FAIL:

@@ -1326,12 +1326,13 @@ static void himax_report_points(struct himax_ts_data *ts)
 
         for (loop_i = 0; loop_i < ts->nFinger_support; loop_i++)
         {
-            /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/04/27 modified for hover pointer*/
+           // if (((ts->pre_finger_mask >> loop_i) & 1) == 1)//chenzhecong BSP SE modify for ctp function
+            {
 #ifndef	HX_PROTOCOL_A
-            input_mt_slot(ts->input_dev, loop_i);
-            input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
+                input_mt_slot(ts->input_dev, loop_i);
+                input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
 #endif
-
+            }
             if(ts->pre_finger_mask > 0 && ((ts->debug_log_level & BIT(3)) > 0
                     || (g_oppo_debug_level == 0)
                     || (g_oppo_debug_level == 1)

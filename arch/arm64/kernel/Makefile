@@ -65,3 +65,8 @@ obj-y					+= $(arm64-obj-y) vdso/ probes/
 obj-m					+= $(arm64-obj-m)
 head-y					:= head.o
 extra-y					+= $(head-y) vmlinux.lds
+
+#ifdef VENDOR_EDIT
+#ChenYong@Rom.Framework,2019/01/15, add for prevent root check
+obj-$(CONFIG_OPPO_ROOT_CHECK)		+= oppo_root.o oppo_root_check.o
+#endif /* VENDOR_EDIT */

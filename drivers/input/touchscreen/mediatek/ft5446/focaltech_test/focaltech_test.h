@@ -38,23 +38,13 @@
 #define FTS_INI_FILE_PATH               "/vendor/etc/"
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/03 modified for ito*/
 #define FTS_INI_FILE_NAME               "Conf_MultipleTest_winter_ft5446.ini"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_EACH_INI_FILE_NAME               "Conf_MultipleTest_winter_ft5446_Each.ini"
 #define FTS_ITO_RESULT_PATH             "/sdcard/"
 #define FTS_TESTDATA_FILE_NAME          "testdata.csv"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_EACH_TESTDATA_FILE_NAME          "testdata_each.csv"
 #define FTS_TESTRESULT_FILE_NAME        "testresult.txt"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_EACH_TESTRESULT_FILE_NAME        "testresult_each.txt"
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2018/12/28 add for black screen ito test
   Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/03 add for black screen ito test*/
 #define FTS_BLACK_TESTDATA_FILE_NAME    "black_testdata.csv"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_EACH_BLACK_TESTDATA_FILE_NAME    "black_testdata_each.csv"
 #define FTS_BLACK_TESTRESULT_FILE_NAME  "black_testresult.txt"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_EACH_BLACK_TESTRESULT_FILE_NAME  "black_testresult_each.txt"
 #define false 0
 #define true  1
 #define MAX_IC_NAME_LEN                         20
@@ -375,8 +365,6 @@ extern struct test_ic_type ic_types[];
 extern struct fts_test_data test_data;
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2018/12/28 add for black screen ito test*/
 extern bool oppo_fts_black_screen_test_flag;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-extern u16 vendor_id;
 
 int init_test_funcs(u32 ic_type);
 u32 fts_ic_table_get_ic_code_from_ic_name(char *strIcName);

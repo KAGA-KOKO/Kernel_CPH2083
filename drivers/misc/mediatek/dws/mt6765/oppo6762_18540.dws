@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--dct_version="2.5" buid_sn="161102" dws_modification_time="02.23.2019.18:41:31"-->
+<!--dct_version="2.5" buid_sn="161102" dws_modification_time="03.19.2019.15:19:51"-->
 <dct_cfg>
     <general chip="MT6765">
         <proj>Cervino</proj>
@@ -522,6 +522,7 @@
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
+                <varName0>GPIO_FDD_BAND_SUPPORT_DETECT_3RD_PIN</varName0>
                 <smt>false</smt>
                 <ies>true</ies>
             </gpio53>
@@ -1508,7 +1509,6 @@
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
-                <varName0>GPIO_FDD_BAND_SUPPORT_DETECT_3RD_PIN</varName0>
                 <smt>false</smt>
                 <ies>true</ies>
             </gpio172>

@@ -421,6 +421,15 @@ static struct uid_tag_data *uid_tag_data_tree_search(struct rb_root *root,
 	return NULL;
 }
 
+#ifdef VENDOR_EDIT
+//Yunqing.Zeng@BSP.Power.Basic 2018/01/11 add for backup of netstat before sleep
+struct proc_dir_entry * get_xt_qtaguid_procdir(void)
+{
+	return xt_qtaguid_procdir;
+}
+EXPORT_SYMBOL(get_xt_qtaguid_procdir);
+#endif /* VENDOR_EDIT */
+
 /*
  * Allocates a new uid_tag_data struct if needed.
  * Returns a pointer to the found or allocated uid_tag_data.
@@ -2527,15 +2536,20 @@ int qtaguid_untag(struct socket *el_socket, bool kernel)
 	 * At first, we want to catch user-space code that is not
 	 * opening the /dev/xt_qtaguid.
 	 */
-	if (IS_ERR_OR_NULL(pqd_entry) || !sock_tag_entry->list.next) {
+	if (IS_ERR_OR_NULL(pqd_entry))
 		pr_warn_once("qtaguid: %s(): "
 			     "User space forgot to open /dev/xt_qtaguid? "
 			     "pid=%u tgid=%u sk_pid=%u, uid=%u\n", __func__,
 			     current->pid, current->tgid, sock_tag_entry->pid,
 			     from_kuid(&init_user_ns, current_fsuid()));
-	} else {
+	/*
+	 * This check is needed because tagging from a process that
+	 * didn’t open /dev/xt_qtaguid still adds the sock_tag_entry
+	 * to sock_tag_tree.
+	 */
+	if (sock_tag_entry->list.next)
 		list_del(&sock_tag_entry->list);
-	}
+
 	spin_unlock_bh(&uid_tag_data_tree_lock);
 	/*
 	 * We don't free tag_ref from the utd_entry here,

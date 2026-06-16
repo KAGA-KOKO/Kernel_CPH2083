@@ -312,6 +312,7 @@ extern struct LCM_DRIVER sofeg01_fhdplus_dsi_cmd_samsung_lcm_drv;
 extern struct LCM_DRIVER ili9881c_hd_dsi_vdo_txd_boe_zal1890_lcm_drv;
 extern struct LCM_DRIVER ili9881c_hd_dsi_vdo_ls_inx_zal1890_lcm_drv;
 extern struct LCM_DRIVER hx8394f_hd_dsi_vdo_hlt_hsd_zal1890_lcm_drv;
+extern struct LCM_DRIVER ili9881c_hd_dsi_vdo_inx_boe_zal1890_lcm_drv;
 #endif
 #ifdef BUILD_LK
 extern void mdelay(unsigned long msec);

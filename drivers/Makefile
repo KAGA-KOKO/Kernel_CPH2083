@@ -183,3 +183,4 @@ obj-$(CONFIG_TRUSTY)	+= trusty/
 #chenxinjiang@ODM_HQ.Multimedia.audio, 2018/11/28, add for switch class driver
 obj-$(CONFIG_SWITCH)            += switch/
 #endif #ODM_HQ_EDIT
+

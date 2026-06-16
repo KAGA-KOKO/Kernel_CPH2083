@@ -163,6 +163,29 @@ struct pm_qos_request primary_display_emi_opp_request;
 struct pm_qos_request primary_display_mm_freq_request;
 #endif
 
+#ifdef VENDOR_EDIT
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+* add for face fill light node
+*/
+static struct task_struct *ffl_set_task;
+static wait_queue_head_t ffl_task_wq;
+static atomic_t ffl_task_wakeup = ATOMIC_INIT(0);
+bool ffl_trigger_finish = true;
+bool ffl_display_ready = true;
+extern unsigned int ffl_set_mode;
+extern unsigned int ffl_backlight_backup;
+#define FFL_START_LEVEL (2)
+#define FFL_END_LEVEL 1200
+#define FFL_UPRATE (6)
+#define FFL_BACKRATE (48)
+#define FFL_EXIT_CONTROL (0)
+#define FFL_TRIGGLE_CONTROL (1)
+#define FFL_EXIT_FULLY_CONTROL (2)
+#define FFL_PENDING_END 120
+static DEFINE_MUTEX(ffl_lock);
+#endif /*VENDOR_EDIT*/
+
 static int decouple_mirror_update_rdma_config_thread(void *data);
 static int decouple_trigger_worker_thread(void *data);
 
@@ -4119,6 +4142,13 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 #endif
 
 	DISPCHECK("primary_display_init done\n");
+	#ifdef VENDOR_EDIT
+	/*
+	* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+	* add for face fill light node
+	*/
+	ffl_set_init();
+	#endif /* VENDOR_EDIT */
 
 done:
 	DISPDBG("init and hold wakelock...\n");
@@ -4580,6 +4610,13 @@ int primary_display_suspend(void)
 	enum DISP_STATUS ret = DISP_STATUS_OK;
 
 	DISPCHECK("primary_display_suspend begin\n");
+	#ifdef VENDOR_EDIT
+	/*
+	* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/03/17,
+	* add for ffl set
+	*/
+	ffl_display_ready = false;
+	#endif
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_suspend,
 		MMPROFILE_FLAG_START, 0, 0);
 	primary_display_idlemgr_kick(__func__, 1);
@@ -5227,6 +5264,13 @@ done:
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_resume,
 		MMPROFILE_FLAG_END, 0, 0);
 	ddp_clk_check();
+	#ifdef VENDOR_EDIT
+	/*
+	* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/03/17,
+	* add for ffl set
+	*/
+	ffl_display_ready = true;
+	#endif
 	return ret;
 }
 
@@ -8161,6 +8205,120 @@ int primary_display_set_cabc_mode(unsigned int level)
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_END, 0, 0);
 
 	return ret;
+}
+
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Machine, 2018/02/27,
+* add for face fill light node
+*/
+static int ffl_set_worker_kthread(void *data)
+{
+	int index = 0;
+	int ret = 0;
+	int pending = 0;
+	while (1) {
+		ret = wait_event_interruptible(ffl_task_wq, atomic_read(&ffl_task_wakeup));
+		atomic_set(&ffl_task_wakeup, 0);
+		DISPCHECK("[fflset]ffl_set_worker_kthread\n");
+		ffl_trigger_finish = false;
+		if (ffl_set_mode == FFL_TRIGGLE_CONTROL) {
+			for (index = FFL_START_LEVEL; index <= FFL_END_LEVEL; index = index + FFL_UPRATE) {
+				if (ffl_set_mode != FFL_TRIGGLE_CONTROL) {
+					break;
+				}
+				if ((index > 1) && ffl_display_ready
+					&& (ffl_backlight_backup != 0)) {
+					_primary_path_switch_dst_lock();
+					_primary_path_lock(__func__);
+					primary_display_setbacklight(index);
+					_primary_path_unlock(__func__);
+					_primary_path_switch_dst_unlock();
+				} else {
+					break;
+				}
+				msleep(6);
+			}
+
+			for (pending = 0; pending <= FFL_PENDING_END; pending++) {
+				if ((ffl_set_mode == FFL_EXIT_CONTROL)
+					|| (ffl_set_mode == FFL_EXIT_FULLY_CONTROL)
+					|| (ffl_backlight_backup == 0)) {
+					break;
+				} else if (ffl_set_mode == FFL_TRIGGLE_CONTROL) {
+					msleep(8);
+				}
+			}
+
+			if (index < ffl_backlight_backup) {
+				for (index; index < ffl_backlight_backup; index = index + FFL_BACKRATE) {
+					if (ffl_set_mode == FFL_EXIT_FULLY_CONTROL) {
+						break;
+					}
+					if ((index > 1) && ffl_display_ready
+						&& (ffl_backlight_backup != 0)) {
+						_primary_path_switch_dst_lock();
+						_primary_path_lock(__func__);
+						primary_display_setbacklight(index);
+						_primary_path_unlock(__func__);
+						_primary_path_switch_dst_unlock();
+					} else {
+						break;
+					}
+					msleep(6);
+				}
+			} else {
+				for (index; index > ffl_backlight_backup; index = index - FFL_BACKRATE) {
+					if (ffl_set_mode == FFL_EXIT_FULLY_CONTROL) {
+						break;
+					}
+					if ((index > 1) && ffl_display_ready
+						&& (ffl_backlight_backup != 0)) {
+						_primary_path_switch_dst_lock();
+						_primary_path_lock(__func__);
+						primary_display_setbacklight(index);
+						_primary_path_unlock(__func__);
+						_primary_path_switch_dst_unlock();
+					} else {
+						break;
+					}
+					msleep(6);
+				}
+			}
+			if ((ffl_backlight_backup > 1)
+				&& (ffl_set_mode != FFL_EXIT_FULLY_CONTROL)
+				&& ffl_display_ready) {
+				_primary_path_switch_dst_lock();
+				_primary_path_lock(__func__);
+				primary_display_setbacklight(ffl_backlight_backup);
+				_primary_path_unlock(__func__);
+				_primary_path_switch_dst_unlock();
+			}
+		}
+		ffl_trigger_finish = true;
+		ffl_set_mode = FFL_EXIT_CONTROL;
+		if (kthread_should_stop())
+			break;
+	}
+	return 0;
+}
+
+void ffl_set_init(void)
+{
+	ffl_set_task = kthread_create(ffl_set_worker_kthread, NULL,"FFL_SET");
+	init_waitqueue_head(&ffl_task_wq);
+	wake_up_process(ffl_set_task);
+	DISPCHECK("[fflset]ffl_set_init\n");
+}
+
+void ffl_set_enable(unsigned int enable)
+{
+	if (enable == FFL_TRIGGLE_CONTROL) {
+		mutex_lock(&ffl_lock);
+		atomic_set(&ffl_task_wakeup, 1);
+		wake_up_interruptible(&ffl_task_wq);
+		DISPCHECK("[fflset]enable ffl_set\n");
+		mutex_unlock(&ffl_lock);
+	}
 }
 #endif /* VENDOR_EDIT */
 

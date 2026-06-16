@@ -38,7 +38,12 @@ int get_cur_vcore_dvfs_opp(void)
 	else
 		return val - 1;
 #else
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+	return VCORE_DVFS_OPP_NUM - __builtin_ffs(spm_get_dvfs_final_level());
+#else /*ODM_HQ_EDIT*/
 	return VCORE_DVFS_OPP_NUM - __builtin_ffs(spm_get_dvfs_level());
+#endif /*ODM_HQ_EDIT*/
 #endif
 }
 

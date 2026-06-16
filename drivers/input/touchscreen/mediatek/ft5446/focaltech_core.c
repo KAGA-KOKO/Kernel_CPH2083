@@ -50,15 +50,11 @@
 #define TIMEOUT_READ_REG                    1000 /* timeout of read reg unit:ms */
 #define FTS_I2C_SLAVE_ADDR                  0x38
 #define FTS_NAME    "focaltech"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define FTS_NAME_EACH    "focaltech-Each"
 
 static DECLARE_WAIT_QUEUE_HEAD(waiter);
 static int tpd_flag;
 unsigned int tpd_rst_gpio_number = 0;
 unsigned int tpd_int_gpio_number = 1;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-u16 vendor_id = 0;
 
 #if (defined(CONFIG_TPD_HAVE_CALIBRATION) && !defined(CONFIG_TPD_CUSTOM_CALIBRATION))
 static int tpd_def_calmat_local_normal[8]  = TPD_CALIBRATION_MATRIX_ROTATION_NORMAL;
@@ -1065,21 +1061,9 @@ static int tpd_probe(struct i2c_client *client, const struct i2c_device_id *id)
         FTS_ERROR("init fw upgrade fail");
     }
 #endif
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    ret = fts_fwupg_get_vendorid(ts_data, &vendor_id);
-    if (ret < 0) {
-	FTS_ERROR("get vendor id failed");
-	return ret;
-    }
-    if(vendor_id == FTS_VENDOR_ID){
-        oppo_tp_data.manufacture = FTS_NAME;
-        oppo_tp_data.fw_name = FTS_UPGRADE_FW_FILE_SIGNED;
-    }else if(vendor_id == FTS_VENDOR_ID2){
-        oppo_tp_data.manufacture = FTS_NAME_EACH;
-        oppo_tp_data.fw_name = FTS_UPGRADE_EACH_FW_FILE_SIGNED;
-    }
+    oppo_tp_data.manufacture = FTS_NAME;
+    oppo_tp_data.fw_name = FTS_UPGRADE_FW_FILE_SIGNED;
     tpd_load_status = 1;
-    FTS_INFO("oppo_tp_data.fw_name is %s,bootloader vendorid is 0x%4x", oppo_tp_data.fw_name,vendor_id);
     FTS_DEBUG("TPD_RES_Y:%d", (int)TPD_RES_Y);
     FTS_FUNC_EXIT();
     return 0;

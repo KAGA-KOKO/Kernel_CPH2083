@@ -151,8 +151,7 @@ struct upgrade_fw {
 *****************************************************************************/
 extern struct fts_upgrade *fwupgrade;
 extern struct upgrade_func upgrade_func_ft5422u;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-extern u16 vendor_id;
+
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
@@ -167,7 +166,5 @@ int fts_fwupg_erase(struct i2c_client *client, u32 delay);
 int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len);
 int fts_flash_write_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len, u32 delay);
 int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg);
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-int fts_get_firmware_name(char *fw_name,size_t size,u16 id);
-int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid);
+int fts_get_firmware_name(char *fw_name,size_t size);
 #endif

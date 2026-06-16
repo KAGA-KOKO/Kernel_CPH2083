@@ -44,6 +44,20 @@ u32 spm_get_dvfs_level(void)
 	return spm_read(SPM_SW_RSV_9) & 0xFFFF;
 }
 
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+u32 spm_get_dvfs_final_level(void)
+{
+	int rsv9 = spm_read(SPM_SW_RSV_9) & 0xFFFF;
+	int event_sta = spm_read(SPM_DVFS_EVENT_STA) & 0xFFFF;
+
+	if (event_sta != 0)
+		return min(rsv9, event_sta);
+	else
+		return rsv9;
+}
+#endif /*ODM_HQ_EDIT*/
+
 u32 spm_get_pcm_reg9_data(void)
 {
 	return spm_read(PCM_REG9_DATA);

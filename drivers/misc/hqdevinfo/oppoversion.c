@@ -16,8 +16,8 @@ char buff_oppo[32];
 
 static int getinfo_for_oppoversion(int board_id){
 	int MB = (board_id & 0xff);
-	int KB = (board_id >> 10) & 0x3;
-	int Pb = (board_id >> 8) & 0x3;
+	int KB = (board_id >> 8) & 0x3;
+	int Pb = (board_id >> 6) & 0x3;
 	
 	if(0x0 == Pb){
 		strcpy(oppoversion.pcbVersion, "V3");
@@ -38,78 +38,121 @@ static int getinfo_for_oppoversion(int board_id){
 	}
 	
 	switch(MB){
+		//chenzhecong@ODM_HQ.BSP.SE 
+		/*
 		case 0x00:
-			strcpy(oppoversion.operatorName, "6");
-			strcpy(oppoversion.prjVersion, "18546");
-			strcpy(oppoversion.modemType, "3");
-			strcpy(oppoversion.Mboard, "1000");
-			break;
-		case 0x0c:
-			strcpy(oppoversion.operatorName, "5");
-			strcpy(oppoversion.prjVersion, "18545");
-			strcpy(oppoversion.modemType, "4");
-			strcpy(oppoversion.Mboard, "1010");
-			break;
-		case 0x03:
-			strcpy(oppoversion.operatorName, "4");
-			strcpy(oppoversion.prjVersion, "18543");
-			strcpy(oppoversion.modemType, "5");
-			strcpy(oppoversion.Mboard, "1011");
-			break;
-		case 0x30:
-			strcpy(oppoversion.operatorName, "6");
-			strcpy(oppoversion.prjVersion, "18546");
-			strcpy(oppoversion.modemType, "3");
-			strcpy(oppoversion.Mboard, "1100");
-			break;
-		case 0x3c:
-			strcpy(oppoversion.operatorName, "5");
-			strcpy(oppoversion.prjVersion, "18545");
-			strcpy(oppoversion.modemType, "4");
-			strcpy(oppoversion.Mboard, "1110");
-			break;
-		case 0x33:
-			strcpy(oppoversion.operatorName, "4");
-			strcpy(oppoversion.prjVersion, "18543");
-			strcpy(oppoversion.modemType, "5");
-			strcpy(oppoversion.Mboard, "1111");
-			break;
-		case 0x80:
 			strcpy(oppoversion.operatorName, "3");
-			strcpy(oppoversion.prjVersion, "18542");
+			strcpy(oppoversion.prjVersion, "18541");
 			strcpy(oppoversion.modemType, "3");
 			strcpy(oppoversion.Mboard, "0000");
 			break;
-		case 0x8c:
+		case 0x30:
 			strcpy(oppoversion.operatorName, "2");
-			strcpy(oppoversion.prjVersion, "18541");
-			strcpy(oppoversion.modemType, "4");
-			strcpy(oppoversion.Mboard, "0010");
+			strcpy(oppoversion.prjVersion, "18542");
+			strcpy(oppoversion.modemType, "3");
+			strcpy(oppoversion.Mboard, "1100");
 			break;
-		case 0x83:
+		case 0x33:
 			strcpy(oppoversion.operatorName, "1");
 			strcpy(oppoversion.prjVersion, "18540");
 			strcpy(oppoversion.modemType, "5");
-			strcpy(oppoversion.Mboard, "0011");
+			strcpy(oppoversion.Mboard, "1111");
+			break;			
+		case 0x20:
+			strcpy(oppoversion.operatorName, "4");
+			strcpy(oppoversion.prjVersion, "18545");
+			strcpy(oppoversion.modemType, "3");
+			strcpy(oppoversion.Mboard, "1000");
+			break;	
+		*/
+		//EVT LNAÅäÖÃ²ÎÊýchenzhecong@ODM_HQ.BSP.SE	
+		case 0x80:
+			strcpy(oppoversion.operatorName, "3");
+			strcpy(oppoversion.prjVersion, "18541");
+			strcpy(oppoversion.modemType, "0");
+			strcpy(oppoversion.Mboard, "80");
 			break;
 		case 0xb0:
-			strcpy(oppoversion.operatorName, "3");
-			strcpy(oppoversion.prjVersion, "18542");
-			strcpy(oppoversion.modemType, "3");
-			strcpy(oppoversion.Mboard, "0100");
-			break;
-		case 0xbc:
 			strcpy(oppoversion.operatorName, "2");
-			strcpy(oppoversion.prjVersion, "18541");
-			strcpy(oppoversion.modemType, "4");
-			strcpy(oppoversion.Mboard, "0110");
+			strcpy(oppoversion.prjVersion, "18542");
+			strcpy(oppoversion.modemType, "0");
+			strcpy(oppoversion.Mboard, "B0");
 			break;
 		case 0xb3:
 			strcpy(oppoversion.operatorName, "1");
 			strcpy(oppoversion.prjVersion, "18540");
-			strcpy(oppoversion.modemType, "5");
-			strcpy(oppoversion.Mboard, "0111");
+			strcpy(oppoversion.modemType, "1");
+			strcpy(oppoversion.Mboard, "B3");
 			break;
+		case 0xa0:
+			strcpy(oppoversion.operatorName, "4");
+			strcpy(oppoversion.prjVersion, "18545");
+			strcpy(oppoversion.modemType, "0");
+			strcpy(oppoversion.Mboard, "A0");
+			break;
+		//DVT ·ÇLNAÅäÖÃ²ÎÊýchenzhecong@ODM_HQ.BSP.SE
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/07/29 add new board id*/
+		case 0x8C:
+			strcpy(oppoversion.operatorName, "6");
+			strcpy(oppoversion.prjVersion, "18547");
+			strcpy(oppoversion.modemType, "0");
+			strcpy(oppoversion.Mboard, "8C");
+			break;
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/07/29 add new board id*/
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/08/12 add new board id for 2+32*/
+		case 0x83:
+			strcpy(oppoversion.operatorName, "7");
+			strcpy(oppoversion.prjVersion, "18548");
+			strcpy(oppoversion.modemType, "5");
+			strcpy(oppoversion.Mboard, "83");
+			break;
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/08/12 add new board id for 2+32*/
+		case 0xc0:
+			strcpy(oppoversion.operatorName, "3");
+			strcpy(oppoversion.prjVersion, "18541");
+			strcpy(oppoversion.modemType, "4");
+			strcpy(oppoversion.Mboard, "C0");
+			break;
+		case 0xf0:
+			strcpy(oppoversion.operatorName, "2");
+			strcpy(oppoversion.prjVersion, "18542");
+			strcpy(oppoversion.modemType, "4");
+			strcpy(oppoversion.Mboard, "F0");
+			break;
+		case 0xf3:
+			strcpy(oppoversion.operatorName, "1");
+			strcpy(oppoversion.prjVersion, "18540");
+			strcpy(oppoversion.modemType, "5");
+			strcpy(oppoversion.Mboard, "F3");
+			break;
+		case 0xe0:
+			strcpy(oppoversion.operatorName, "4");
+			strcpy(oppoversion.prjVersion, "18545");
+			strcpy(oppoversion.modemType, "4");
+			strcpy(oppoversion.Mboard, "E0");
+			break;
+		case 0xff:
+			strcpy(oppoversion.operatorName, "5");
+			strcpy(oppoversion.prjVersion, "18546");
+			strcpy(oppoversion.modemType, "7");
+			strcpy(oppoversion.Mboard, "FF");
+			break;
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/07/29 add new board id*/
+		case 0xCC:
+			strcpy(oppoversion.operatorName, "6");
+			strcpy(oppoversion.prjVersion, "18547");
+			strcpy(oppoversion.modemType, "4");
+			strcpy(oppoversion.Mboard, "CC");
+			break;
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/07/29 add new board id*/
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/08/12 add new board id for 2+32*/
+		case 0xC3:
+			strcpy(oppoversion.operatorName, "7");
+			strcpy(oppoversion.prjVersion, "18548");
+			strcpy(oppoversion.modemType, "5");
+			strcpy(oppoversion.Mboard, "C3");
+			break;
+		/*Tao.Wang@ODM_HQ.BSP.Board Id.Function, 2019/08/12 add new board id for 2+32*/
 		default:
 			strcpy(oppoversion.operatorName, "unknow");
 			strcpy(oppoversion.prjVersion, "unknow");

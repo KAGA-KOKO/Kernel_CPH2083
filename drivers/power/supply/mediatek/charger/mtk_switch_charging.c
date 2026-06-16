@@ -69,6 +69,8 @@
 /*duanhanxing@ODM.HQ.BSP.CHG.Basic 2018.12.11 add cust control API*/
 #include <mt-plat/mtk_charger.h>
 int charger_is_timeout = 0;
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+int force_charging_limit_time = 0;
 extern int user_cust_control;
 extern int cust_input_limit_current[5];
 extern int input_limit_level;
@@ -504,7 +506,16 @@ static bool mtk_switch_check_charging_time(struct charger_manager *info)
 {
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
 	struct timespec time_now;
-
+#ifdef ODM_HQ_EDIT
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+   if(info->data.max_charging_time != force_charging_limit_time){
+        if(force_charging_limit_time == 0){
+            force_charging_limit_time = info->data.max_charging_time;
+	    }else{
+	        info->data.max_charging_time = force_charging_limit_time;
+	    }
+    }
+#endif /*ODM_HQ_EDIT*/
 	if (info->enable_sw_safety_timer) {
 		get_monotonic_boottime(&time_now);
 		chr_err("%s: begin: %ld, now: %ld\n", __func__,

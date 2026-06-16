@@ -55,8 +55,6 @@
 
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/03 modified for ito*/
 #define OPPO_FTS_INI_FILE_NAME   "Conf_MultipleTest_winter_ft5446.ini"
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#define OPPO_FTS_EACH_INI_FILE_NAME   "Conf_MultipleTest_winter_ft5446_Each.ini"
 static struct proc_dir_entry *oppo_fts_data_limit;
 static struct proc_dir_entry *oppo_fts_baseline_test;
 static struct proc_dir_entry *oppo_fts_black_screen_test;
@@ -118,6 +116,7 @@ static ssize_t oppo_fts_self_test_write(struct file *file, const char __user *bu
 static int oppo_fts_self_test_show(struct seq_file *file, void* data)
 {
     char fwname[128] = {0};
+    char buf[] = FTS_INI_FILE_NAME;
     int i = 0;
     int test_failed_items = 0;
     struct fts_ts_data *ts_data = fts_data;
@@ -132,12 +131,7 @@ static int oppo_fts_self_test_show(struct seq_file *file, void* data)
     }
 
     memset(fwname, 0, sizeof(fwname));
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    if(vendor_id == FTS_VENDOR_ID){
-	sprintf(fwname, "%s", FTS_INI_FILE_NAME);
-    }else if(vendor_id == FTS_VENDOR_ID2){
-	sprintf(fwname, "%s", FTS_EACH_INI_FILE_NAME);
-    }
+    sprintf(fwname, "%s", buf);
     FTS_DEBUG("fwname:%s.", fwname);
 
     for( i = FT5X46_ENTER_FACTORY_MODE ; i < FT5X46_PANELDIFFER_UNIFORMITY_TEST;  i++ ){
@@ -201,6 +195,7 @@ static ssize_t oppo_fts_black_screen_self_test_write(struct file *file, const ch
 static int oppo_fts_black_screen_self_test_show(struct seq_file *file, void* data)
 {
     char fwname[128] = {0};
+    char buf[] = FTS_INI_FILE_NAME;
     int i = 0;
     int test_failed_items = 0;
     struct fts_ts_data *ts_data = fts_data;
@@ -217,12 +212,7 @@ static int oppo_fts_black_screen_self_test_show(struct seq_file *file, void* dat
         return 0;
     }
     memset(fwname, 0, sizeof(fwname));
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    if(vendor_id == FTS_VENDOR_ID){
-	sprintf(fwname, "%s", FTS_INI_FILE_NAME);
-    }else if(vendor_id == FTS_VENDOR_ID2){
-	sprintf(fwname, "%s", FTS_EACH_INI_FILE_NAME);
-    }
+    sprintf(fwname, "%s", buf);
     FTS_DEBUG("fwname:%s.", fwname);
 
     for(i = FT5X46_ENTER_FACTORY_MODE; i < FT5X46_PANELDIFFER_UNIFORMITY_TEST;  i++) {
@@ -286,12 +276,7 @@ static int oppo_fts_data_limit_read_func(struct seq_file *s, void *v)
     char *ini_file_data = NULL;
     int inisize = 0;
 
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    if(vendor_id == FTS_VENDOR_ID){
-        inisize = fts_test_get_ini_size(OPPO_FTS_INI_FILE_NAME);
-    }else if(vendor_id == FTS_VENDOR_ID2){
-        inisize = fts_test_get_ini_size(OPPO_FTS_EACH_INI_FILE_NAME);
-    }
+    inisize = fts_test_get_ini_size(OPPO_FTS_INI_FILE_NAME);
     FTS_INFO("ini_size = %d ", inisize);
     if (inisize <= 0) {
         FTS_ERROR("%s ERROR:Get firmware size failed",  __func__);
@@ -304,12 +289,8 @@ static int oppo_fts_data_limit_read_func(struct seq_file *s, void *v)
         return -ENOMEM;
     }
     memset(ini_file_data, 0, inisize + 1);
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    if(vendor_id == FTS_VENDOR_ID){
-        ret = fts_test_read_ini_data(OPPO_FTS_INI_FILE_NAME, ini_file_data);
-    }else if(vendor_id == FTS_VENDOR_ID2){
-        ret = fts_test_read_ini_data(OPPO_FTS_EACH_INI_FILE_NAME, ini_file_data);
-    }
+
+    ret = fts_test_read_ini_data(OPPO_FTS_INI_FILE_NAME, ini_file_data);
     if (ret) {
         FTS_ERROR(" - ERROR: fts_test_read_ini_data failed" );
         goto GET_INI_DATA_ERR;

@@ -3290,19 +3290,6 @@ static void tpd_suspend(struct device *h)
 #ifdef CONFIG_GTP_CHARGER_DETECT
 	gtp_charger_switch(0);
 #endif
-/*Jianchao.Gu@ODM_HQ.BSP.TP.Function, 2019/05/25 modified for release finger touch */
-#ifdef GOODIX_PROTOCOL_B_EN
-       for (i = 0; i < GTP_MAX_TOUCH; i++)
-       {
-             tpd_up(0,0,i);
-	}
-#else
-       for (i = 0; i < GTP_MAX_TOUCH; i++)
-       {
-             tpd_up(0,0,0);
-        }
-#endif
-input_sync(tpd->dev);
 
 #ifdef CONFIG_GTP_GESTURE_WAKEUP
     /*Jianchao.Gu@ODM_HQ.BSP.TP.Function, 2018/02/21 add for proc node*/
@@ -3315,6 +3302,10 @@ input_sync(tpd->dev);
 	{
 #endif
 		/* TP suspend to release all finger touch */
+		for (i = 0; i < GTP_MAX_TOUCH; i++)
+		{
+			tpd_up(0,0,0);
+		}
 		ret = gtp_enter_sleep(i2c_client_point);
 		if (ret < 0)
 			GTP_ERROR("GTP early suspend failed.");
@@ -3328,7 +3319,7 @@ input_sync(tpd->dev);
 static void tpd_resume(struct device *h)
 {
 	s32 ret = -1;
-	u8 i = 0;
+
 	GTP_INFO("System resume.");
 #ifdef CONFIG_GTP_PROXIMITY
 	if (tpd_proximity_flag == 1)
@@ -3348,12 +3339,7 @@ static void tpd_resume(struct device *h)
 	}
 
 	mutex_lock(&i2c_access);
-    /*Jianchao.Gu@ODM_HQ.BSP.TP.Function, 2019/05/07 modified for release finger touch */
-	for (i = 0; i < GTP_MAX_TOUCH; i++)
-	{
-	tpd_up(0,0,i);
-	}
-        input_sync(tpd->dev);
+
 	ret = gtp_wakeup_sleep(i2c_client_point);
 	if (ret < 0)
 		GTP_ERROR("GTP later resume failed.");

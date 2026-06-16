@@ -41,6 +41,10 @@ struct LCM_DRIVER *lcm_driver_list[] = {
 #if defined (HX8394F_HD_DSI_VDO_HLT_HSD_ZAL1890)
 	&hx8394f_hd_dsi_vdo_hlt_hsd_zal1890_lcm_drv,
 #endif
+
+#if defined(ILI9881C_HD_DSI_VDO_INX_BOE_ZAL1890)
+	&ili9881c_hd_dsi_vdo_inx_boe_zal1890_lcm_drv,
+#endif
 #endif
 #if defined(OTM1284A_HD720_DSI_VDO_TM)
 	&otm1284a_hd720_dsi_vdo_tm_lcm_drv,

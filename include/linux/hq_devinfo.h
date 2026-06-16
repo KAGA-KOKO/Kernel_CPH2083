@@ -56,9 +56,9 @@ struct sensor_devinfo {
 };
 
 typedef struct{
-	char cam_f_name[32];
-	char cam_b_name[32];
-	char cam_b2_name[32];
+	char cam_f_name[16];
+	char cam_b_name[16];
+	char cam_b2_name[16];
 }Cam_buff;
 
 void hq_register_sensor_info(int type, char ic_name[]);

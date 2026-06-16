@@ -146,6 +146,10 @@ extern void get_spm_reg(char *p);
 extern void spm_dvfs_pwrap_cmd(int pwrap_cmd, int pwrap_vcore);
 extern int helio_dvfsrc_platform_init(struct helio_dvfsrc *dvfsrc);
 extern u32 spm_get_dvfs_level(void);
+#ifdef ODM_HQ_EDIT
+/* Wenchao.Du@ODM.HQ.BSP.Kernel.Driver 2019/03/21 solve reboot in audio testing */
+extern u32 spm_get_dvfs_final_level(void);
+#endif /*ODM_HQ_EDIT*/
 extern u32 spm_get_pcm_reg9_data(void);
 extern void dvfsrc_set_power_model_ddr_request(unsigned int level);
 /* met profile function */

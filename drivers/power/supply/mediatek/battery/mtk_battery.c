@@ -78,7 +78,7 @@
 /* define */
 /* ============================================================ */
 #define NETLINK_FGD 26
-
+#define SYS_SHUTDOWN_VOL 3380
 
 /************ adc_cali *******************/
 #define ADC_CALI_DEVNAME "MT_pmic_adc_cali"
@@ -135,6 +135,8 @@ extern bool last_full;
 extern int charger_is_timeout;
 extern unsigned int my_notify_code;
 extern char *battery_name[20];
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+extern int force_charging_limit_time;
 
 #ifdef HQ_COMPILE_FACTORY_VERSION
 extern int runin;
@@ -183,6 +185,8 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED,
 	POWER_SUPPLY_PROP_NOTIFY_CODE,
 	POWER_SUPPLY_PROP_BATT_RM,
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+	POWER_SUPPLY_PROP_CHARGING_LIMIT_TIME,
 #endif /*ODM_HQ_EDIT*/
 };
 
@@ -406,6 +410,9 @@ static int battery_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CALL_MODE:
 	case POWER_SUPPLY_PROP_MMI_CHARGING_ENABLE:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
+	case POWER_SUPPLY_PROP_TEMP:
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+    case POWER_SUPPLY_PROP_CHARGING_LIMIT_TIME:
 		return 1;
 	default:
 		break;
@@ -487,6 +494,10 @@ static int battery_set_property(struct power_supply *psy,
 		else if (val->intval == 2000000)
 			input_limit_level = CHARGER_CURRENT_LIMET_2000MA;
 		charger_dev_set_input_current(chg_dev,cust_input_limit_current[input_limit_level]);
+		break;
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+	case POWER_SUPPLY_PROP_CHARGING_LIMIT_TIME:
+		force_charging_limit_time = val->intval;
 		break;
 	default:
 		return -EINVAL;
@@ -632,6 +643,10 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_BATT_RM:
 		val->intval = -1;
+		break;
+/*Shewen.Wang@ODM.HQ.BSP.CHG.Basic 2018.03.29 add charging_limit_time*/
+	case POWER_SUPPLY_PROP_CHARGING_LIMIT_TIME:
+		val->intval = force_charging_limit_time;
 		break;
 #endif /*ODM_HQ_EDIT*/
 	default:
@@ -1723,7 +1738,7 @@ int force_get_tbat_internal(bool update)
 #ifndef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.24 remove warn_on debug*/
 				/*pmic_auxadc_debug(1);*/
-//				WARN_ON(1);
+				//WARN_ON(1);
 #endif /*ODM_HQ_EDIT*/
 			}
 
@@ -3594,7 +3609,7 @@ struct device *dev, struct device_attribute *attr, char *buf)
 {
 	int ret_value = 1;
 
-	ret_value = 3400;
+	ret_value = SYS_SHUTDOWN_VOL;
 	bm_err("[EM] Power_Off_Voltage : %d\n", ret_value);
 	return sprintf(buf, "%u\n", ret_value);
 }
@@ -4083,16 +4098,15 @@ int charger_decrease_soc(struct timespec diff)
 {
 	int bat_val;
 	bat_val = pmic_get_battery_voltage();
-	if (battery_main.BAT_CAPACITY == 100 && diff.tv_sec >= 300)
-	{
+	if (battery_main.BAT_CAPACITY == 100 && diff.tv_sec >= 300) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 95  && diff.tv_sec >= 150) {
+	} else if ((battery_main.BAT_CAPACITY >= 95 && battery_main.BAT_CAPACITY < 100) && diff.tv_sec >= 150) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 60  && diff.tv_sec >= 60) {
+	} else if ((battery_main.BAT_CAPACITY >= 60 && battery_main.BAT_CAPACITY < 95) && diff.tv_sec >= 60) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 2  && diff.tv_sec >= 40) {
+	} else if ((battery_main.BAT_CAPACITY >= 2 && battery_main.BAT_CAPACITY < 60) && diff.tv_sec >= 40) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY <= 1 ) {
+	} else if (battery_main.BAT_CAPACITY <= 1) {
 		battery_main.BAT_CAPACITY = 1;
 	} else {
 		return 0;
@@ -4105,22 +4119,20 @@ int discharger_decrease_soc(struct timespec diff)
 {
 	int bat_val;
 	bat_val = pmic_get_battery_voltage();
-	if (battery_main.BAT_CAPACITY == 100 && diff.tv_sec >= 300)
-	{
+	if (battery_main.BAT_CAPACITY == 100 && diff.tv_sec >= 300) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 95  && diff.tv_sec >= 150) {
+	} else if ((battery_main.BAT_CAPACITY >= 95 && battery_main.BAT_CAPACITY < 100) && diff.tv_sec >= 150) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 60  && diff.tv_sec >= 60) {
+	} else if ((battery_main.BAT_CAPACITY >= 60 && battery_main.BAT_CAPACITY < 95) && diff.tv_sec >= 60) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (battery_main.BAT_CAPACITY >= 2  && diff.tv_sec >= 40) {
+	} else if ((battery_main.BAT_CAPACITY >= 2 && battery_main.BAT_CAPACITY < 60) && diff.tv_sec >= 40) {
 		battery_main.BAT_CAPACITY -= 1;
-	} else if (bat_val > 3400 && battery_main.BAT_CAPACITY <= 1) {
+	} else if (bat_val > SYS_SHUTDOWN_VOL && battery_main.BAT_CAPACITY <= 1) {
 		battery_main.BAT_CAPACITY = 1;
-	} else if (bat_val < 3400 && battery_main.BAT_CAPACITY <= 1) {
-		pr_err("discharger_decrease_soc bat_val < 3400mv shutdown \n");
+	} else if (bat_val < SYS_SHUTDOWN_VOL && battery_main.BAT_CAPACITY <= 1) {
+		pr_err("discharger_decrease_soc bat_val < %dmv shutdown \n",SYS_SHUTDOWN_VOL);
 		battery_main.BAT_CAPACITY = 0;
-	}
-	else {
+	} else {
 		pr_err("return 0--discharger_decrease_soc diff = %d bat_capacity = %d BAT_batt_vol = %d\n",diff.tv_sec ,battery_main.BAT_CAPACITY ,bat_val);
 		return 0;
 	}
@@ -4169,7 +4181,7 @@ static void monitic_soc_work(struct work_struct *work)
 			battery_vol_check = 1;
 		}
 		pr_err("battery_vol_check = %d shutdown_diff = %d\n",battery_vol_check ,shutdown_diff.tv_sec);
-	} else if (bat_val > 3400){
+	} else if (bat_val > SYS_SHUTDOWN_VOL){
 		shutdown_flag = 0;
 	}
 #ifdef HQ_COMPILE_FACTORY_VERSION
@@ -4178,10 +4190,11 @@ static void monitic_soc_work(struct work_struct *work)
 		last_full = false;
 		full_status = 0;
 	}
-	if ((chg_type == 3 || last_full || full_status == 1) && runin == 0) {
+	if ((chg_type == 3 || last_full || full_status == 1) && runin == 0)
 #else /*HQ_COMPILE_FACTORY_VERSION*/
-	if (chg_type == 3 || last_full || full_status == 1) {
+	if (chg_type == 3 || last_full || full_status == 1)
 #endif /*HQ_COMPILE_FACTORY_VERSION*/
+	{
 		if (battery_main.BAT_CAPACITY >= 100)
 		{
 			battery_main.BAT_CAPACITY = 100;
@@ -4244,7 +4257,13 @@ static void monitic_soc_work(struct work_struct *work)
 			power_supply_changed(battery_main.psy);
 		}
 		diff = timespec_sub(now_time, old_time);
+#ifdef ODM_HQ_EDIT
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 15s start */
+		if (shutdown_flag == 1 && diff.tv_sec >= 15)
+#else
 		if (shutdown_flag == 1 && diff.tv_sec >= 10)
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging end */
+#endif
 		{
 			battery_main.BAT_CAPACITY -= 1;
 			if (battery_main.BAT_CAPACITY <= 0)
@@ -4262,13 +4281,13 @@ static void monitic_soc_work(struct work_struct *work)
 				pr_err("discharging need sub now_soc = %d old_uisoc = %d diff = %d\n",now_soc ,old_uisoc ,diff.tv_sec);
 				power_supply_changed(battery_main.psy);
 			}
-		}else if (bat_val < 3400 && battery_main.BAT_CAPACITY >= 1 && diff.tv_sec >= 50) {
+		}else if (bat_val < SYS_SHUTDOWN_VOL && battery_main.BAT_CAPACITY >= 1 && diff.tv_sec >= 50) {
 			battery_main.BAT_CAPACITY -= 1;
 			old_uisoc = battery_main.BAT_CAPACITY;
 			old_time = now_time;
 			pr_err("vbat is low need sub. now_soc = %d old_uisoc = %d diff = %d\n",now_soc ,old_uisoc ,diff.tv_sec);
 			power_supply_changed(battery_main.psy);
-		}else if (bat_val < 3400 && battery_main.BAT_CAPACITY <= 0 ) {
+		}else if (bat_val < SYS_SHUTDOWN_VOL && battery_main.BAT_CAPACITY <= 0 ) {
 			battery_main.BAT_CAPACITY = 0;
 			old_uisoc = battery_main.BAT_CAPACITY;
 			old_time = now_time;
@@ -4276,7 +4295,7 @@ static void monitic_soc_work(struct work_struct *work)
 			power_supply_changed(battery_main.psy);
 		}
 
-		if (bat_val > 3400)
+		if (bat_val > SYS_SHUTDOWN_VOL)
 		{
 			sleep_time = timespec_sub(resume_time, suspend_time);
 			if (sleep_time.tv_sec > 300) {

@@ -2849,7 +2849,7 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 		jeita_temp_t1_to_t2_cc = <480000>;
 		jeita_temp_t0_to_t1_cc = <300000>;
 		jeita_temp_above_t7_cv = <4112000>;
-		jeita_temp_t6_to_t7_cv = <4112000>;
+		jeita_temp_t6_to_t7_cv = <4172000>;
 		jeita_temp_t5_to_t6_cv = <4368000>;
 		jeita_temp_t4_to_t5_cv = <4368000>;
 		jeita_temp_t3_to_t4_cv = <4368000>;
@@ -3124,7 +3124,12 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 					compatible = "android,system";
 					dev = "/dev/block/platform/bootdevice/by-name/system";
 					type = "ext4";
-					mnt_flags = "ro";
+//#if defined(VENDOR_EDIT) && defined(CONFIG_EXT4_ASYNC_DISCARD_SUPPORT)
+//yh@PSW.BSP.Storage.EXT4, 2018-11-26 add for ext4 async discard suppot
+					mnt_flags = "ro,async_discard";
+//#else
+					//*mnt_flags = "ro";
+//#endif
 #ifndef CONFIG_MTK_DM_VERITY_OFF
 #ifdef CONFIG_MTK_AVB20_SUPPORT
 					fsmgr_flags = "wait,avb";
@@ -3141,7 +3146,12 @@ firmware_class.path=/vendor/firmware loop.max_part=7";
 					compatible = "android,vendor";
 					dev = "/dev/block/platform/bootdevice/by-name/vendor";
 					type = "ext4";
-					mnt_flags = "ro";
+//#if defined(VENDOR_EDIT) && defined(CONFIG_EXT4_ASYNC_DISCARD_SUPPORT)
+//yh@PSW.BSP.Storage.EXT4, 2018-11-26 add for ext4 async discard suppot
+					mnt_flags = "ro,async_discard";
+//#else
+					//*mnt_flags = "ro";
+//#endif
 #ifndef CONFIG_MTK_AB_OTA_UPDATER
 #ifndef CONFIG_MTK_DM_VERITY_OFF
 #ifdef CONFIG_MTK_AVB20_SUPPORT

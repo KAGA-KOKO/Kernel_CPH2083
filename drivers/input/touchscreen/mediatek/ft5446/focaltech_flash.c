@@ -48,6 +48,7 @@ struct upgrade_func *upgrade_func_list[] = {
 };
 struct fts_upgrade *fwupgrade;
 struct upgrade_fw *fw = NULL;
+
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
@@ -1637,17 +1638,14 @@ int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
     }
 
     fwvalid = fts_fwupg_check_fw_valid(client);
-    /*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible-force to read bootloader vendorid*/
-    if (0/*fwvalid*/) {
+    if (fwvalid) {
         ret = fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &vendor_id);
-	if (ts_data->ic_info.is_incell)
+        if (ts_data->ic_info.is_incell)
             ret = fts_i2c_read_reg(client, FTS_REG_MODULE_ID, &module_id);
     } else {
-        FTS_INFO("start to read bootloader vendorid");
         fwcfg_addr =  upg->func->fwcfgoff;
         ret = fts_flash_read(client, fwcfg_addr, cfgbuf, FTS_HEADER_LEN);
         vendor_id = cfgbuf[FTS_CONIFG_VENDORID_OFF];
-        FTS_INFO("finish to read bootloader vendorid");
         if (ts_data->ic_info.is_incell) {
             if ((cfgbuf[FTS_CONIFG_MODULEID_OFF] +
                  cfgbuf[FTS_CONIFG_MODULEID_OFF + 1]) == 0xFF)
@@ -1664,18 +1662,13 @@ int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
     return 0;
 }
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2019/01/17 reserve for ft5446*/
-#if 1
+#if 0
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2018/12/19 add for firmware upgrade*/
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-int fts_get_firmware_name(char *fw_name,size_t size, u16 id)
+int fts_get_firmware_name(char *fw_name,size_t size)
 {
     int ret = 0;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-    if (id == FTS_VENDOR_ID) {
-        ret = snprintf(fw_name, size, FTS_UPGRADE_FW_FILE);
-    } else if (id == FTS_VENDOR_ID2) {
-        ret = snprintf(fw_name, size, FTS_UPGRADE_EACH_FW_FILE);
-    }
+
+    ret = snprintf(fw_name, size, FTS_UPGRADE_FW_FILE);
     if (ret >= size) {
         FTS_ERROR("%s:fw name buffer out of range, ret=%d\n",
                    __func__, ret);
@@ -1704,22 +1697,14 @@ int fts_get_firmware_name(char *fw_name,size_t size, u16 id)
 static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
 {
     struct fts_upgrade *upg = fwupgrade;
-    char fw_name[FTS_FW_NAME_LEN] = {0};
+    char fw_name[FTS_FW_NAME_LEN] = FTS_UPGRADE_FW_FILE;
     struct device *dev = NULL;
     const struct firmware *firm = NULL;
     int ret = 0;
     int i = 0;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-#if 0
-    ret = fts_fwupg_get_vendorid(ts_data, &vendor_id);
-    if (ret < 0) {
-	FTS_ERROR("get vendor id failed");
-	return ret;
-    }
-    FTS_INFO("success to read vendor id:%04x", vendor_id);
-#endif
+
     dev = tpd->tpd_dev;
-    ret = fts_get_firmware_name(fw_name,FTS_FW_NAME_LEN,vendor_id);
+    //ret = fts_get_firmware_name(fw_name,FTS_FW_NAME_LEN);
     if (ret) {
         FTS_ERROR("%s:get firmware name fail, ret=%d\n",
                         __func__, ret);
@@ -1739,13 +1724,8 @@ static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
             return -ENODATA;
         }
     } else {
-	/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-	if(vendor_id == FTS_VENDOR_ID){
-            ret = snprintf(fw_name, FTS_FW_NAME_LEN, FTS_UPGRADE_FW_FILE_SIGNED);
-        }else if(vendor_id == FTS_VENDOR_ID2){
-            ret = snprintf(fw_name, FTS_FW_NAME_LEN, FTS_UPGRADE_EACH_FW_FILE_SIGNED);
-	}
-	if (ret >= FTS_FW_NAME_LEN) {
+        ret = snprintf(fw_name, FTS_FW_NAME_LEN, FTS_UPGRADE_FW_FILE_SIGNED);
+        if (ret >= FTS_FW_NAME_LEN) {
             FTS_ERROR("%s:fw name buffer out of range, ret=%d\n",
                 __func__, ret);
             return -ENOMEM;

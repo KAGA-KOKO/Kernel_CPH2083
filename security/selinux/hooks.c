@@ -1663,6 +1663,12 @@ static int cred_has_capability(const struct cred *cred,
 		return -EINVAL;
 	}
 
+#ifdef VENDOR_EDIT
+//Jiemin.Zhu@PSW.Android.SELinux, 2017/11/03, add for skip rutilsdaemon
+	if (is_oppo_permissive(sid, sid, av))
+		return 0;
+#endif /* VENDOR_EDIT */
+
 	rc = avc_has_perm_noaudit(sid, sid, sclass, av, 0, &avd);
 	if (audit == SECURITY_CAP_AUDIT) {
 		int rc2 = avc_audit(sid, sid, sclass, av, &avd, rc, &ad, 0);
@@ -3034,6 +3040,12 @@ static int selinux_inode_permission(struct inode *inode, int mask)
 	isec = inode_security_rcu(inode, flags & MAY_NOT_BLOCK);
 	if (IS_ERR(isec))
 		return PTR_ERR(isec);
+
+#ifdef VENDOR_EDIT
+//Jiemin.Zhu@PSW.Android.SELinux, 2017/11/03, add for skip rutilsdaemon
+	if (is_oppo_permissive(sid, isec->sid, perms))
+		return 0;
+#endif /* VENDOR_EDIT */
 
 	rc = avc_has_perm_noaudit(sid, isec->sid, isec->sclass, perms, 0, &avd);
 	audited = avc_audit_required(perms, &avd, rc,
@@ -5015,7 +5027,15 @@ static int selinux_nlmsg_perm(struct sock *sk, struct sk_buff *skb)
 			       sk->sk_protocol, nlh->nlmsg_type,
 			       secclass_map[sksec->sclass - 1].name,
 			       task_pid_nr(current), current->comm);
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+			if (!is_selinux_enforcing() || security_get_allow_unknown())
+#else
 			if (!selinux_enforcing || security_get_allow_unknown())
+#endif /* VENDOR_EDIT */
 				err = 0;
 		}
 
@@ -6483,7 +6503,15 @@ static __init int selinux_init(void)
 	if (avc_add_callback(selinux_netcache_avc_callback, AVC_CALLBACK_RESET))
 		panic("SELinux: Unable to register AVC netcache callback\n");
 
+#ifdef VENDOR_EDIT
+/* Xianlin.Wu@ROM.Security, 2019/07/27, add for disallow toggling the kernel
+ * between enforcing mode and permissive mode via /selinux/enforce or
+ * selinux_enforcing symbol in normal/silence mode of release build.
+ */
+	if (is_selinux_enforcing())
+#else
 	if (selinux_enforcing)
+#endif /* VENDOR_EDIT */
 		printk(KERN_DEBUG "SELinux:  Starting in enforcing mode\n");
 	else
 		printk(KERN_DEBUG "SELinux:  Starting in permissive mode\n");
@@ -6504,6 +6532,14 @@ void selinux_complete_init(void)
 	printk(KERN_DEBUG "SELinux:  Setting up existing superblocks.\n");
 	iterate_supers(delayed_superblock_init, NULL);
 }
+
+#ifdef VENDOR_EDIT /*ChenYong@Rom.Framework,2019/01/15, add for execve blocking(root defence)*/
+int get_current_security_context(char **context, u32 *context_len)
+{
+	u32 sid = current_sid();
+	return security_sid_to_context(sid, context, context_len);
+}
+#endif /* VENDOR_EDIT */
 
 /* SELinux requires early initialization in order to label
    all processes and objects when they are created. */

@@ -2025,7 +2025,7 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 				/* 5 ms for timeout */
 #ifdef ODM_HQ_EDIT
 /*Hanxing.Duan@ODM.HQ.BSP.USB.OTG 2019.03.26 Modify Timeout detect to 1S*/
-				if (diff_ns >= 1000000000) {
+                if (diff_ns >= 1000000000) {
 #else /*ODM_HQ_EDIT*/
 				if (diff_ns >= 5000000) {
 #endif /*ODM_HQ_EDIT*/

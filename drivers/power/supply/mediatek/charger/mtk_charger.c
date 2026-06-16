@@ -99,6 +99,7 @@ static int set_540cc_flag = 0, set_960cc_flag = 0;
 static bool des_vlot = false, cc_540 = false, cc_960 = false;
 static int notify_check = 0;
 static int last_backlight_state = -1;
+static struct wakeup_source mtk_charger_wake_lock;
 
 extern int full_status;
 extern unsigned int esd_recovery_backlight_level;
@@ -114,11 +115,23 @@ int battery_healthd = BATTERY_STATUS_NORMAL;
 int tbatt_pwroff_enable = 1;
 unsigned int my_notify_code = 0;
 bool last_full = false;
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.29 add wakesource for pulg in*/
-struct wakeup_source charger_temp_notify_lock;
 #endif  /* ODM_HQ_EDIT */
 
 #define USE_FG_TIMER 1
+
+#ifdef ODM_HQ_EDIT
+/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+#define CURRENT_LIMIT_GPIO_BOARD_ID 255
+#define CURRENT_LIMIT_GPIO_BOARD_PCB 255
+#define BOARD_AC_CHARGER_CURRENT 900000
+#define BOARD_AC_CHARGER_INPUT_CURRENT 900000
+#define BOARD_NON_STD_AC_CHARGER_CURRENT 900000
+#define BOARD_APPLE_1_0A_CHARGER_CURRENT 900000
+#define BOARD_APPLE_2_1A_CHARGER_CURRENT 900000
+static int current_limit_board_id = 0;
+static int current_limit_pcb = 0;
+/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+#endif
 
 bool is_power_path_supported(void)
 {
@@ -432,7 +445,10 @@ int charger_manager_set_input_current_limit(struct charger_consumer *consumer,
 	int idx, int input_current)
 {
 	struct charger_manager *info = consumer->cm;
-
+#ifdef ODM_HQ_EDIT
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging */
+	unsigned int boot_mode = get_boot_mode();
+#endif
 	if (info != NULL) {
 		struct charger_data *pdata;
 
@@ -443,11 +459,25 @@ int charger_manager_set_input_current_limit(struct charger_consumer *consumer,
 		else
 			return -ENOTSUPP;
 
+#ifdef ODM_HQ_EDIT
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging start */
+
+		chr_err("%s: boot_mode = %d\n", __func__,boot_mode);
+		if(boot_mode != KERNEL_POWER_OFF_CHARGING_BOOT) {
+			pdata->thermal_input_current_limit = input_current;
+			chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
+				dev_name(consumer->dev), idx, input_current);
+			_mtk_charger_change_current_setting(info);
+			_wake_up_charger(info);
+		}
+#else
 		pdata->thermal_input_current_limit = input_current;
 		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
 			dev_name(consumer->dev), idx, input_current);
 		_mtk_charger_change_current_setting(info);
 		_wake_up_charger(info);
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging end */
+#endif
 		return 0;
 	}
 	return -EBUSY;
@@ -457,7 +487,10 @@ int charger_manager_set_charging_current_limit(
 	struct charger_consumer *consumer, int idx, int charging_current)
 {
 	struct charger_manager *info = consumer->cm;
-
+#ifdef ODM_HQ_EDIT
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging end */
+	unsigned int boot_mode = get_boot_mode();
+#endif
 	if (info != NULL) {
 		struct charger_data *pdata;
 
@@ -468,11 +501,24 @@ int charger_manager_set_charging_current_limit(
 		else
 			return -ENOTSUPP;
 
+#ifdef ODM_HQ_EDIT
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging end */
+		chr_err("%s: boot_mode = %d\n", __func__,boot_mode);
+		if(boot_mode != KERNEL_POWER_OFF_CHARGING_BOOT) {
+			pdata->thermal_charging_current_limit = charging_current;
+			chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
+			dev_name(consumer->dev), idx, charging_current);
+			_mtk_charger_change_current_setting(info);
+			_wake_up_charger(info);
+		}
+#else
 		pdata->thermal_charging_current_limit = charging_current;
 		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
 			dev_name(consumer->dev), idx, charging_current);
 		_mtk_charger_change_current_setting(info);
 		_wake_up_charger(info);
+/*Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic 2019/05/13 High tempture does not ok in poweroff charging end */
+#endif
 		return 0;
 	}
 	return -EBUSY;
@@ -1383,9 +1429,10 @@ static int mtk_charger_plug_in(struct charger_manager *info,
 
 	charger_dev_plug_in(info->chg1_dev);
 #ifdef ODM_HQ_EDIT
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor start*/
+	__pm_stay_awake(&mtk_charger_wake_lock);
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor end*/
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.01.08 add for vbus check*/
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.29 add wakesource for pulg in*/
-    __pm_stay_awake(&charger_temp_notify_lock);
 	notify_check = 1;
 	schedule_delayed_work(&info->vbus_check, msecs_to_jiffies(2000));
 #endif /*ODM_HQ_EDIT*/
@@ -1411,9 +1458,10 @@ static int mtk_charger_plug_out(struct charger_manager *info)
 	charger_dev_set_input_current(info->chg1_dev, 500000);
 	charger_dev_plug_out(info->chg1_dev);
 #ifdef ODM_HQ_EDIT
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor start*/
+	__pm_relax(&mtk_charger_wake_lock);
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor end*/
 /*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.1.8 add for vbus check*/
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.29 add wakesource for pulg in*/
-    __pm_relax(&charger_temp_notify_lock);
 	info->notify_code = 0;
 	notify_check = 0;
 	input_limit_level = CHARGER_CURRENT_LIMET_2000MA;
@@ -1603,6 +1651,28 @@ void mtk_battery_VbatId_check(struct charger_manager *info)
 #endif /* HQ_COMPILE_FACTORY_VERSION */
 #endif /*ODM_HQ_EDIT*/
 
+#ifdef ODM_HQ_EDIT
+/*Zhihua.qiao@ODM.HQ.BSP.CHG.Basic 2019.6.11 modify high tempture charge notify start*/
+static void mtk_battery_notify_VBatFull_check(struct charger_manager *info)
+{
+	bool chg_done = false;
+	charger_dev_is_charging_done(info->chg1_dev, &chg_done);
+	if (chg_done || last_full) {
+		if(info->battery_temp > 45) {
+			info->notify_code |= CHG_BAT_TEMP_HIG_FULL_STATUS;
+		} else if (info->battery_temp < 0) {
+			info->notify_code |= CHG_BAT_TEMP_LOW_FULL_STATUS;
+		} else {
+			info->notify_code |= CHG_BAT_FULL_STATUS;
+		}
+	} else {
+		full_status = 0;
+		info->notify_code &= ~(CHG_BAT_TEMP_HIG_FULL_STATUS |CHG_BAT_TEMP_LOW_FULL_STATUS | CHG_BAT_FULL_STATUS);
+	}
+	mtk_chgstat_notify(info);
+	chr_err("chg_done = %d full_status = %d last_full = %d\n", chg_done, full_status, last_full);
+}
+#else
 static void mtk_battery_notify_VBatFull_check(struct charger_manager *info)
 {
 	bool chg_done = false;
@@ -1630,6 +1700,8 @@ static void mtk_battery_notify_VBatFull_check(struct charger_manager *info)
 		info->notify_code &= ~(CHG_BAT_TEMP_HIG_FULL_STATUS |CHG_BAT_TEMP_LOW_FULL_STATUS | CHG_BAT_FULL_STATUS);
 	}
 }
+/*Zhihua.qiao@ODM.HQ.BSP.CHG.Basic 2019.6.11 modify high tempture charge notify end*/
+#endif
 
 static void mtk_battery_notify_VBatTimeout_check(struct charger_manager *info)
 {
@@ -1781,7 +1853,7 @@ static void update_vchg_work(struct work_struct *work)
 				}
 				break;
 			case BATTERY_STATUS_WARM_TEMP:
-				get_3_times_set_jeita(info, chg_dev, bat_volt, 4098, 4093, 100);
+				get_3_times_set_jeita(info, chg_dev, bat_volt, 4135, 4130, 100);
 				break;
 		}
 	} else {
@@ -2283,6 +2355,22 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 		info->data.usb_charger_current = USB_CHARGER_CURRENT;
 	}
 
+	#ifndef ODM_HQ_EDIT
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+	if((current_limit_board_id != CURRENT_LIMIT_GPIO_BOARD_ID) && (current_limit_pcb != CURRENT_LIMIT_GPIO_BOARD_PCB)) {
+		if (of_property_read_u32(np, "ac_charger_current", &val) >= 0) {
+			info->data.ac_charger_current = val;
+		} else {
+			chr_err("use default AC_CHARGER_CURRENT:%d\n",
+				AC_CHARGER_CURRENT);
+			info->data.ac_charger_current = AC_CHARGER_CURRENT;
+		}
+	} else {
+			chr_err("board default BOARD_AC_CHARGER_CURRENT:%d\n",
+				BOARD_AC_CHARGER_CURRENT);
+			info->data.ac_charger_current = BOARD_AC_CHARGER_CURRENT;
+	}
+	#else
 	if (of_property_read_u32(np, "ac_charger_current", &val) >= 0) {
 		info->data.ac_charger_current = val;
 	} else {
@@ -2290,9 +2378,38 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 			AC_CHARGER_CURRENT);
 		info->data.ac_charger_current = AC_CHARGER_CURRENT;
 	}
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+	#endif
 
 	info->data.pd_charger_current = 3000000;
 
+	#ifndef ODM_HQ_EDIT
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+	if((current_limit_board_id != CURRENT_LIMIT_GPIO_BOARD_ID) && (current_limit_pcb != CURRENT_LIMIT_GPIO_BOARD_PCB)) {
+		if (of_property_read_u32(np, "ac_charger_input_current", &val) >= 0)
+			info->data.ac_charger_input_current = val;
+		else {
+			chr_err("use default AC_CHARGER_INPUT_CURRENT:%d\n",
+				AC_CHARGER_INPUT_CURRENT);
+			info->data.ac_charger_input_current = AC_CHARGER_INPUT_CURRENT;
+		}
+
+		if (of_property_read_u32(np, "non_std_ac_charger_current", &val) >= 0)
+			info->data.non_std_ac_charger_current = val;
+		else {
+			chr_err("use default NON_STD_AC_CHARGER_CURRENT:%d\n",
+				NON_STD_AC_CHARGER_CURRENT);
+			info->data.non_std_ac_charger_current =
+						NON_STD_AC_CHARGER_CURRENT;
+		}
+	} else {
+			chr_err("board default BOARD_AC_CHARGER_INPUT_CURRENT:%d,BOARD_NON_STD_AC_CHARGER_CURRENT:%d\n",
+				BOARD_AC_CHARGER_INPUT_CURRENT,BOARD_NON_STD_AC_CHARGER_CURRENT);
+			info->data.ac_charger_input_current = BOARD_AC_CHARGER_INPUT_CURRENT;
+			info->data.non_std_ac_charger_current =
+						BOARD_NON_STD_AC_CHARGER_CURRENT;
+	}
+	#else
 	if (of_property_read_u32(np, "ac_charger_input_current", &val) >= 0)
 		info->data.ac_charger_input_current = val;
 	else {
@@ -2309,6 +2426,8 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 		info->data.non_std_ac_charger_current =
 					NON_STD_AC_CHARGER_CURRENT;
 	}
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+	#endif
 
 	if (of_property_read_u32(np, "charging_host_charger_current", &val)
 		>= 0) {
@@ -2320,6 +2439,35 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 					CHARGING_HOST_CHARGER_CURRENT;
 	}
 
+	#ifndef ODM_HQ_EDIT
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+	if((current_limit_board_id != CURRENT_LIMIT_GPIO_BOARD_ID) && (current_limit_pcb != CURRENT_LIMIT_GPIO_BOARD_PCB)) {
+		if (of_property_read_u32(np, "apple_1_0a_charger_current", &val) >= 0)
+			info->data.apple_1_0a_charger_current = val;
+		else {
+			chr_err("use default APPLE_1_0A_CHARGER_CURRENT:%d\n",
+				APPLE_1_0A_CHARGER_CURRENT);
+			info->data.apple_1_0a_charger_current =
+						APPLE_1_0A_CHARGER_CURRENT;
+		}
+
+		if (of_property_read_u32(np, "apple_2_1a_charger_current", &val) >= 0)
+			info->data.apple_2_1a_charger_current = val;
+		else {
+			chr_err("use default APPLE_2_1A_CHARGER_CURRENT:%d\n",
+				APPLE_2_1A_CHARGER_CURRENT);
+			info->data.apple_2_1a_charger_current =
+						APPLE_2_1A_CHARGER_CURRENT;
+		}
+	} else {
+			chr_err("board default BOARD_APPLE_1_0A_CHARGER_CURRENT:%d,BOARD_APPLE_2_1A_CHARGER_CURRENT:%d\n",
+				BOARD_APPLE_1_0A_CHARGER_CURRENT,BOARD_APPLE_2_1A_CHARGER_CURRENT);
+			info->data.apple_1_0a_charger_current =
+					BOARD_APPLE_1_0A_CHARGER_CURRENT;
+			info->data.apple_2_1a_charger_current =
+					BOARD_APPLE_2_1A_CHARGER_CURRENT;
+	}
+	#else
 	if (of_property_read_u32(np, "apple_1_0a_charger_current", &val) >= 0)
 		info->data.apple_1_0a_charger_current = val;
 	else {
@@ -2337,6 +2485,8 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 		info->data.apple_2_1a_charger_current =
 					APPLE_2_1A_CHARGER_CURRENT;
 	}
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+	#endif
 
 	if (of_property_read_u32(np, "ta_ac_charger_current", &val) >= 0)
 		info->data.ta_ac_charger_current = val;
@@ -3449,49 +3599,49 @@ static void tbatt_power_off_work(struct work_struct *work)
 
 static ssize_t proc_tbatt_pwroff_write(struct file *filp, const char __user *buf, size_t len, loff_t *data)
 {
-        char buffer[2] = {0};
+	char buffer[2] = {0};
 
-        if (len > 2) {
-            return -EFAULT;
-        }
+	if (len > 2) {
+		return -EFAULT;
+	}
 
-        if (copy_from_user(buffer, buf, 2)) {
-            pr_err("%s:  error.\n", __func__);
-            return -EFAULT;
-        }
+	if (copy_from_user(buffer, buf, 2)) {
+		pr_err("%s:  error.\n", __func__);
+		return -EFAULT;
+	}
 
-        if (buffer[0] == '0') {
-            tbatt_pwroff_enable = 0;
-        } else if (buffer[0] == '1'){
+	if (buffer[0] == '0') {
+		tbatt_pwroff_enable = 0;
+	} else if (buffer[0] == '1'){
 		tbatt_pwroff_enable = 1;
-        }
-        pr_err("%s:tbatt_pwroff_enable = %d.\n", __func__, tbatt_pwroff_enable);
+	}
+	pr_err("%s:tbatt_pwroff_enable = %d.\n", __func__, tbatt_pwroff_enable);
 
-        return len;
+	return len;
 }
 static ssize_t proc_tbatt_pwroff_read(struct file *filp, char __user *buff, size_t count, loff_t *off)
 {
-        char page[256] = {0};
-        char read_data[3] = {0};
-        int len = 0;
+	char page[256] = {0};
+	char read_data[3] = {0};
+	int len = 0;
 
-        if (tbatt_pwroff_enable == 1) {
-                read_data[0] = '1';
-        } else {
-                read_data[0] = '0';
-        }
-        read_data[1] = '\0';
-        len = sprintf(page, "%s", read_data);
-        if (len > *off) {
-                len -= *off;
-        } else {
-                len = 0;
-        }
-        if (copy_to_user(buff, page, (len < count ? len : count))) {
-                return -EFAULT;
-        }
-        *off += len < count ? len : count;
-        return (len < count ? len : count);
+	if (tbatt_pwroff_enable == 1) {
+		read_data[0] = '1';
+	} else {
+		read_data[0] = '0';
+	}
+	read_data[1] = '\0';
+	len = sprintf(page, "%s", read_data);
+	if (len > *off) {
+		len -= *off;
+	} else {
+		len = 0;
+	}
+	if (copy_to_user(buff, page, (len < count ? len : count))) {
+		return -EFAULT;
+	}
+	*off += len < count ? len : count;
+	return (len < count ? len : count);
 }
 
 static const struct file_operations tbatt_pwroff_proc_fops = {
@@ -3530,6 +3680,14 @@ void get_BatPcb_version(struct charger_manager *info)
 	pcb = (board_id >> 8) & 0x3;
 	pr_err("[%s][%d] board_id = %d  pcb = %d\n", __func__, __LINE__, board_id, pcb);
 	info->PCB_version = pcb;
+
+	#ifdef ODM_HQ_EDIT
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+	current_limit_board_id = board_id;
+	current_limit_pcb =(current_limit_board_id & 0xFF);
+	pr_err("[%s][%d] current_limit_board_id = %d,current_limit_pcb = %d\n", __func__, __LINE__, current_limit_board_id,current_limit_pcb);
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+	#endif
 }
 
 
@@ -3548,17 +3706,60 @@ static void input_current_aicl(int aicl_point)
 		input_limit_level = level_temp;
 		goto aicl_end;
 	}
-
-	level_temp = CHARGER_CURRENT_LIMET_900MA;
-	charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
-	msleep(90);
-	vbus_vlot = pmic_get_vbus();
-	if (vbus_vlot < aicl_point)
+#ifdef ODM_HQ_EDIT
+/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/05/13 modify for board_id 255 pcb current to 1000mA start*/
+	if((current_limit_pcb == CURRENT_LIMIT_GPIO_BOARD_PCB) && esd_recovery_backlight_level > 0)
 	{
-		input_limit_level = level_temp - 1;
-		goto aicl_end;
-	}
+		level_temp = CHARGER_CURRENT_LIMET_900MA;
+		charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
+		msleep(90);
+		vbus_vlot = pmic_get_vbus();
+		if (vbus_vlot < aicl_point)
+		{
+			input_limit_level = level_temp - 1;
+			goto aicl_end;
+		}
+	} else {
+		level_temp = CHARGER_CURRENT_LIMET_900MA;
+		charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
+		msleep(90);
+		vbus_vlot = pmic_get_vbus();
+		if (vbus_vlot < aicl_point)
+		{
+			input_limit_level = level_temp - 1;
+			goto aicl_end;
+		}
+		level_temp = CHARGER_CURRENT_LIMET_1200MA;
+		charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
+		msleep(90);
+		vbus_vlot = pmic_get_vbus();
+		if (vbus_vlot < aicl_point)
+		{
+			input_limit_level = level_temp - 1;
+			goto aicl_end;
+		}
 
+		level_temp = CHARGER_CURRENT_LIMET_1500MA;
+		charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
+		msleep(90);
+		vbus_vlot = pmic_get_vbus();
+		if (vbus_vlot < aicl_point)
+		{
+			input_limit_level = level_temp - 2;
+			goto aicl_end;
+		}
+
+		level_temp = CHARGER_CURRENT_LIMET_2000MA;
+		charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
+		msleep(90);
+		vbus_vlot = pmic_get_vbus();
+		if (vbus_vlot < aicl_point)
+		{
+			input_limit_level = level_temp - 1;
+			goto aicl_end;
+		}
+	}
+	#else
 	level_temp = CHARGER_CURRENT_LIMET_1200MA;
 	charger_dev_set_input_current(chg_dev,cust_input_limit_current[level_temp]);
 	msleep(90);
@@ -3588,6 +3789,8 @@ static void input_current_aicl(int aicl_point)
 		input_limit_level = level_temp - 1;
 		goto aicl_end;
 	}
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+	#endif
 	input_limit_level = level_temp;
 aicl_end:
 	pr_err("AICL: vbus:%d current:%d\n",vbus_vlot ,cust_input_limit_current[input_limit_level]);
@@ -3676,6 +3879,15 @@ static int mtk_charger_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	pinfo = info;
+	#ifdef ODM_HQ_EDIT
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA start*/
+	get_BatPcb_version(info);
+	/* Shewen.Wang@ODM.HQ.BSP.CHG.Basic  2019/04/01 modify for board_id 255 pcb current to 1000mA end*/
+
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor start*/
+	wakeup_source_init(&mtk_charger_wake_lock, "charger wakelock");
+	/* Zhihua.Qiao@ODM.HQ.BSP.CHG.Basic  2019/04/30 modify for poweroff mode battery temp monitor end*/
+	#endif
 
 	platform_set_drvdata(pdev, info);
 	info->pdev = pdev;
@@ -3686,11 +3898,6 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	mutex_init(&info->cable_out_lock);
 	atomic_set(&info->enable_kpoc_shdn, 1);
 	wakeup_source_init(&info->charger_wakelock, "charger suspend wakelock");
-#ifdef ODM_HQ_EDIT
-/*Hanxing.Duan@ODM.HQ.BSP.CHG.Basic 2019.04.29 add wakesource for pulg in*/
-    wakeup_source_init(&charger_temp_notify_lock, "charger_temp_notify_lock wakelock");
-#endif  /* ODM_HQ_EDIT */
-
 	spin_lock_init(&info->slock);
 
 	/* init thread */
@@ -3751,8 +3958,8 @@ static int mtk_charger_probe(struct platform_device *pdev)
 /*Hanxing.Duan@ODM.HQ.BSP.Basic 2018.12.06 add runin control API*/
 	charger_proc_init();
 	get_BatPcb_version(info);
-	INIT_DELAYED_WORK(&info->tbatt_kpof_work, tbatt_power_off_work);
 	INIT_DELAYED_WORK(&info->vbus_check, vbus_check_work);
+	INIT_DELAYED_WORK(&info->tbatt_kpof_work, tbatt_power_off_work);
 	INIT_DELAYED_WORK(&info->vchg_work, update_vchg_work);
 	schedule_delayed_work(&info->vchg_work, msecs_to_jiffies(10000));
 	schedule_delayed_work(&info->tbatt_kpof_work, msecs_to_jiffies(5000));

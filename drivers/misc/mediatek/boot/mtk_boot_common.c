@@ -42,7 +42,7 @@ enum {
 	BM_INITIALIZED = 2,
 } BM_INIT_STATE;
 
-enum boot_mode_t g_boot_mode = UNKNOWN_BOOT;
+enum boot_mode_t g_boot_mode __ro_after_init = UNKNOWN_BOOT;
 static int g_boot_type = 0xFF;
 static atomic_t g_boot_init = ATOMIC_INIT(BM_UNINIT);
 static atomic_t g_boot_errcnt = ATOMIC_INIT(0);
@@ -83,6 +83,32 @@ static int __init dt_get_boot_common(unsigned long node, const char *uname,
 }
 #endif
 
+#ifdef VENDOR_EDIT
+/*Xianlin.Wu@ROM.Security add for detect bootloader unlock state 2019-10-28*/
+static int verified_boot_state __ro_after_init = VERIFIED_BOOT_STATE__GREEN;
+bool is_bootloader_unlocked(void)
+{
+        return verified_boot_state == VERIFIED_BOOT_STATE__ORANGE;
+}
+
+static int __init verified_boot_state_init(void)
+{
+        char * substr = strstr(boot_command_line, "androidboot.verifiedbootstate=");
+        if (substr) {
+                substr += strlen("androidboot.verifiedbootstate=");
+                if (strncmp(substr, "green", 5) == 0) {
+                        verified_boot_state = VERIFIED_BOOT_STATE__GREEN;
+                } else if (strncmp(substr, "orange", 6) == 0) {
+                        verified_boot_state = VERIFIED_BOOT_STATE__ORANGE;
+                } else if (strncmp(substr, "yellow", 6) == 0) {
+                        verified_boot_state = VERIFIED_BOOT_STATE__YELLOW;
+                } else if (strncmp(substr, "red", 3) == 0) {
+                        verified_boot_state = VERIFIED_BOOT_STATE__RED;
+                }
+        }
+        return 0;
+}
+#endif /*VENDOR_EDIT*/
 
 static void __init init_boot_common(unsigned int line)
 {
@@ -339,7 +365,7 @@ static int boot_mode_proc_show(struct seq_file *p, void *v)
 
 #ifdef VENDOR_EDIT
 /* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24, Add for oppo boot mode */
-OPPO_BOOTMODE oppo_boot_mode = OPPO_NORMAL_BOOT;
+OPPO_BOOTMODE oppo_boot_mode __ro_after_init = OPPO_NORMAL_BOOT;
 static int oppo_get_boot_mode(char *oppo_boot_mode_char)
 {
 	int  boot_mode_temp = 0;
@@ -382,6 +408,10 @@ static const struct file_operations boot_mode_proc_fops = {
 static int __init boot_common_core(void)
 {
 	init_boot_common(__LINE__);
+	#ifdef VENDOR_EDIT
+	/*Xianlin.Wu@ROM.Security add for detect bootloader unlock state 2019-10-28*/
+        verified_boot_state_init();
+	#endif /*VENDOR_EDIT*/
 	/* create proc entry at /proc/boot_mode */
 	if (proc_create_data("boot_mode", 0444, NULL,
 		&boot_mode_proc_fops, NULL) == NULL)

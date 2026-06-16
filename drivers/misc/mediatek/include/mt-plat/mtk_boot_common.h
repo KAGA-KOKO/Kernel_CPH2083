@@ -60,6 +60,18 @@ extern OPPO_BOOTMODE oppo_boot_mode;
 #define BOOT_MODE_SYSFS_ATTR    "boot_mode"
 #define BOOT_TYPE_SYSFS_ATTR    "boot_type"
 
+#ifdef VENDOR_EDIT
+/*Xianlin.Wu@ROM.Security add for detect bootloader unlock state 2019-10-28*/
+enum{
+        VERIFIED_BOOT_STATE__GREEN,
+        VERIFIED_BOOT_STATE__ORANGE,
+        VERIFIED_BOOT_STATE__YELLOW,
+        VERIFIED_BOOT_STATE__RED,
+};
+ 
+extern bool is_bootloader_unlocked(void);
+#endif /*VENDOR_EDIT*/
+
 extern enum boot_mode_t get_boot_mode(void);
 extern unsigned int get_boot_type(void);
 extern bool is_meta_mode(void);

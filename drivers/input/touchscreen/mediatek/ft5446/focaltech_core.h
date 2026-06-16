@@ -207,8 +207,6 @@ extern struct fts_ts_data *fts_data;
 extern bool ito_test_result;
 /*Yin.Zhang@ODM_HQ.BSP.TP.Function, 2018/12/25 modified for gesture*/
 extern struct fts_gesture_st fts_gesture_data;
-/*Ju.Qian@ODM_HQ.BSP.TP.Function, 2019/04/18 modified for firmware compatible*/
-extern int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid);
 
 int fts_test_entry(char *ini_file_name);
 int32_t oppo_fts_extra_proc_init(void);

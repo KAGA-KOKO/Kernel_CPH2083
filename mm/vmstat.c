@@ -946,7 +946,12 @@ const char * const vmstat_text[] = {
 	"numa_other",
 #endif
 	"nr_free_cma",
-
+#ifdef VENDOR_EDIT
+/* Hui.Fan@PSW.BSP.Kernel.MM, 2017-8-21
+ * Account free pages for MIGRATE_OPPO
+ */
+	"nr_free_oppo2",
+#endif /* VENDOR_EDIT */
 	/* Node-based counters */
 	"nr_inactive_anon",
 	"nr_active_anon",
@@ -996,6 +1001,7 @@ const char * const vmstat_text[] = {
 
 	"pgfault",
 	"pgmajfault",
+	"pgfmfault",
 	"pglazyfreed",
 
 	"pgrefill",
